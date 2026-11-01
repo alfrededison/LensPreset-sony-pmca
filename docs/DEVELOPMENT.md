@@ -179,6 +179,7 @@ With OpenMemories-Tweak's adb on (Wi-Fi or USB) and `out/LensPreset.apk` built:
 ```bash
 tools/camera-test.sh 192.168.1.68:5555            # or set CAMERA; about two minutes
 tools/camera-test.sh --photos 192.168.1.68:5555   # about three minutes; needs exiftool
+tools/camera-test.sh --face 192.168.1.68:5555     # Soft Skin only; needs a face in the frame
 ```
 
 How a setting is known to have taken:
@@ -191,8 +192,9 @@ How a setting is known to have taken:
    program, f-number, shutter, exposure compensation, metering, focus mode, Creative Style, Soft Skin)
    are compared with the report by `tools/camera-test/exif_check.py`: `photo ok`, `PHOTO MISMATCH`,
    `photo has no …` when the picture does not record a setting, or `photo can't tell` for Soft Skin
-   in a picture without a face (the body records Off then). This is what the camera really shot with. The pictures stay on the card; delete
-   them on the camera.
+   in a picture without a face (the body records Off then; `--face` asks for one and shoots
+   portrait-bokeh only). This is what the camera really shot with. The pictures stay on the card;
+   delete them on the camera.
 3. **Your eyes**, for what a photo does not record (face frames on the live view).
 
 It installs the APK, puts `DEBUG.TXT` (`adb-control`) and the test presets in `tools/camera-test/`

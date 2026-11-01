@@ -2,8 +2,8 @@
 # One pass over everything that needs a real body, driven over adb (OpenMemories-Tweak's adb, over
 # Wi-Fi or USB). No keys are pressed blind.
 #
-#   tools/camera-test.sh [--photos] [serial]     serial: e.g. 192.168.1.68:5555; default $CAMERA,
-#                                                else the only device
+#   tools/camera-test.sh [--photos | --face] [serial]   serial: e.g. 192.168.1.68:5555; default
+#                                                       $CAMERA, else the only device
 #
 # Quick (about two minutes): every setting is read back from the camera after it is written, so the
 # report says whether the camera really holds it, not only that the call went through.
@@ -11,6 +11,9 @@
 # MakerNotes — what the camera really shot with — against what the app set (needs exiftool; point the
 # camera at something it can focus on). The pictures stay on the card: delete them on the camera,
 # since deleting over adb can confuse its picture database.
+# --face (about a minute, run it from a terminal): Soft Skin only, which the body applies to detected
+# faces alone. Applies portrait-bokeh, waits for Enter while you hold a face in the frame (a person,
+# or a portrait on a phone or screen), shoots and checks the photo; up to three tries.
 #
 # What it does:
 #   1. installs out/LensPreset.apk (build it first) and puts on the card, for the run only:
@@ -33,7 +36,11 @@ ADB=${ADB:-$ANDROID_SDK/platform-tools/adb}
 [ -x "$ADB" ] || ADB=$(command -v adb)
 CARD=${CARD:-/mnt/sdcard}
 PHOTOS=0
-if [ "${1:-}" = "--photos" ]; then PHOTOS=1; shift; fi
+FACE=0
+case "${1:-}" in
+  --photos) PHOTOS=1; shift ;;
+  --face) PHOTOS=1; FACE=1; shift ;;
+esac
 SERIAL=${1:-${CAMERA:-}}
 APK=out/LensPreset.apk
 APP=com.lenspreset/.app.MainActivity
@@ -50,6 +57,10 @@ show() { { applog | grep -E "$1" | sed 's/^.*LensPreset[^:]*: /  /'; } | tee -a 
 [ -f "$APK" ] || { echo "no $APK: run ./build.sh first" >&2; exit 1; }
 a get-state >/dev/null 2>&1 || { echo "no device (serial: ${SERIAL:-any})" >&2; exit 1; }
 mkdir -p "$OUT"
+if [ "$FACE" = 1 ] && { ! command -v exiftool >/dev/null || [ ! -t 0 ]; }; then
+  echo "--face needs exiftool (brew install exiftool) and a terminal to press Enter in" >&2
+  exit 1
+fi
 if [ "$PHOTOS" = 1 ] && ! command -v exiftool >/dev/null; then
   echo "exiftool not found (brew install exiftool): photo checks skipped"
   PHOTOS=0
@@ -99,6 +110,20 @@ shoot_and_check() {
   exiftool -j -q -q -ExposureTime# -FNumber# -ExposureCompensation# -ISO -ExposureProgram -MeteringMode \
     -FocusMode -AFAreaMode -CreativeStyle -SoftSkinEffect -FacesDetected# -ReleaseMode "$OUT/$p.jpg" > "$OUT/$p.exif.json" 2>/dev/null || true
   python3 tools/camera-test/exif_check.py "$OUT/$p.exif.json" "$OUT/$p.report.txt" | tee -a "$OUT/summary.txt" || true
+}
+
+# Soft Skin needs a face: asks for one before each shot, and shoots again while the photo has none.
+face_shots() {
+  local p=$1 try faces
+  for try in 1 2 3; do
+    rm -f "$OUT/$p.exif.json"
+    read -r -p "  Hold a face in the frame until the camera shows a face box, then press Enter (try $try/3) " _
+    shoot_and_check "$p"
+    faces=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0].get("FacesDetected", 0))' \
+      "$OUT/$p.exif.json" 2>/dev/null || echo 0)
+    if [ "${faces:-0}" -gt 0 ]; then return; fi
+    say "  no face in the photo"
+  done
 }
 
 cmd() { a shell am broadcast -a com.lenspreset.debug --es cmd "$1" ${2:+--es arg "$2"} >/dev/null; }
@@ -151,6 +176,7 @@ cmd awake on
 # Every bundled preset once; then shutter both ways and manual mode.
 PRESETS="group portrait-bokeh portrait-environment silhouette high-key kids-action indoor-low-light \
 zz-test-shutter-60 kids-action zz-test-manual"
+if [ "$FACE" = 1 ]; then PRESETS=portrait-bokeh; fi
 for p in $PRESETS; do
   a logcat -c
   cmd apply "$p"
@@ -160,21 +186,24 @@ for p in $PRESETS; do
     say "== $p"
     show 'apply |OK |FAILED|PARTIAL|UNSUPPORTED|MISMATCH|status'
     applog | sed -n "/apply $p /,/apply-end $p/p" > "$OUT/$p.report.txt" || true
-    if [ "$PHOTOS" = 1 ]; then shoot_and_check "$p"; fi
+    if [ "$FACE" = 1 ]; then face_shots "$p"
+    elif [ "$PHOTOS" = 1 ]; then shoot_and_check "$p"; fi
   else
     say "== $p: FAIL, no apply report"
     show 'adb command'
   fi
 done
 
-say "== probe"
-a logcat -c
-cmd probe
-if wait_log 'probe (saved|failed)' 20; then
-  show 'probe (saved|failed)'
-  a pull "$DIR/PROBE.TXT" "$OUT/PROBE.TXT" >/dev/null 2>&1 && say "  copied to $OUT/PROBE.TXT"
-else
-  say "  FAIL: no probe result in 20 s"
+if [ "$FACE" = 0 ]; then
+  say "== probe"
+  a logcat -c
+  cmd probe
+  if wait_log 'probe (saved|failed)' 20; then
+    show 'probe (saved|failed)'
+    a pull "$DIR/PROBE.TXT" "$OUT/PROBE.TXT" >/dev/null 2>&1 && say "  copied to $OUT/PROBE.TXT"
+  else
+    say "  FAIL: no probe result in 20 s"
+  fi
 fi
 
 say "== result"
