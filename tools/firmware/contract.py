@@ -33,6 +33,7 @@ import dex  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 STUBS_SRC = os.path.join(ROOT, "camera-adapter", "stubs", "src")
+OPTIONAL = os.path.join(ROOT, "camera-adapter", "stubs", "optional.txt")
 
 # Methods worth a look on a new firmware: names the app does not call yet but that hint at features
 # the camera profiles track (eye AF, soft skin, silent shutter, lens and focal reporting).
@@ -97,6 +98,14 @@ def _lookup(found, cls, kind, key):
     return None
 
 
+def load_optional(path=OPTIONAL):
+    """Members the adapter copes without (camera-adapter/stubs/optional.txt)."""
+    if not os.path.exists(path):
+        return frozenset()
+    with open(path) as f:
+        return frozenset(l.strip() for l in f if l.strip() and not l.lstrip().startswith("#"))
+
+
 def contract_keys(contract):
     """The api keys a report holds for these stubs: class, class#method, class.field."""
     keys = set()
@@ -107,8 +116,8 @@ def contract_keys(contract):
     return keys
 
 
-def check_reports(keys, reports_dir):
-    """(failures, warnings) for the committed reports against the current contract keys."""
+def check_reports(keys, reports_dir, optional=frozenset()):
+    """(names, failures, warnings) for the committed reports against the current contract keys."""
     failures = []
     warnings = []
     names = sorted(n for n in os.listdir(reports_dir) if n.endswith(".json")) if os.path.isdir(reports_dir) else []
@@ -116,7 +125,7 @@ def check_reports(keys, reports_dir):
         with open(os.path.join(reports_dir, n)) as f:
             report = json.load(f)
         api = report.get("api", {})
-        absent = sorted(k for k in keys if api.get(k) is False)
+        absent = sorted(k for k in keys if api.get(k) is False and k not in optional)
         if absent:
             failures.append("%s: the firmware lacks %s" % (n, ", ".join(absent)))
         if report.get("constant_mismatches"):
@@ -188,7 +197,7 @@ def main(argv=None):
         contract = load_contract(args.stubs_classes or compile_stubs(tmp))
 
     if args.check_reports:
-        names, failures, warnings = check_reports(contract_keys(contract), args.out)
+        names, failures, warnings = check_reports(contract_keys(contract), args.out, load_optional())
         prefix = "::warning::" if os.environ.get("GITHUB_ACTIONS") else "warning: "
         for w in warnings:
             print(prefix + w)
@@ -203,7 +212,10 @@ def main(argv=None):
     if not files:
         print("no Sony framework code found under %s" % args.extracted, file=sys.stderr)
         return 2
-    api, missing_classes, missing_members, mismatches = check(contract, found)
+    api, missing_classes, missing, mismatches = check(contract, found)
+    optional = load_optional()
+    missing_members = [m for m in missing if m not in optional]
+    missing_optional = [m for m in missing if m in optional]
     report = {
         "model": args.model,
         "firmware": args.version,
@@ -212,6 +224,7 @@ def main(argv=None):
         "ok": not (missing_classes or missing_members or mismatches),
         "missing_classes": missing_classes,
         "missing_members": missing_members,
+        "missing_optional": missing_optional,
         "constant_mismatches": mismatches,
         "api": api,
         "observations": observations(found),
@@ -224,6 +237,7 @@ def main(argv=None):
 
     print("%s %s: %d members checked in %s" % (args.model, args.version, len(api), ", ".join(files)))
     for title, items in (("missing classes", missing_classes), ("missing members", missing_members),
+                         ("missing, optional (the app copes)", missing_optional),
                          ("constant mismatches", mismatches)):
         if items:
             print("  %s:" % title)

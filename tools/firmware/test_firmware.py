@@ -22,6 +22,7 @@ import classfile  # noqa: E402
 import contract  # noqa: E402
 import dex  # noqa: E402
 import extract  # noqa: E402
+import updater  # noqa: E402
 
 
 def find_d8():
@@ -97,8 +98,21 @@ class StubContractTest(unittest.TestCase):
             self.assertEqual(2, len(failures))
             self.assertIn("getLensInfo", failures[0])
             self.assertIn("X.Y", failures[1])
+
+            os.remove(os.path.join(d, "C-1.0.json"))
+            optional = dict(full)
+            optional["com.sony.scalar.hardware.CameraEx$LensInfo.LensId"] = False
+            self.write_report(d, "D-1.0.json", optional)
+            names, failures, warnings = contract.check_reports(
+                keys, d, frozenset(["com.sony.scalar.hardware.CameraEx$LensInfo.LensId"]))
+            self.assertEqual([], failures, "a missing optional member is a fact, not a failure")
         finally:
             shutil.rmtree(d)
+
+    def test_optional_members_are_in_the_contract(self):
+        keys = contract.contract_keys(self.contract)
+        for k in contract.load_optional():
+            self.assertIn(k, keys, "optional.txt names a member the stubs do not declare")
 
     def test_committed_reports_pass(self):
         rc = contract.main(["--check-reports", "--stubs-classes", self.classes])
@@ -245,6 +259,42 @@ class DefaultsAndDamageTest(unittest.TestCase):
             self.assertIn("com.sony.scalar.hardware.CameraEx", found)
         finally:
             shutil.rmtree(tmp)
+
+
+class UpdaterTest(unittest.TestCase):
+    def test_takes_the_firmware_data_out_of_a_starter_updater(self):
+        dat = updater.DAT_MAGIC + b"firmware body"
+        exe = updater.build([], groups=[
+            ("!!!E8FF0748-2339-49f9-9A79-824D7561736C", [("FirmwareUpdater.exe", b"MZ" + bytes(30)),
+                                                        ("FirmwareUpdater.log", b"")]),
+            ("Resource\\", [("FirmwareData_ILCE5100V310.dat", dat), ("StrUS.dll", b"MZ" + bytes(10))]),
+        ])
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "Update.exe")
+            with open(path, "wb") as f:
+                f.write(exe)
+            with open(path, "rb") as f:
+                names = [e[1] for e in updater.entries(f)]
+            self.assertEqual(["FirmwareUpdater.exe", "FirmwareUpdater.log", "FirmwareData_ILCE5100V310.dat", "StrUS.dll"], names)
+            out = os.path.join(d, "out.dat")
+            self.assertEqual("FirmwareData_ILCE5100V310.dat", updater.extract_dat(path, out))
+            with open(out, "rb") as f:
+                self.assertEqual(dat, f.read())
+        finally:
+            shutil.rmtree(d)
+
+    def test_other_files_are_left_to_fwtool(self):
+        d = tempfile.mkdtemp()
+        try:
+            for name, content in (("plain.dat", updater.DAT_MAGIC + bytes(20)), ("noarchive.exe", updater.build([])[:600]),
+                                  ("wrongmagic.exe", updater.build([("FirmwareData_X.dat", b"not a dat file")]))):
+                path = os.path.join(d, name)
+                with open(path, "wb") as f:
+                    f.write(content)
+                self.assertIsNone(updater.extract_dat(path, os.path.join(d, "out.dat")), name)
+        finally:
+            shutil.rmtree(d)
 
 
 class ClassfileTest(unittest.TestCase):

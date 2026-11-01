@@ -77,7 +77,6 @@ public class CameraEx {
         public long LensId;
         public String LensName;
         public String LensType;
-        public int LensVersion;
         public WideTele MaxFValue;
         public WideTele MinFValue;
     }

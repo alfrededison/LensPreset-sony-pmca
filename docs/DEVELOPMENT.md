@@ -67,12 +67,12 @@ the apply report and in `LOG.TXT`, never a crash.
 |---|---|---|
 | exposure mode | `Camera.Parameters.setSceneMode("aperture-priority" / "shutter-speed" / "manual-exposure" / "program-auto")` | used by BetterManual (A, M) |
 | aperture, shutter | `increment/decrementAperture()`, `increment/decrementShutterSpeed()`, stepped with feedback from the change listeners (`ValueSeeker` learns the direction) | used by BetterManual |
-| ISO, Auto ISO | `setISOSensitivity(0 = auto)`, `setISOAutoMin/Max` | ISO used by BetterManual; range unverified |
+| ISO, Auto ISO | `setISOSensitivity(0 = auto)`, `setISOAutoMin/Max` | ISO used by BetterManual; the range calls do not exist on ILCE-5100 3.10 (firmware report) |
 | Auto ISO minimum speed | `setAutoShutterSpeedLowLimit(code)`, BetterManual's experimental code table | used by BetterManual |
 | EV | `Camera.Parameters.setExposureCompensation(index)` | used by BetterManual |
 | metering, AF mode / area, face detection, drive, self-timer, Creative Style, Soft Skin | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | unverified |
-| lens | `getLensInfo()` name / id; `FocalLengthChangeListener` (unit unknown: `Matcher.focalMm` infers ×1/×10/×100 from the lens range); `ApertureInfo.currentAvailableMin` as the widest aperture now | unverified |
-| eye AF | no API found in the stubs: the app tells the user to use the camera's own Eye AF button | — |
+| lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (unit unknown: `Matcher.focalMm` infers ×1/×10/×100 from the lens range); `ApertureInfo.currentAvailableMin` as the widest aperture now | unverified |
+| eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
 
 **Roadmap steps 1–2 (spike and API survey on the A5100)** are what MENU → *Run camera probe*
 is for: it writes every supported list, current value, lens report and the full
@@ -100,10 +100,17 @@ git add firmware/reports/ILCE-5100-3.10.json      # and the sha256 it printed, i
 
 `extract.py` checks the file against the `sha256` in `sources.json` (or prints it to record),
 unpacks into `.firmware/extracted/<model>-<version>/` (git-ignored), and runs `contract.py`.
-`fwtool unpack` turns the Windows updater `.exe` into `firmware.tar` and recurses into every
-filesystem image inside it (`*_unpacked`). `contract.py` compiles the stubs, reads every
+Newer updaters (Sony's "Firmware Updater Starter" 1.1.8, e.g. `Update_ILCE5100V310.exe`) append an
+uncompressed file archive fwtool does not know; `tools/firmware/updater.py` takes their
+`FirmwareData_*.dat` out first, and fwtool reads that. `fwtool unpack` turns it into `firmware.tar`
+and recurses into every filesystem image inside it (`*_unpacked`). `contract.py` compiles the stubs, reads every
 `.dex/.odex/.jar/.apk` in the extracted tree with a small DEX parser, and checks each stub class,
 method (with inherited members) and constant value. The report holds facts only.
+
+Members listed in `camera-adapter/stubs/optional.txt` may be missing: the adapter catches
+`NoSuchMethodError` / `NoSuchFieldError` for them and reports the setting as unsupported. A firmware
+without one is recorded under `missing_optional` and still passes. Add a member there only after its
+call site copes with the absence.
 
 For models Sony no longer hosts, dump your own body (Sony-PMCA-RE updater mode) and pass the dump
 as `--file`.

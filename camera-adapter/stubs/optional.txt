@@ -1,0 +1,12 @@
+# Stub members the adapter calls but copes without: SonyCamera catches NoSuchMethodError /
+# NoSuchFieldError for each and reports the setting as unsupported instead of failing. A firmware
+# that lacks one of these is not a contract failure (tools/firmware/contract.py), only a fact in its
+# report ("missing_optional"). Add a member here only after making its call site handle the absence.
+
+# Absent on ILCE-5100 3.10: the lens name is still read; matching by id is skipped.
+com.sony.scalar.hardware.CameraEx$LensInfo.LensId
+
+# Absent on ILCE-5100 3.10: Auto ISO keeps the camera's own range.
+com.sony.scalar.hardware.CameraEx$ParametersModifier#getSupportedISOAutoMaxMin()Ljava/util/List;
+com.sony.scalar.hardware.CameraEx$ParametersModifier#setISOAutoMax(I)V
+com.sony.scalar.hardware.CameraEx$ParametersModifier#setISOAutoMin(I)V

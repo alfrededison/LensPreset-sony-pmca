@@ -69,6 +69,7 @@ public final class SonyCamera {
     private Shutter shutter;
     private int focalRaw;
     private Seek seek;
+    private String lensProblem;
     /** The settle delay of the apply in progress, removed when a newer apply starts. */
     private Runnable pendingSettle;
     /** Bumped by every apply; an older apply's steps and callback are dropped. */
@@ -190,14 +191,33 @@ public final class SonyCamera {
         return focalRaw;
     }
 
+    /** Why the last {@link #readLens()} returned null, for the log. */
+    public String lensProblem() {
+        return lensProblem;
+    }
+
     public LensReading readLens() {
+        lensProblem = null;
         try {
             CameraEx.LensInfo info = cam.getLensInfo();
-            if (info == null) return null;
+            if (info == null) {
+                lensProblem = "getLensInfo returned null";
+                return null;
+            }
             int wide = info.FocalLength != null ? info.FocalLength.wide : 0;
             int tele = info.FocalLength != null ? info.FocalLength.tele : 0;
-            return new LensReading(info.LensName, info.LensId == 0 ? null : info.LensId, wide, tele);
+            return new LensReading(info.LensName, lensId(info), wide, tele);
         } catch (Throwable t) {
+            lensProblem = "getLensInfo: " + ApplyReport.describe(t);
+            return null;
+        }
+    }
+
+    /** LensId is missing on some firmware (ILCE-5100 3.10); see camera-adapter/stubs/optional.txt. */
+    private static Long lensId(CameraEx.LensInfo info) {
+        try {
+            return info.LensId == 0 ? null : Long.valueOf(info.LensId);
+        } catch (NoSuchFieldError e) {
             return null;
         }
     }
@@ -247,6 +267,8 @@ public final class SonyCamera {
                 }
             });
             report.add(key, ApplyReport.Status.OK, value);
+        } catch (NoSuchMethodError e) {
+            report.add(key, ApplyReport.Status.UNSUPPORTED, value + " not on this firmware");
         } catch (Throwable t) {
             report.add(key, ApplyReport.Status.FAILED, value + " " + ApplyReport.describe(t));
         }
@@ -260,6 +282,9 @@ public final class SonyCamera {
         try {
             write(w);
             report.add(key, ApplyReport.Status.OK, detail);
+        } catch (NoSuchMethodError e) {
+            // Optional on some firmware, e.g. setISOAutoMin/Max on ILCE-5100 3.10 (stubs/optional.txt).
+            report.add(key, ApplyReport.Status.UNSUPPORTED, detail + " not on this firmware");
         } catch (Throwable t) {
             report.add(key, ApplyReport.Status.FAILED, detail + " " + ApplyReport.describe(t));
         }
@@ -581,12 +606,19 @@ public final class SonyCamera {
             });
         }
         out.probe("getLensInfo", new ProbeReport.Read() {
-            public Object get() {
+            public Object get() throws IllegalAccessException {
                 CameraEx.LensInfo i = cam.getLensInfo();
                 if (i == null) return null;
-                return "name=" + i.LensName + " id=" + i.LensId + " type=" + i.LensType + " version=" + i.LensVersion
-                        + " fixedAperture=" + i.FixedAperture
-                        + " focal=" + wideTele(i.FocalLength) + " maxF=" + wideTele(i.MaxFValue) + " minF=" + wideTele(i.MinFValue);
+                // Every field the firmware's LensInfo has, by reflection: the set differs by firmware.
+                StringBuilder sb = new StringBuilder();
+                for (java.lang.reflect.Field f : i.getClass().getFields()) {
+                    if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+                    Object v = f.get(i);
+                    if (sb.length() > 0) sb.append(' ');
+                    sb.append(f.getName()).append('=')
+                            .append(v instanceof CameraEx.WideTele ? wideTele((CameraEx.WideTele) v) : String.valueOf(v));
+                }
+                return sb.toString();
             }
         });
 

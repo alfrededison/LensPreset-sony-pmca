@@ -10,10 +10,11 @@ committed or uploaded. CI only checks the committed reports (contract.py --check
 
 --file takes Sony's Windows updater (.exe; fwtool does not read the Mac .dmg), its
 FirmwareData.dat, or a dump from your own body (Sony-PMCA-RE's updater mode) for models Sony no
-longer hosts. `fwtool unpack` takes the updater apart (exe -> FirmwareData.dat -> decrypted FDAT ->
-firmware.tar) and recurses into every archive it writes, so the partition images inside
-firmware.tar (ext2, axfs, cramfs, ...) land in *_unpacked folders, Android's /system/framework among
-them. contract.py scans that whole tree.
+longer hosts. Newer updaters (Update_ILCE5100V310.exe among them) are a format fwtool does not know;
+updater.py takes their FirmwareData_*.dat out first. `fwtool unpack` then takes it apart
+(FirmwareData.dat -> decrypted FDAT -> firmware.tar) and recurses into every archive it writes, so
+the partition images inside firmware.tar (ext2, axfs, cramfs, ...) land in *_unpacked folders,
+Android's /system/framework among them. contract.py scans that whole tree.
 
 When firmware/sources.json lists the model and version with a sha256, the file must match it;
 otherwise the file's sha256 is printed so it can be recorded there.
@@ -31,6 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import contract  # noqa: E402
+import updater  # noqa: E402
 
 ROOT = contract.ROOT
 EXTRACTED = os.path.join(ROOT, ".firmware", "extracted")
@@ -70,7 +72,14 @@ def unpack(image, model, version):
     tmp = out + ".tmp"
     shutil.rmtree(tmp, ignore_errors=True)
     os.makedirs(tmp)
+    dat = os.path.join(tmp, "FirmwareData.dat")
+    found = updater.extract_dat(image, dat)
+    if found:
+        print("Took %s out of the updater" % found)
+        image = dat
     subprocess.check_call([sys.executable, os.path.join(fwtool, "fwtool.py"), "unpack", "-f", image, "-o", tmp])
+    if found:
+        os.remove(dat)
     os.rename(tmp, out)
     return out
 
