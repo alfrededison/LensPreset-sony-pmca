@@ -19,6 +19,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - run: ./tools/test.sh
+      - name: Committed firmware reports still cover the Sony API the app calls
+        run: python3 tools/firmware/contract.py --check-reports
 
   profiles:
     name: profile schemas

@@ -14,7 +14,7 @@ app/                Android 2.3.7 UI: MainActivity (screens, keys), OverlayView,
                     storage, preferences
 profiles/           cameras/, lenses/, presets/ (bundled into the APK) and schema/
 i18n/               en.json, vi.json — every on-screen word
-firmware/           sources.json (pointers to Sony's downloads) and reports/ (capability facts)
+firmware/           sources.json (Sony's download pages, file sha256s) and reports/ (capability facts)
 tools/              test.sh, version.sh, validate_profiles.py, make_icon.py, firmware/
 ```
 
@@ -86,20 +86,31 @@ to the settings store like Recipe Lab — which needs its native backup library.
 
 ## Firmware contract pipeline
 
-```
-firmware/sources.json  ->  tools/firmware/fetch.py    .firmware/downloads/  (sha256-checked)
-                       ->  tools/firmware/extract.py  .firmware/extracted/<model>-<version>/
-                                                      (ma1co/fwtool.py; set FWTOOL to a checkout)
-                       ->  tools/firmware/contract.py firmware/reports/<model>-<version>.json
+Run locally; only the report is committed. CI never downloads firmware.
+
+```bash
+# once: a checkout of ma1co/fwtool.py (tested at cdba742) and its requirements
+pip install pycryptodomex pyyaml
+
+# download the updater from the page in firmware/sources.json, then
+FWTOOL=~/src/fwtool.py python3 tools/firmware/extract.py \
+    --file Update_ILCE5100V310.exe --model ILCE-5100 --version 3.10
+git add firmware/reports/ILCE-5100-3.10.json      # and the sha256 it printed, in sources.json
 ```
 
+`extract.py` checks the file against the `sha256` in `sources.json` (or prints it to record),
+unpacks into `.firmware/extracted/<model>-<version>/` (git-ignored), and runs `contract.py`.
 `fwtool unpack` turns the Windows updater `.exe` into `firmware.tar` and recurses into every
 filesystem image inside it (`*_unpacked`). `contract.py` compiles the stubs, reads every
 `.dex/.odex/.jar/.apk` in the extracted tree with a small DEX parser, and checks each stub class,
-method (with inherited members) and constant value. The report holds facts only; it is committed,
-the firmware never is. A source without `url` and `sha256` is skipped. For models Sony no longer
-hosts, a contributor can dump their own body (Sony-PMCA-RE updater mode) and run
-`extract.py --dump dump.dat --model … --version …` locally, sending only the report.
+method (with inherited members) and constant value. The report holds facts only.
+
+For models Sony no longer hosts, dump your own body (Sony-PMCA-RE updater mode) and pass the dump
+as `--file`.
+
+CI runs `contract.py --check-reports`, which needs no firmware: it fails when a committed report
+says a firmware lacks something the app calls, and warns when the stubs call something a report has
+not checked yet — re-run `extract.py` for that firmware and commit the new report.
 
 The stubs were cross-checked by hand against OpenMemories-Framework's Jasmin stubs (which were
 taken from firmware): every member and constant matches.

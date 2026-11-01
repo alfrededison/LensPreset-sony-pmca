@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import classfile  # noqa: E402
 import contract  # noqa: E402
 import dex  # noqa: E402
-import fetch  # noqa: E402
+import extract  # noqa: E402
 
 
 def find_d8():
@@ -61,12 +61,65 @@ class StubContractTest(unittest.TestCase):
         self.assertEqual(keys.fields["ISV_KEY_ENTER"], ("I", 232))
         self.assertNotIn("android.util.Pair", self.contract, "android stand-ins are not part of the contract")
 
-    def test_sources_json_is_complete_or_skipped(self):
-        for s in fetch.sources():
-            self.assertIn("model", s)
-            self.assertIn("page", s)
-            if fetch.ready(s):
+    def test_sources_json_holds_pointers_only(self):
+        for s in extract.sources():
+            self.assertEqual({"model", "camera_profile", "version", "page", "file", "sha256"}, set(s))
+            if s["sha256"] is not None:
                 self.assertRegex(s["sha256"], "^[0-9a-f]{64}$")
+
+    def write_report(self, d, name, api, mismatches=()):
+        with open(os.path.join(d, name), "w") as f:
+            json.dump({"api": api, "constant_mismatches": list(mismatches)}, f)
+
+    def test_check_reports(self):
+        keys = contract.contract_keys(self.contract)
+        self.assertIn("com.sony.scalar.hardware.CameraEx#incrementAperture()V", keys)
+        self.assertIn("com.sony.scalar.sysutil.ScalarInput.ISV_KEY_ENTER", keys)
+        d = tempfile.mkdtemp()
+        try:
+            self.assertEqual(([], [], []), contract.check_reports(keys, d), "no reports yet is fine")
+            full = dict.fromkeys(keys, True)
+            self.write_report(d, "A-1.0.json", full)
+            self.assertEqual((["A-1.0.json"], [], []), contract.check_reports(keys, d))
+
+            stale = dict(full)
+            del stale["com.sony.scalar.hardware.CameraEx#incrementAperture()V"]
+            self.write_report(d, "B-1.0.json", stale)
+            names, failures, warnings = contract.check_reports(keys, d)
+            self.assertEqual([], failures, "a report older than the stubs only warns")
+            self.assertEqual(1, len(warnings))
+            self.assertIn("incrementAperture", warnings[0])
+
+            missing = dict(full)
+            missing["com.sony.scalar.hardware.CameraEx#getLensInfo()Lcom/sony/scalar/hardware/CameraEx$LensInfo;"] = False
+            self.write_report(d, "C-1.0.json", missing, ["X.Y: app uses 1, firmware has 2"])
+            names, failures, warnings = contract.check_reports(keys, d)
+            self.assertEqual(2, len(failures))
+            self.assertIn("getLensInfo", failures[0])
+            self.assertIn("X.Y", failures[1])
+        finally:
+            shutil.rmtree(d)
+
+    def test_committed_reports_pass(self):
+        rc = contract.main(["--check-reports", "--stubs-classes", self.classes])
+        self.assertEqual(0, rc)
+
+    def test_extract_refuses_a_file_that_does_not_match_sources(self):
+        d = tempfile.mkdtemp()
+        try:
+            fw = os.path.join(d, "Update.exe")
+            with open(fw, "wb") as f:
+                f.write(b"not firmware")
+            old = extract.SOURCES
+            extract.SOURCES = os.path.join(d, "sources.json")
+            with open(extract.SOURCES, "w") as f:
+                json.dump({"sources": [{"model": "M", "version": "1.0", "sha256": "0" * 64}]}, f)
+            try:
+                self.assertEqual(2, extract.main(["--file", fw, "--model", "M", "--version", "1.0"]))
+            finally:
+                extract.SOURCES = old
+        finally:
+            shutil.rmtree(d)
 
 
 @unittest.skipUnless(find_d8(), "Android SDK d8 not found")

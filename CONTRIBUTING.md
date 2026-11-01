@@ -50,6 +50,9 @@ Copy `i18n/en.json` to `i18n/<code>.json` and translate the values; keep the key
 ## Firmware
 
 Sony firmware is Sony's copyright. Never commit firmware or anything extracted from it, and never
-upload it as a CI artifact. `firmware/sources.json` holds only links and checksums;
-`firmware/reports/` holds only facts (which API names exist). Reading firmware to check
-compatibility, without redistributing it, is the intent here; this is not legal advice.
+upload it anywhere. Capability reports are made on your own machine with `tools/firmware/extract.py`
+(see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#firmware-contract-pipeline)) and only the report is
+committed: `firmware/sources.json` holds only download pages and checksums, `firmware/reports/`
+only facts (which API names exist). If your body's firmware is no longer on Sony's site, a dump of
+your own body works too. Reading firmware to check compatibility, without redistributing it, is the
+intent here; this is not legal advice.

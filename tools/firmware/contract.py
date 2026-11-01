@@ -10,7 +10,14 @@ because javac copies them into the app.
         --model ILCE-5100 --version 3.10 [--stubs-classes out/build/stubs] [--out firmware/reports]
 
 Writes firmware/reports/<model>-<version>.json (facts only, no firmware bytes) and prints a
-summary. Exits 1 when something the app calls is missing, 0 otherwise.
+summary. Exits 1 when something the app calls is missing, 0 otherwise. extract.py runs this for
+you after unpacking.
+
+    python3 tools/firmware/contract.py --check-reports
+
+needs no firmware and is what CI runs: it fails when a committed report says a firmware lacks
+something the app calls, and warns when the stubs call something a report has not checked yet
+(re-run extract.py for that firmware and commit the new report).
 """
 import argparse
 import json
@@ -90,6 +97,37 @@ def _lookup(found, cls, kind, key):
     return None
 
 
+def contract_keys(contract):
+    """The api keys a report holds for these stubs: class, class#method, class.field."""
+    keys = set()
+    for name, stub in contract.items():
+        keys.add(name)
+        keys.update("%s#%s" % (name, m) for m in stub.methods)
+        keys.update("%s.%s" % (name, f) for f in stub.fields)
+    return keys
+
+
+def check_reports(keys, reports_dir):
+    """(failures, warnings) for the committed reports against the current contract keys."""
+    failures = []
+    warnings = []
+    names = sorted(n for n in os.listdir(reports_dir) if n.endswith(".json")) if os.path.isdir(reports_dir) else []
+    for n in names:
+        with open(os.path.join(reports_dir, n)) as f:
+            report = json.load(f)
+        api = report.get("api", {})
+        absent = sorted(k for k in keys if api.get(k) is False)
+        if absent:
+            failures.append("%s: the firmware lacks %s" % (n, ", ".join(absent)))
+        if report.get("constant_mismatches"):
+            failures.append("%s: constants differ: %s" % (n, "; ".join(report["constant_mismatches"])))
+        unchecked = sorted(k for k in keys if k not in api)
+        if unchecked:
+            warnings.append("%s: not checked yet for %s — re-run tools/firmware/extract.py on this firmware"
+                            % (n, ", ".join(unchecked)))
+    return names, failures, warnings
+
+
 def check(contract, found):
     api = {}
     missing_classes = []
@@ -138,15 +176,29 @@ def observations(found):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--extracted", required=True, help="directory produced by extract.py (or a dump)")
-    ap.add_argument("--model", required=True)
-    ap.add_argument("--version", required=True)
+    ap.add_argument("--check-reports", action="store_true", help="check committed reports; no firmware needed")
+    ap.add_argument("--extracted", help="directory produced by extract.py")
+    ap.add_argument("--model")
+    ap.add_argument("--version")
     ap.add_argument("--stubs-classes", help="compiled stubs; compiled into a temp dir when omitted")
     ap.add_argument("--out", default=os.path.join(ROOT, "firmware", "reports"))
     args = ap.parse_args(argv)
 
     with tempfile.TemporaryDirectory() as tmp:
         contract = load_contract(args.stubs_classes or compile_stubs(tmp))
+
+    if args.check_reports:
+        names, failures, warnings = check_reports(contract_keys(contract), args.out)
+        prefix = "::warning::" if os.environ.get("GITHUB_ACTIONS") else "warning: "
+        for w in warnings:
+            print(prefix + w)
+        for f in failures:
+            print("error: " + f)
+        print("%d reports checked, %d failing, %d out of date" % (len(names), len(failures), len(warnings)))
+        return 1 if failures else 0
+
+    if not (args.extracted and args.model and args.version):
+        ap.error("--extracted, --model and --version are required (or use --check-reports)")
     found, files = scan_framework(args.extracted)
     if not files:
         print("no Sony framework code found under %s" % args.extracted, file=sys.stderr)
