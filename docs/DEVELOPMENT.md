@@ -180,6 +180,7 @@ With OpenMemories-Tweak's adb on (Wi-Fi or USB) and `out/LensPreset.apk` built:
 tools/camera-test.sh 192.168.1.68:5555            # or set CAMERA; about two minutes
 tools/camera-test.sh --photos 192.168.1.68:5555   # about three minutes; needs exiftool
 tools/camera-test.sh --face 192.168.1.68:5555     # Soft Skin only; needs a face in the frame
+# add --skip-install to test the app already on the camera
 ```
 
 How a setting is known to have taken:

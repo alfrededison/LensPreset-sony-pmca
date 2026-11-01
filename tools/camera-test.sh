@@ -2,8 +2,10 @@
 # One pass over everything that needs a real body, driven over adb (OpenMemories-Tweak's adb, over
 # Wi-Fi or USB). No keys are pressed blind.
 #
-#   tools/camera-test.sh [--photos | --face] [serial]   serial: e.g. 192.168.1.68:5555; default
-#                                                       $CAMERA, else the only device
+#   tools/camera-test.sh [--photos | --face] [--skip-install] [serial]
+#
+# serial: e.g. 192.168.1.68:5555; default $CAMERA, else the only device. --skip-install tests the app
+# already on the camera.
 #
 # Quick (about two minutes): every setting is read back from the camera after it is written, so the
 # report says whether the camera really holds it, not only that the call went through.
@@ -16,8 +18,7 @@
 # or a portrait on a phone or screen), shoots and checks the photo; up to three tries.
 #
 # What it does:
-#   1. installs out/LensPreset.apk (build it first) unless the camera already has it, and puts on
-#      the card, for the run only:
+#   1. installs out/LensPreset.apk (build it first) and puts on the card, for the run only:
 #      LENSPRST/DEBUG.TXT with "adb-control" (the app then takes commands from adb) and the test
 #      presets in tools/camera-test/ (shutter priority 1/60, manual f/4 1/200);
 #   2. starts the app, keeps the camera from sleeping, applies every preset by id and waits for each
@@ -38,10 +39,17 @@ ADB=${ADB:-$ANDROID_SDK/platform-tools/adb}
 CARD=${CARD:-/mnt/sdcard}
 PHOTOS=0
 FACE=0
-case "${1:-}" in
-  --photos) PHOTOS=1; shift ;;
-  --face) PHOTOS=1; FACE=1; shift ;;
-esac
+INSTALL=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --photos) PHOTOS=1 ;;
+    --face) PHOTOS=1; FACE=1 ;;
+    --skip-install) INSTALL=0 ;;
+    -*) echo "unknown option $1" >&2; exit 1 ;;
+    *) break ;;
+  esac
+  shift
+done
 SERIAL=${1:-${CAMERA:-}}
 APK=out/LensPreset.apk
 APP=com.lenspreset/.app.MainActivity
@@ -55,7 +63,7 @@ applog() { a logcat -d -s LensPreset:I 2>/dev/null | tr -d '\r'; }
 # The app's log lines matching $1, without logcat's prefix, into the summary; nothing matching is fine.
 show() { { applog | grep -E "$1" | sed 's/^.*LensPreset[^:]*: /  /'; } | tee -a "$OUT/summary.txt" || true; }
 
-[ -f "$APK" ] || { echo "no $APK: run ./build.sh first" >&2; exit 1; }
+[ "$INSTALL" = 0 ] || [ -f "$APK" ] || { echo "no $APK: run ./build.sh first" >&2; exit 1; }
 a get-state >/dev/null 2>&1 || { echo "no device (serial: ${SERIAL:-any})" >&2; exit 1; }
 mkdir -p "$OUT"
 if [ "$FACE" = 1 ] && { ! command -v exiftool >/dev/null || [ ! -t 0 ]; }; then
@@ -143,15 +151,11 @@ trap restore EXIT
 
 say "camera test $(date '+%Y-%m-%d %H:%M'), device ${SERIAL:-default}, $(grep -o 'versionName="[^"]*"' app/AndroidManifest.xml)"
 say "== install"
-# Skipped when the camera already has this very APK: installing takes a while over Wi-Fi.
-installed=$(a shell pm path com.lenspreset 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' || true)
-if [ -n "$installed" ] && a pull "$installed" "$OUT/installed.apk" >/dev/null 2>&1 \
-    && cmp -s "$APK" "$OUT/installed.apk"; then
-  say "  already installed"
-else
+if [ "$INSTALL" = 1 ]; then
   a install -r "$APK" 2>&1 | tail -1 | tee -a "$OUT/summary.txt"
+else
+  say "  skipped: testing the app already on the camera"
 fi
-rm -f "$OUT/installed.apk"
 
 a shell mkdir "$DIR" "$DIR/PRESETS" >/dev/null 2>&1 || true
 if exists "$DIR/DEBUG.TXT" && a pull "$DIR/DEBUG.TXT" "$OUT/DEBUG.TXT.before" >/dev/null 2>&1; then
