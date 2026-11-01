@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Initial MVP planned for version 0.1.0.
+Initial MVP planned for version 1.0.0.
 
 ### Shooting
 

@@ -6,7 +6,7 @@ body:
     id: setup
     attributes:
       label: Camera, firmware, lens, app version
-      placeholder: ILCE-5100, 3.10, Sigma 30mm F1.4, 0.1.0-dev.12
+      placeholder: ILCE-5100, 3.10, Sigma 30mm F1.4, 1.0.0-dev.1
     validations:
       required: true
   - type: textarea

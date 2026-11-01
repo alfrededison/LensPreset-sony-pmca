@@ -5,8 +5,10 @@
 #   release (RELEASE=1)  X.Y.Z          code = X*10^7 + Y*10^5 + Z*10^3 + 999
 #   dev build            X.Y.Z-dev.N    code = X*10^7 + Y*10^5 + Z*10^3 + N
 #
-# N counts commits since the last v* tag (all commits before the first tag), so a later dev build
-# always installs over an earlier one, and the release outranks every dev build before it.
+# N starts at 1 for the commit that changes versionName on first-parent history, then counts
+# commits on that history from that point (each merge counts once).
+# A pending version change also starts at 1. Tags do not affect the counter. A release outranks
+# all dev builds with the same X.Y.Z; bump versionName before starting the next release's work.
 
 _manifest_version=$(sed -n 's/.*android:versionName="\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' app/AndroidManifest.xml | head -n1)
 if [ -z "$_manifest_version" ]; then
@@ -20,12 +22,21 @@ if [ "${RELEASE:-0}" = "1" ]; then
   VERSION_NAME="$_manifest_version"
   VERSION_CODE=$((_base + 999))
 else
-  _n=0
+  _n=1
   if git rev-parse --git-dir >/dev/null 2>&1 && git rev-parse HEAD >/dev/null 2>&1; then
-    if _tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null); then
-      _n=$(git rev-list --count "$_tag"..HEAD)
-    else
-      _n=$(git rev-list --count HEAD)
+    _head_version=$(git show HEAD:app/AndroidManifest.xml 2>/dev/null |
+      sed -n 's/.*android:versionName="\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' | head -n1) || _head_version=
+    if [ "$_head_version" = "$_manifest_version" ]; then
+      for _version_commit in $(git log --first-parent -m --format=%H -G 'android:versionName=' -- app/AndroidManifest.xml); do
+        _previous_version=$(git show "${_version_commit}^:app/AndroidManifest.xml" 2>/dev/null |
+          sed -n 's/.*android:versionName="\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' | head -n1) || _previous_version=
+        # Formatting or another attribute on this line must not reset the build number.
+        if [ "$_previous_version" != "$_manifest_version" ]; then
+          _n=$(git rev-list --first-parent --count "$_version_commit"..HEAD)
+          _n=$((_n + 1))
+          break
+        fi
+      done
     fi
   fi
   if [ "$_n" -gt 998 ]; then _n=998; fi

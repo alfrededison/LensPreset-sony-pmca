@@ -38,6 +38,13 @@ build. The d8 in build-tools 34.0.0 crashes on this code; use 35.0.0 or later.
 
 Versions: `app/AndroidManifest.xml` `versionName` is the only one in the tree; `tools/version.sh`
 derives the dev suffix and versionCode (`X·10⁷ + Y·10⁵ + Z·10³ + N`, `N = 999` for a release).
+Dev numbering starts at `dev.1` on the commit that changes `versionName` along first-parent
+history, then increases with subsequent commits on that history. Each merge counts once;
+old-version edits on a merged branch cannot reset the counter. An uncommitted version change
+also builds as `dev.1`.
+Tags do not reset the counter. Use full Git history for reproducible dev numbers, and bump
+`versionName` before starting development after a release: dev builds of the same version rank
+below that release. `python3 tools/test_version.py` checks this against temporary Git histories.
 For a public build, use a stable project signing key; local debug signing is a development
 fallback. See [Releasing](RELEASING.md) for the secret names, certificate check, release workflow,
 and publication steps.
