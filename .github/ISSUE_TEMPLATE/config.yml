@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installing apps on the camera (USB, pmca-console, PMCA-GUI)
+    url: https://github.com/ma1co/Sony-PMCA-RE/issues
+    about: Installation and USB problems belong to Sony-PMCA-RE. Problems with presets or this app belong here.

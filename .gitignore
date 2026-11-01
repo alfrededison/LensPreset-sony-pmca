@@ -1,0 +1,14 @@
+# build output, including APKs: releases carry the binaries
+out/
+*.apk
+*.keystore
+*.jks
+
+# firmware downloads and extracts: Sony's copyright, never committed
+.firmware/
+
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+*.iml

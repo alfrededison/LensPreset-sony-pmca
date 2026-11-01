@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: unit tests (engine, profiles, i18n)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: ./tools/test.sh
+
+  profiles:
+    name: profile schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install jsonschema==4.23.0
+      - run: python tools/validate_profiles.py
+
+  build:
+    name: APK and firmware tools
+    needs: [test, profiles]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Android SDK packages
+        run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
+      - name: Firmware tool tests (stubs compiled to DEX stand in for firmware)
+        run: ANDROID_SDK="$ANDROID_SDK_ROOT" python -m unittest discover -s tools/firmware -p 'test_*.py'
+      - run: ANDROID_SDK="$ANDROID_SDK_ROOT" ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LensPreset-apk
+          path: |
+            out/LensPreset.apk
+            out/LensPreset.apk.sha256

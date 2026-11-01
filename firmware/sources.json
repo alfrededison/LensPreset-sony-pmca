@@ -1,0 +1,23 @@
+{
+  "comment": "Pointers to Sony's official firmware, never the files. A source needs url and sha256 before tools/firmware/fetch.py downloads it; until then the contract test skips it. Fill them from the official download page: download once, run `shasum -a 256 <file>`, copy the direct link.",
+  "sources": [
+    {
+      "model": "ILCE-5100",
+      "camera_profile": "ilce-5100",
+      "version": "3.10",
+      "page": "https://www.sony.ee/electronics/support/downloads/Z0005410",
+      "file": "Update_ILCE5100V310.exe",
+      "url": null,
+      "sha256": null
+    },
+    {
+      "model": "ILCE-6000",
+      "camera_profile": "ilce-6000",
+      "version": null,
+      "page": "https://www.sony.com/electronics/support/e-mount-body-ilce-6000-series/ilce-6000/downloads",
+      "file": null,
+      "url": null,
+      "sha256": null
+    }
+  ]
+}

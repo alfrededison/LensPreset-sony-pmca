@@ -1,0 +1,20 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "high-key",
+  "order": 50,
+  "name": { "en": "High-key", "vi": "High-key" },
+  "description": {
+    "en": "Bright and airy: exposure pushed up, soft light, a light background.",
+    "vi": "Sáng và nhẹ: tăng phơi sáng, ánh sáng mềm, nền sáng."
+  },
+  "goal": "high_key",
+  "exposure_mode": "program",
+  "shutter": { "strategy": "handheld_min", "min": "1/60" },
+  "iso": "auto",
+  "ev": 1.3,
+  "metering": "multi",
+  "af": { "mode": "single", "area": "wide", "face": true, "eye": "off" },
+  "drive": { "mode": "single" },
+  "style": { "creative_style": "light", "fallback": "standard" },
+  "hints": ["bright_background", "watch_highlights"]
+}

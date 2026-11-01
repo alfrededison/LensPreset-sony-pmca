@@ -1,0 +1,17 @@
+# Third-party notices
+
+LensPreset is licensed under the GPL-3.0. It builds on the following work.
+
+- **ma1co/OpenMemories-Framework** (MIT, © 2016 ma1co). The compile-time stubs in
+  `camera-adapter/stubs/` reproduce the signatures and constant values of its Sony API stubs. They
+  are not packaged into the APK.
+- **obs1dium/BetterManual** (MIT, © 2016 Martin Tofall). The table of
+  `setAutoShutterSpeedLowLimit` codes in `SonyValues.MIN_SHUTTER_CODES` and the pattern of the
+  platform hooks in `SystemHooks` (app announcement intent, framebuffer depth) come from it.
+- **ma1co/PMCADemo** (MIT, © 2015 ma1co). Source of the platform hook pattern above.
+- **voxivoid/recipe-lab-sony-pmca** (GPL-3.0). The Gradle-free build, the 8.3 memory-card naming
+  rule, key scan codes per body, and the project and release workflow follow its documentation.
+- **ma1co/fwtool.py** (MIT). Used, not included, by `tools/firmware/extract.py`.
+
+Sony, Alpha and PlayMemories are trademarks of Sony Group Corporation. Firmware read by the test
+tools stays Sony's property and is never stored in or distributed from this repository.

@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "preset.schema.json",
+  "title": "LensPreset preset",
+  "description": "A shooting situation as rules. Rules that span fields (e.g. aperture_priority needs an aperture rule) are checked by the app's parser and tools/test.sh.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "exposure_mode", "af"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
+    "order": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "name": { "$ref": "#/definitions/localized" },
+    "description": { "$ref": "#/definitions/localized" },
+    "goal": { "enum": ["shallow_dof", "deep_dof", "subject_and_scene", "freeze_motion", "low_light", "silhouette", "high_key", "custom"] },
+    "exposure_mode": { "enum": ["program", "aperture_priority", "shutter_priority", "manual"] },
+    "aperture": {
+      "type": "object", "additionalProperties": false, "required": ["strategy"],
+      "properties": {
+        "strategy": { "enum": ["widest", "widest_safe", "sweet_spot", "dof", "fixed"] },
+        "stop_down_from_max": { "type": "number", "minimum": 0, "maximum": 4 },
+        "position": { "enum": ["low", "mid", "high"] },
+        "value": { "type": "number", "minimum": 0.95, "maximum": 64 },
+        "min_f": { "type": ["number", "null"], "minimum": 0.95, "maximum": 64 },
+        "max_f": { "type": ["number", "null"], "minimum": 0.95, "maximum": 64 },
+        "depth_m": { "type": "number", "minimum": 0.05, "maximum": 50 },
+        "per_row_m": { "type": "number", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "shutter": {
+      "type": "object", "additionalProperties": false, "required": ["strategy"],
+      "properties": {
+        "strategy": { "enum": ["handheld_min", "fixed"] },
+        "min": { "$ref": "#/definitions/shutter" },
+        "value": { "$ref": "#/definitions/shutter" },
+        "stabilization_stops": { "type": "number", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "iso": {
+      "oneOf": [
+        { "const": "auto" },
+        {
+          "type": "object", "additionalProperties": false, "required": ["mode"],
+          "properties": {
+            "mode": { "enum": ["auto", "fixed"] },
+            "value": { "type": "integer", "minimum": 50, "maximum": 409600 },
+            "min": { "type": "integer", "minimum": 50, "maximum": 409600 },
+            "max": { "type": "integer", "minimum": 100, "maximum": 409600 }
+          }
+        }
+      ]
+    },
+    "ev": { "type": "number", "minimum": -3, "maximum": 3 },
+    "metering": { "enum": ["multi", "center", "spot"] },
+    "af": {
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["single", "continuous", "automatic", "manual"] },
+        "area": { "enum": ["wide", "zone", "center", "flexible_spot", "tracking", null] },
+        "face": { "type": "boolean" },
+        "eye": { "enum": ["off", "if_available"] }
+      }
+    },
+    "drive": {
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": { "mode": { "enum": ["single", "burst_lo", "burst_hi"] } }
+    },
+    "self_timer": { "enum": [0, 2, 10] },
+    "style": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "creative_style": { "$ref": "#/definitions/style" },
+        "fallback": { "$ref": "#/definitions/style" },
+        "soft_skin": { "enum": ["off", "low", "mid", "high", null] }
+      }
+    },
+    "subject": {
+      "type": "object", "additionalProperties": false, "required": ["framing"],
+      "properties": {
+        "framing": { "enum": ["head_shoulders", "half_body", "full_body", "environment", "group"] },
+        "people_per_row": { "type": "integer", "minimum": 1, "maximum": 30 }
+      }
+    },
+    "hints": {
+      "description": "i18n keys under hint., e.g. background_far -> hint.background_far.",
+      "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$" }
+    },
+    "overlays": { "type": "array", "items": { "enum": ["thirds", "center", "horizon"] } },
+    "adjust": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "rows": {
+          "type": "object", "additionalProperties": false, "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer", "minimum": 1, "maximum": 10 },
+            "max": { "type": "integer", "minimum": 1, "maximum": 10 },
+            "default": { "type": "integer", "minimum": 1, "maximum": 10 }
+          }
+        },
+        "self_timer": {
+          "type": "object", "additionalProperties": false, "required": ["values"],
+          "properties": {
+            "values": { "type": "array", "items": { "enum": [0, 2, 10] }, "minItems": 1 },
+            "default": { "enum": [0, 2, 10] }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "localized": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object", "required": ["en"],
+          "propertyNames": { "pattern": "^[a-z]{2}(-[A-Za-z]{2,4})?$" },
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
+      ]
+    },
+    "shutter": { "type": "string", "pattern": "^(1/[0-9]{1,4}|[0-9]+(\\.[0-9]+)?(\"|s)?)$" },
+    "style": { "enum": ["standard", "vivid", "neutral", "clear", "deep", "light", "portrait", "landscape", "sunset", "night", "red-leaves", "mono", "sepia", null] }
+  }
+}

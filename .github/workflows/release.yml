@@ -1,0 +1,38 @@
+# Pushing a tag vX.Y.Z builds the release APK and opens a draft release for a maintainer to publish.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Tag must match the manifest
+        run: |
+          RELEASE=1 . tools/version.sh
+          test "v$VERSION_NAME" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, manifest $VERSION_NAME"; exit 1; }
+      - run: ./tools/test.sh
+      - run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
+      - env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: RELEASE=1 ANDROID_SDK="$ANDROID_SDK_ROOT" ./build.sh
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp out/LensPreset.apk "out/LensPreset-$GITHUB_REF_NAME.apk"
+          (cd out && sha256sum "LensPreset-$GITHUB_REF_NAME.apk" > "LensPreset-$GITHUB_REF_NAME.apk.sha256")
+          gh release create "$GITHUB_REF_NAME" --draft --title "LensPreset $GITHUB_REF_NAME" --generate-notes \
+            "out/LensPreset-$GITHUB_REF_NAME.apk" "out/LensPreset-$GITHUB_REF_NAME.apk.sha256"

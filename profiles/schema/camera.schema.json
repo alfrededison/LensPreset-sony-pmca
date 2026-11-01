@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "camera.schema.json",
+  "title": "LensPreset camera profile",
+  "description": "What a camera body can do. Features record what a test on a real body showed: use \"unknown\" until then.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "sensor", "iso", "controls"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "$ref": "#/definitions/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "models": {
+      "description": "Values of the camera's model.name property (see PROBE.TXT), e.g. ILCE-5100.",
+      "type": "array", "items": { "type": "string", "minLength": 1 }
+    },
+    "sensor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["format", "width_mm", "height_mm", "coc_mm"],
+      "properties": {
+        "format": { "enum": ["APS-C", "full-frame", "1-inch", "1/1.7-inch", "1/2.3-inch"] },
+        "width_mm": { "type": "number", "minimum": 3, "maximum": 60 },
+        "height_mm": { "type": "number", "minimum": 2, "maximum": 45 },
+        "coc_mm": { "type": "number", "minimum": 0.002, "maximum": 0.05 }
+      }
+    },
+    "ibis": { "type": "boolean" },
+    "fixed_lens": { "description": "Lens profile id of a compact's built-in lens.", "type": ["string", "null"] },
+    "iso": {
+      "type": "object", "additionalProperties": false, "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "integer", "minimum": 50, "maximum": 3200 },
+        "max": { "type": "integer", "minimum": 400, "maximum": 409600 },
+        "auto_max": { "description": "Highest ISO Auto ISO may reach, when it is below max.", "type": ["integer", "null"] }
+      }
+    },
+    "ev_range": { "description": "Exposure compensation range, plus and minus.", "type": "number", "minimum": 1, "maximum": 5 },
+    "burst_fps": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "lo": { "type": ["number", "null"], "minimum": 0.5, "maximum": 30 },
+        "hi": { "type": ["number", "null"], "minimum": 0.5, "maximum": 30 }
+      }
+    },
+    "controls": {
+      "type": "object", "additionalProperties": false, "required": ["touchscreen"],
+      "properties": {
+        "touchscreen": { "type": "boolean" },
+        "front_dial": { "type": "boolean" },
+        "rear_wheel": { "type": "boolean" },
+        "top_dial": { "type": "boolean" },
+        "custom_keys": { "type": "integer", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "features": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "face_detection": { "$ref": "#/definitions/feature" },
+        "eye_af": { "$ref": "#/definitions/feature" },
+        "soft_skin": { "$ref": "#/definitions/feature" },
+        "creative_style": { "$ref": "#/definitions/feature" },
+        "silent_shutter": { "$ref": "#/definitions/feature" },
+        "read_lens_info": { "$ref": "#/definitions/feature" },
+        "read_focal_length": { "$ref": "#/definitions/feature" },
+        "set_exposure_mode": { "$ref": "#/definitions/feature" },
+        "auto_iso_min_shutter": { "$ref": "#/definitions/feature" },
+        "continuous_af": { "$ref": "#/definitions/feature" },
+        "burst": { "$ref": "#/definitions/feature" },
+        "self_timer": { "$ref": "#/definitions/feature" },
+        "metering": { "$ref": "#/definitions/feature" }
+      }
+    },
+    "status": { "enum": ["verified", "community-tested", "untested"] },
+    "tested_firmware": { "type": "array", "items": { "type": "string" } },
+    "tested_by": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" }
+  },
+  "definitions": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
+    "feature": { "enum": ["yes", "no", "unknown"] }
+  }
+}

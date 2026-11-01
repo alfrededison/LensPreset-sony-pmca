@@ -1,0 +1,26 @@
+name: Lens or preset request
+description: Ask for a lens profile or a new shooting situation (or offer one).
+labels: ["profile"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Lens profile, Preset]
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        Lens: full name, mount, focal range, widest / narrowest aperture, OIS, and the name the camera reports (getLensInfo in PROBE.TXT).
+        Preset: the situation, and the settings you would use for it.
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Draft JSON (optional)
+      description: See docs/PROFILES.md. Test it from the card first (LENSPRST/LENSES or LENSPRST/PRESETS).
+      render: json

@@ -1,0 +1,59 @@
+# Checks the Sony API the app calls against each firmware in firmware/sources.json.
+# Firmware is Sony's copyright: downloads are cached between runs but never uploaded as an artifact
+# (a public repo's artifacts are downloadable by anyone). Only the fact reports leave the job.
+name: firmware-contract
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 * *"
+  pull_request:
+    paths:
+      - camera-adapter/stubs/**
+      - firmware/sources.json
+      - tools/firmware/**
+
+permissions:
+  contents: read
+
+env:
+  # ma1co/fwtool.py, pinned.
+  FWTOOL_COMMIT: cdba742b73eed5981480c326aeb30033aabf0223
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: fwtool.py
+        run: |
+          git clone --quiet https://github.com/ma1co/fwtool.py.git "$RUNNER_TEMP/fwtool"
+          git -C "$RUNNER_TEMP/fwtool" checkout --quiet "$FWTOOL_COMMIT"
+          pip install pycryptodomex pyyaml
+      - uses: actions/cache@v4
+        with:
+          path: .firmware/downloads
+          key: firmware-${{ hashFiles('firmware/sources.json') }}
+      - run: python tools/firmware/fetch.py
+      - name: Extract and check (sources without url/sha256 are skipped)
+        run: FWTOOL="$RUNNER_TEMP/fwtool" python tools/firmware/extract.py
+      - name: Summary
+        if: always()
+        run: |
+          shopt -s nullglob
+          for r in firmware/reports/*.json; do
+            python -c "import json,sys; r=json.load(open(sys.argv[1])); print('| %s %s | %s | %d checked | %d missing | %d mismatched |' % (r['model'], r['firmware'], 'ok' if r['ok'] else 'FAIL', r['checked'], len(r['missing_classes'])+len(r['missing_members']), len(r['constant_mismatches'])))" "$r"
+          done >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capability-reports
+          path: firmware/reports/*.json
+          if-no-files-found: ignore

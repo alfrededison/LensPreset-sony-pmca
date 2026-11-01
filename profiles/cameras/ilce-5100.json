@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/camera.schema.json",
+  "id": "ilce-5100",
+  "name": "Sony A5100",
+  "models": ["ILCE-5100"],
+  "sensor": { "format": "APS-C", "width_mm": 23.5, "height_mm": 15.6, "coc_mm": 0.02 },
+  "ibis": false,
+  "fixed_lens": null,
+  "iso": { "min": 100, "max": 25600 },
+  "ev_range": 3,
+  "burst_fps": { "lo": 3, "hi": 6 },
+  "controls": { "touchscreen": true, "front_dial": false, "rear_wheel": true, "top_dial": false, "custom_keys": 1 },
+  "features": {
+    "face_detection": "yes",
+    "eye_af": "unknown",
+    "soft_skin": "unknown",
+    "creative_style": "unknown",
+    "silent_shutter": "no",
+    "read_lens_info": "unknown",
+    "read_focal_length": "unknown",
+    "set_exposure_mode": "unknown",
+    "auto_iso_min_shutter": "unknown",
+    "continuous_af": "unknown",
+    "burst": "unknown",
+    "self_timer": "unknown",
+    "metering": "unknown"
+  },
+  "status": "untested",
+  "tested_firmware": ["3.10"],
+  "tested_by": ["@hieu"],
+  "notes": "First target body. Feature values stay unknown until the in-app probe (PROBE.TXT) and a shooting test confirm them."
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "lens.schema.json",
+  "title": "LensPreset lens profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "mount", "coverage", "type", "focal_min", "focal_max", "aperture_max", "aperture_min"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "mount": { "enum": ["E", "A", "fixed"] },
+    "coverage": { "enum": ["APS-C", "full-frame", "1-inch", "1/1.7-inch", "1/2.3-inch"] },
+    "type": { "enum": ["prime", "zoom"] },
+    "focal_min": { "type": "number", "minimum": 4, "maximum": 1200 },
+    "focal_max": { "type": "number", "minimum": 4, "maximum": 1200 },
+    "aperture_max": { "description": "Widest aperture at focal_min.", "type": "number", "minimum": 0.95, "maximum": 11 },
+    "aperture_max_tele": { "description": "Widest aperture at focal_max, for variable-aperture zooms.", "type": ["number", "null"], "minimum": 0.95, "maximum": 11 },
+    "aperture_min": { "type": "number", "minimum": 2.8, "maximum": 64 },
+    "sweet_spot": {
+      "description": "The sharpest f-numbers, [low, high].",
+      "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+    },
+    "ois": { "type": "boolean" },
+    "electronic": { "description": "false for manual and adapted lenses.", "type": "boolean" },
+    "af": { "type": "boolean" },
+    "min_focus_m": { "type": "number", "minimum": 0.01, "maximum": 10 },
+    "match": {
+      "description": "How the app recognises the lens from what the camera reports (see PROBE.TXT, getLensInfo).",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "ids": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

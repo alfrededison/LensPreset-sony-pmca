@@ -1,0 +1,74 @@
+name: Camera test report
+description: Report how LensPreset works on your body. This is how camera profiles move from "untested" to "community-tested".
+title: "[test] <model> fw <version>"
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! Before filling this in: MENU > **Run camera probe**, then copy `LENSPRST/PROBE.TXT` (and `LENSPRST/LOG.TXT`) from the memory card.
+  - type: input
+    id: model
+    attributes:
+      label: Camera model
+      description: As in About, or `model` in PROBE.TXT (e.g. ILCE-5100).
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Camera firmware version
+      description: Camera menu > Setup > Version (e.g. 3.10).
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: LensPreset version
+      description: MENU > About.
+    validations:
+      required: true
+  - type: input
+    id: lenses
+    attributes:
+      label: Lenses used
+      description: And whether the app recognised each one by itself.
+  - type: textarea
+    id: probe
+    attributes:
+      label: PROBE.TXT
+      description: Paste the whole file, or attach it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: features
+    attributes:
+      label: What worked
+      description: For each row write yes / no / not tried. "yes" means you saw the camera change, not just the app's message.
+      value: |
+        | feature | result | notes |
+        |---|---|---|
+        | exposure mode set by the app (A / S / P) | | |
+        | aperture reaches the target | | |
+        | shutter speed reaches the target (kids preset) | | |
+        | Auto ISO minimum shutter speed | | |
+        | exposure compensation | | |
+        | metering (silhouette preset: spot) | | |
+        | single / continuous AF | | |
+        | face detection | | |
+        | eye AF | | |
+        | burst Lo / Hi | | |
+        | self-timer | | |
+        | Creative Style | | |
+        | Soft Skin | | |
+        | lens recognised automatically | | |
+        | zoom tracked (kit zoom) | | |
+        | settings still set after leaving the app | | |
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: LOG.TXT (optional)
+      render: text

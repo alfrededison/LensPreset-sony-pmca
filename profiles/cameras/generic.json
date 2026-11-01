@@ -1,0 +1,14 @@
+{
+  "$schema": "../schema/camera.schema.json",
+  "id": "generic",
+  "name": "Unknown Sony camera",
+  "models": [],
+  "sensor": { "format": "APS-C", "width_mm": 23.5, "height_mm": 15.6, "coc_mm": 0.02 },
+  "ibis": false,
+  "iso": { "min": 100, "max": 6400 },
+  "ev_range": 2,
+  "controls": { "touchscreen": false, "rear_wheel": false },
+  "features": {},
+  "status": "untested",
+  "notes": "Used when no profile lists the body's model.name. Assumes an APS-C sensor and keeps ranges conservative; please send a test report so the body gets its own profile."
+}

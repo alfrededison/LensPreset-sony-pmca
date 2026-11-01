@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the launcher label lives here; every on-screen word is in i18n/*.json. -->
+<resources>
+    <string name="app_name">LensPreset</string>
+</resources>

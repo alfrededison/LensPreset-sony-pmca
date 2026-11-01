@@ -1,0 +1,20 @@
+{
+  "$schema": "../schema/lens.schema.json",
+  "id": "sony-e-pz-16-50-f35-56-oss",
+  "name": "Sony E PZ 16-50mm F3.5-5.6 OSS",
+  "mount": "E",
+  "coverage": "APS-C",
+  "type": "zoom",
+  "focal_min": 16,
+  "focal_max": 50,
+  "aperture_max": 3.5,
+  "aperture_max_tele": 5.6,
+  "aperture_min": 22,
+  "sweet_spot": [5.6, 8],
+  "ois": true,
+  "electronic": true,
+  "af": true,
+  "min_focus_m": 0.25,
+  "match": { "names": ["16-50mm F3.5-5.6"] },
+  "notes": "Kit lens of the A5100. The match name is what the lens is expected to report; confirm with PROBE.TXT."
+}

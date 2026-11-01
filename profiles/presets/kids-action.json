@@ -1,0 +1,19 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "kids-action",
+  "order": 60,
+  "name": { "en": "Kids on the move", "vi": "Trẻ con chạy nhảy" },
+  "description": {
+    "en": "1/500 s freezes running children; continuous AF and burst keep up, Auto ISO handles the light.",
+    "vi": "Tốc 1/500 s bắt dính trẻ đang chạy; lấy nét liên tục và chụp liên tiếp, ISO tự động lo ánh sáng."
+  },
+  "goal": "freeze_motion",
+  "exposure_mode": "shutter_priority",
+  "shutter": { "strategy": "fixed", "value": "1/500" },
+  "iso": "auto",
+  "metering": "multi",
+  "af": { "mode": "continuous", "area": "wide", "face": true, "eye": "off" },
+  "drive": { "mode": "burst_hi" },
+  "subject": { "framing": "full_body" },
+  "hints": ["shoot_at_their_level", "half_press_to_track"]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "../schema/camera.schema.json",
+  "id": "ilce-6000",
+  "name": "Sony A6000",
+  "models": ["ILCE-6000"],
+  "sensor": { "format": "APS-C", "width_mm": 23.5, "height_mm": 15.6, "coc_mm": 0.02 },
+  "ibis": false,
+  "iso": { "min": 100, "max": 25600 },
+  "ev_range": 5,
+  "controls": { "touchscreen": false, "front_dial": false, "rear_wheel": true, "top_dial": true, "custom_keys": 2 },
+  "features": {},
+  "status": "untested",
+  "tested_firmware": [],
+  "tested_by": [],
+  "notes": "Second body (roadmap step 6): no touchscreen, so it checks that every function works from the keys alone."
+}

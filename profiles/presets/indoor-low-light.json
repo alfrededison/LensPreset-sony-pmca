@@ -1,0 +1,20 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "indoor-low-light",
+  "order": 70,
+  "name": { "en": "Indoors, low light", "vi": "Trong nhà thiếu sáng" },
+  "description": {
+    "en": "Widest aperture, the slowest speed the lens and your hands allow, then Auto ISO as high as the body goes.",
+    "vi": "Mở khẩu tối đa, tốc chậm nhất mà ống kính và tay cầm cho phép, ISO tự động lên cao nhất máy cho."
+  },
+  "goal": "low_light",
+  "exposure_mode": "aperture_priority",
+  "aperture": { "strategy": "widest" },
+  "shutter": { "strategy": "handheld_min", "min": "1/60" },
+  "iso": "auto",
+  "metering": "multi",
+  "af": { "mode": "single", "area": "wide", "face": true, "eye": "if_available" },
+  "drive": { "mode": "single" },
+  "subject": { "framing": "half_body" },
+  "hints": ["brace_yourself", "face_the_window"]
+}

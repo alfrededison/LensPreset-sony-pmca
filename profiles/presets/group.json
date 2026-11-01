@@ -1,0 +1,26 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "group",
+  "order": 10,
+  "name": { "en": "Group photo", "vi": "Nhiều người" },
+  "description": {
+    "en": "Enough depth of field for every row, fast enough for blinks, burst to catch everyone's eyes open.",
+    "vi": "Đủ độ sâu trường ảnh cho mọi hàng, tốc đủ nhanh, chụp liên tiếp để có tấm ai cũng mở mắt."
+  },
+  "goal": "deep_dof",
+  "exposure_mode": "aperture_priority",
+  "aperture": { "strategy": "dof", "depth_m": 0.5, "per_row_m": 0.6, "min_f": 2.8 },
+  "shutter": { "strategy": "handheld_min", "min": "1/125" },
+  "iso": "auto",
+  "metering": "multi",
+  "af": { "mode": "single", "area": "wide", "face": true, "eye": "off" },
+  "drive": { "mode": "burst_lo" },
+  "self_timer": 0,
+  "subject": { "framing": "group", "people_per_row": 5 },
+  "adjust": {
+    "rows": { "min": 1, "max": 4, "default": 2 },
+    "self_timer": { "values": [0, 2, 10], "default": 0 }
+  },
+  "hints": ["group_focus_middle_row", "group_eyes_open"],
+  "overlays": ["center"]
+}

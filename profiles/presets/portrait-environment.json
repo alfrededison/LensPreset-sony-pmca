@@ -1,0 +1,21 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "portrait-environment",
+  "order": 30,
+  "name": { "en": "Portrait with scenery", "vi": "1 người lấy cảnh" },
+  "description": {
+    "en": "The lens's sharpest apertures so both the person and the place read clearly.",
+    "vi": "Khẩu trong vùng nét nhất của ống kính để cả người và cảnh đều rõ."
+  },
+  "goal": "subject_and_scene",
+  "exposure_mode": "aperture_priority",
+  "aperture": { "strategy": "sweet_spot", "position": "mid" },
+  "shutter": { "strategy": "handheld_min", "min": "1/125" },
+  "iso": { "mode": "auto", "max": 3200 },
+  "metering": "multi",
+  "af": { "mode": "single", "area": "wide", "face": true, "eye": "off" },
+  "drive": { "mode": "single" },
+  "subject": { "framing": "environment" },
+  "hints": ["subject_on_third", "horizon_level"],
+  "overlays": ["thirds", "horizon"]
+}

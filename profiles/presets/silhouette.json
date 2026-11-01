@@ -1,0 +1,20 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "silhouette",
+  "order": 40,
+  "name": { "en": "Backlight / silhouette", "vi": "Ngược sáng / silhouette" },
+  "description": {
+    "en": "Spot-meter the bright sky and pull exposure down so the subject turns into a clean dark shape.",
+    "vi": "Đo sáng điểm vào trời sáng và giảm phơi sáng để chủ thể thành bóng đen gọn."
+  },
+  "goal": "silhouette",
+  "exposure_mode": "program",
+  "shutter": { "strategy": "handheld_min" },
+  "iso": { "mode": "auto", "max": 1600 },
+  "ev": -1.7,
+  "metering": "spot",
+  "af": { "mode": "single", "area": "center", "face": false, "eye": "off" },
+  "drive": { "mode": "single" },
+  "hints": ["meter_on_sky", "clear_outline"],
+  "overlays": ["thirds", "horizon"]
+}

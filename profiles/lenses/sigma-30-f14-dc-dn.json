@@ -1,0 +1,19 @@
+{
+  "$schema": "../schema/lens.schema.json",
+  "id": "sigma-30-f14-dc-dn",
+  "name": "Sigma 30mm F1.4 DC DN | C",
+  "mount": "E",
+  "coverage": "APS-C",
+  "type": "prime",
+  "focal_min": 30,
+  "focal_max": 30,
+  "aperture_max": 1.4,
+  "aperture_min": 16,
+  "sweet_spot": [2.8, 5.6],
+  "ois": false,
+  "electronic": true,
+  "af": true,
+  "min_focus_m": 0.3,
+  "match": { "names": ["30mm F1.4 DC DN"] },
+  "notes": "The match name is what the lens is expected to report; confirm with PROBE.TXT."
+}

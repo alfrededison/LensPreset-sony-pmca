@@ -1,0 +1,18 @@
+{
+  "$schema": "../schema/lens.schema.json",
+  "id": "manual-50-f18",
+  "name": "Manual 50mm f/1.8 (adapted)",
+  "mount": "E",
+  "coverage": "full-frame",
+  "type": "prime",
+  "focal_min": 50,
+  "focal_max": 50,
+  "aperture_max": 1.8,
+  "aperture_min": 22,
+  "sweet_spot": [4, 8],
+  "ois": false,
+  "electronic": false,
+  "af": false,
+  "min_focus_m": 0.45,
+  "notes": "Stands for any adapted legacy 50mm: the camera cannot set its aperture or focus, so the app tells you where to turn the rings."
+}
