@@ -26,18 +26,18 @@ public final class SystemHooks {
     }
 
     /**
-     * Tells the platform which activity is in front: the app is closed when USB is plugged in (so
-     * the card is free for the computer), and comes back after power-off, auto power-off or a lens
-     * change instead of dropping to the camera's own mode.
+     * Tells the platform which activity is in front, and that plugging in USB closes it (so the card
+     * is free for the computer, and so USB is always a way out).
+     *
+     * <p>No {@code resume_key}: BetterManual asks the platform to reopen the app after power-off, but
+     * an app that fails at start-up then comes back after every power cycle and the camera is stuck
+     * in it (it happened on an A5100). PMCADemo and Recipe Lab leave it out too.
      */
     public static void announce(Activity activity) {
         Intent intent = new Intent("com.android.server.DAConnectionManagerService.AppInfoReceive");
         intent.putExtra("package_name", activity.getComponentName().getPackageName());
         intent.putExtra("class_name", activity.getComponentName().getClassName());
         intent.putExtra("pullingback_key", new String[]{"KEY_USB_CONNECT"});
-        intent.putExtra("resume_key", new String[]{"KEY_POWER_SLIDE_PON", "KEY_RELEASE_APO", "KEY_PLAY_APO",
-                "KEY_MEDIA_INOUT_APO", "KEY_LENS_APO", "KEY_ACCESSORY_APO", "KEY_DEDICATED_APO",
-                "KEY_POWER_APO", "KEY_PLAY_PON"});
         activity.sendBroadcast(intent);
     }
 

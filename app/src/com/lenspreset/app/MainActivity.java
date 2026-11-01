@@ -74,6 +74,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private ListPanel panel;
     private Screen screen = Screen.LIVE;
     private Preset optionsPreset;
+    /** Start-up failed: the screen shows why and any key exits. */
+    private boolean failed;
 
     private final Runnable reapplyAfterZoom = new Runnable() {
         @Override
@@ -106,14 +108,49 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         setContentView(root);
 
         try {
-            tables = Assets.languages(getAssets());
-        } catch (IOException e) {
-            // A build without its English table cannot show words; keys are still readable.
-            tables = new LinkedHashMap<String, Map<String, String>>();
-            tables.put(I18n.FALLBACK, new HashMap<String, String>());
+            trace("create " + appVersion());
+            try {
+                tables = Assets.languages(getAssets());
+            } catch (IOException e) {
+                // A build without its English table cannot show words; keys are still readable.
+                tables = new LinkedHashMap<String, Map<String, String>>();
+                tables.put(I18n.FALLBACK, new HashMap<String, String>());
+            }
+            setLanguage();
+            trace("profiles");
+            loadProfiles();
+        } catch (Throwable t) {
+            startupFailed("create", t);
         }
-        setLanguage();
-        loadProfiles();
+    }
+
+    /**
+     * One line in LOG.TXT before each start-up step that touches the camera or the card: when the app
+     * hangs on a body, the last line says where.
+     */
+    private void trace(String step) {
+        card.log(Collections.singletonList("boot: " + step));
+    }
+
+    /**
+     * Start-up failed: log it, say so on screen, and keep the keys working (any of centre, MENU or
+     * trash exits) instead of leaving a black screen.
+     */
+    private void startupFailed(String step, Throwable t) {
+        failed = true;
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        List<String> lines = new ArrayList<String>();
+        lines.add("start-up failed in " + step);
+        for (String l : sw.toString().split("\n")) lines.add("  " + l.trim());
+        card.log(lines);
+        List<OverlayView.Line> shown = new ArrayList<OverlayView.Line>();
+        shown.add(new OverlayView.Line(ApplyReport.describe(t), Message.Level.WARN));
+        shown.add(new OverlayView.Line("Details: LENSPRST/LOG.TXT on the memory card. MENU: exit.", Message.Level.INFO));
+        overlay.show("LensPreset", "Start-up failed (" + step + ")", Collections.<String>emptyList(), shown,
+                Collections.<String>emptyList());
+        overlay.setLegend("");
+        panel.hide();
     }
 
     private void setLanguage() {
@@ -135,17 +172,32 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     protected void onResume() {
         super.onResume();
+        if (failed) return;
+        try {
+            resume();
+        } catch (Throwable t) {
+            startupFailed("resume", t);
+        }
+    }
+
+    private void resume() {
+        trace("framebuffer");
         SystemHooks.setHighColor(true);
+        trace("announce");
         SystemHooks.announce(this);
+        trace("identity");
         device = DeviceIdentity.read();
         camera = Matcher.camera(profiles, device.model);
+        trace("camera open (model " + device.model + ")");
         try {
             sony = SonyCamera.open(this);
         } catch (Throwable t) {
             sony = null;
             card.log(Collections.singletonList("camera open failed: " + ApplyReport.describe(t)));
         }
+        trace("preview (surface ready: " + surfaceReady + ")");
         if (surfaceReady) startPreview();
+        trace("live view rect");
         overlay.setVideoRect(SystemHooks.liveViewRect());
         overlay.setOnTouchListener(camera != null && camera.controls.touchscreen ? new View.OnTouchListener() {
             @Override
@@ -161,6 +213,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             }
         } : null);
 
+        trace("lens");
         detectLens();
         preset = profiles.preset(prefs.preset());
         if (preset == null && !profiles.presets().isEmpty()) preset = profiles.presets().get(0);
@@ -170,6 +223,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         showLive();
         if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
         else if (prefs.preset() != null) apply();
+        trace("ready");
     }
 
     @Override
@@ -196,7 +250,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         surfaceReady = true;
+        if (failed) return;
+        trace("surface created, preview");
         startPreview();
+        trace("preview started");
     }
 
     @Override
@@ -341,6 +398,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     private void handle(int action) {
+        if (failed) {
+            if (action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH) finish();
+            return;
+        }
         switch (screen) {
             case LIVE: handleLive(action); break;
             case PRESETS: handlePresets(action); break;

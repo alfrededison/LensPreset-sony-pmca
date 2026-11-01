@@ -52,8 +52,12 @@ tells you where to turn the aperture and focus rings).
    `pmca-console install -d native -f LensPreset-<version>.apk`, or PMCA-GUI → *Install app*.
 4. Open it from the camera's *Application List*.
 
-To remove it, use the camera's application management, or reinstall the camera's apps with
-Sony-PMCA-RE. An APK signed with a different key cannot be installed over an existing one:
+To remove it: *MENU → Application → Application Management → Manage and Remove → LensPreset*.
+
+**If the app hangs or shows a black screen:** connect the USB cable to a computer — the camera
+closes the app — then remove it as above or install a newer build over it. If that does not work,
+take the battery out for a minute. `LENSPRST/LOG.TXT` on the card says how far start-up got;
+please attach it to a [bug report](../../issues/new?template=bug_report.yml). An APK signed with a different key cannot be installed over an existing one:
 remove the old one first. Installation problems belong in the
 [Sony-PMCA-RE issues](https://github.com/ma1co/Sony-PMCA-RE/issues); preset and app problems here.
 
