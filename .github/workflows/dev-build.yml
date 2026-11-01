@@ -26,13 +26,21 @@ jobs:
           java-version: "17"
       - run: ./tools/test.sh
       - run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
-      - name: Build (signed with the project key when the secrets exist)
+      - name: Build with the project signing key and verify its certificate
         env:
+          REQUIRE_PROJECT_SIGNING: "1"
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ANDROID_SDK="$ANDROID_SDK_ROOT" ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LensPreset-dev-apk
+          path: |
+            out/LensPreset.apk
+            out/LensPreset.apk.sha256
+          if-no-files-found: error
       - name: Replace the dev prerelease
         env:
           GH_TOKEN: ${{ github.token }}

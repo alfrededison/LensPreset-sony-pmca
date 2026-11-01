@@ -55,6 +55,7 @@ and publication steps.
 ./tools/test.sh                    # core + Android-free adapter classes, JUnit 5
 ./tools/test.sh Engine             # classes whose name contains "Engine"
 python tools/validate_profiles.py  # schemas (pip install jsonschema)
+python3 tools/test_signing.py       # missing secrets and certificate mismatch guards
 ANDROID_SDK=... python -m unittest discover -s tools/firmware -p 'test_*.py'
 ```
 

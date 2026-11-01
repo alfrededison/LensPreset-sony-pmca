@@ -21,6 +21,8 @@ jobs:
       - run: ./tools/test.sh
       - name: Version numbering across version changes and tags
         run: python3 tools/test_version.py
+      - name: Signing configuration and certificate guards
+        run: python3 tools/test_signing.py
       - name: Committed firmware reports still cover the Sony API the app calls
         run: python3 tools/firmware/contract.py --check-reports
 

@@ -15,11 +15,19 @@
 #
 # Signing: set ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and
 # ANDROID_KEY_PASSWORD to sign with the project key; otherwise out/debug.keystore is generated.
+# RELEASE=1 or REQUIRE_PROJECT_SIGNING=1 requires the project key and certificate pin.
 # The camera accepts any v1 signature, but an APK signed with another key cannot be installed over
 # an existing install: remove the app first.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$PWD"
+
+. tools/signing.sh
+PROJECT_SIGNING=0
+if [ "${RELEASE:-0}" = 1 ] || [ "${REQUIRE_PROJECT_SIGNING:-0}" = 1 ] || [ -n "${ANDROID_KEYSTORE_B64:-}" ]; then
+  require_project_signing "$ROOT/signing/release-cert.sha256"
+  PROJECT_SIGNING=1
+fi
 
 : "${ANDROID_SDK:=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}}"
 : "${BUILD_TOOLS:=35.0.0}"
@@ -85,10 +93,10 @@ echo "[6/7] package and align"
 echo "[7/7] sign (v1 only: the camera does not understand v2/v3)"
 APK=out/LensPreset.apk
 SIGN_OPTS=(--min-sdk-version 10 --v1-signing-enabled true --v2-signing-enabled false --v3-signing-enabled false)
-if [ -n "${ANDROID_KEYSTORE_B64:-}" ]; then
-  KS="${RUNNER_TEMP:-$ROOT/out}/release.keystore"
-  printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > "$KS"
+if [ "$PROJECT_SIGNING" = 1 ]; then
+  KS=$(mktemp "${RUNNER_TEMP:-$ROOT/out}/lenspreset-signing.XXXXXX")
   trap 'rm -f "$KS"' EXIT
+  printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > "$KS"
   KS_PASS="${ANDROID_KEYSTORE_PASSWORD:?}" KEY_PASS="${ANDROID_KEY_PASSWORD:?}" \
     "$BT/apksigner" sign --ks "$KS" --ks-key-alias "${ANDROID_KEY_ALIAS:?}" \
     --ks-pass env:KS_PASS --key-pass env:KEY_PASS "${SIGN_OPTS[@]}" --out "$APK" "$OUT/aligned.apk"
@@ -100,5 +108,13 @@ else
     --out "$APK" "$OUT/aligned.apk"
 fi
 "$BT/apksigner" verify --min-sdk-version 10 "$APK"
-if command -v sha256sum >/dev/null; then sha256sum "$APK" > "$APK.sha256"; else shasum -a 256 "$APK" > "$APK.sha256"; fi
+if [ "$PROJECT_SIGNING" = 1 ]; then
+  verify_project_certificate "$APK" "$BT/apksigner" "$ROOT/signing/release-cert.sha256"
+  echo "Project signing certificate verified"
+fi
+if command -v sha256sum >/dev/null; then
+  (cd out && sha256sum LensPreset.apk > LensPreset.apk.sha256)
+else
+  (cd out && shasum -a 256 LensPreset.apk > LensPreset.apk.sha256)
+fi
 echo "BUILD OK: $ROOT/$APK ($VERSION_NAME, versionCode $VERSION_CODE)"

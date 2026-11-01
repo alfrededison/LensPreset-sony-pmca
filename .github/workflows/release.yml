@@ -23,12 +23,20 @@ jobs:
           test "v$VERSION_NAME" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, manifest $VERSION_NAME"; exit 1; }
       - run: ./tools/test.sh
       - run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
-      - env:
+      - name: Build with the project signing key and verify its certificate
+        env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: RELEASE=1 ANDROID_SDK="$ANDROID_SDK_ROOT" ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LensPreset-release-apk
+          path: |
+            out/LensPreset.apk
+            out/LensPreset.apk.sha256
+          if-no-files-found: error
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |

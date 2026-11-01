@@ -3,6 +3,7 @@ out/
 *.apk
 *.keystore
 *.jks
+.signing/
 
 # firmware downloads and extracts: Sony's copyright, never committed
 .firmware/

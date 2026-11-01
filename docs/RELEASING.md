@@ -18,9 +18,31 @@ Actions secrets consumed by the build:
 | `ANDROID_KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | Signing key password |
 
-The current scripts fall back to `out/debug.keystore` when `ANDROID_KEYSTORE_B64` is absent;
-the workflows do not enforce a project key. On a fresh CI runner, that fallback generates a new
-key. Do not publish a build relying on that fallback as an upgrade-compatible public release.
+`dev-build` and tagged releases require all four secrets. `RELEASE=1` and
+`REQUIRE_PROJECT_SIGNING=1` fail before building if any secret is absent. After signing, the build
+verifies that the APK certificate matches `signing/release-cert.sha256`; the corresponding public
+certificate is `signing/release-cert.pem`. A wrong key cannot silently become a published build.
+
+Ordinary local builds and the `ci` workflow still use `out/debug.keystore` when no project key is
+provided. CI's debug APK is for testing, not an upgrade-compatible replacement for a project-signed
+APK. A fresh CI runner can generate a different debug key.
+
+Local maintainer credentials are in the ignored `.signing/` directory: the encrypted PKCS12
+keystore and `credentials.json` are owner-readable only. Back up both outside the checkout;
+GitHub secrets cannot be downloaded later as a substitute for that backup. To build locally with
+these credentials without putting passwords on the command line:
+
+```bash
+ANDROID_SDK=~/Library/Android/sdk python3 tools/build_signed.py          # signed dev APK
+ANDROID_SDK=~/Library/Android/sdk python3 tools/build_signed.py --release # signed stable APK
+```
+
+The official key is different from the local debug key used during initial camera testing.
+Those debug installations need one uninstall/reinstall to move to the project-signed builds;
+preferences will be lost in that transition. Future project-signed dev and release builds share
+the same certificate.
+The local APK checksum and Actions artifacts use the APK's basename, so verify them from their
+containing directory: `cd out && shasum -a 256 -c LensPreset.apk.sha256` for a local build.
 
 Before publication, inspect the certificate SHA-256 digest of the actual APK using the Android
 SDK's `apksigner` and compare it with the established signing identity. With the SDK build-tools
@@ -89,10 +111,12 @@ version/date in the changelog; do not imply that an unpublished draft is a publi
 
 ## Where development APKs appear
 
-- `ci` uploads an Actions artifact named `LensPreset-apk` after its APK build succeeds.
-- `dev-build` attaches a versioned APK and checksum to a `dev` prerelease. It does not upload an
-  Actions artifact. Check the actual release state; a draft cannot serve as a public download.
-- The tag-triggered release workflow creates a draft for a maintainer to publish.
+- `ci` uploads a debug-signed Actions artifact named `LensPreset-apk` after its APK build succeeds.
+- `dev-build` uploads the project-signed `LensPreset-dev-apk` Actions artifact and attaches a
+  versioned APK and checksum to a `dev` prerelease. Check the actual release state; a draft cannot
+  serve as a public download.
+- The tag-triggered release workflow uploads the project-signed `LensPreset-release-apk` Actions
+  artifact and creates a draft for a maintainer to publish.
 
 For example, maintainer metadata can be inspected without exposing any signing credentials:
 

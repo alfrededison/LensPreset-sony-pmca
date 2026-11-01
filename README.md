@@ -76,8 +76,9 @@ also exercised on the body.
 ## Install
 
 1. Download the APK and matching `.sha256` from a published [Release](../../releases).
-   Successful `ci` builds also provide a `LensPreset-apk` artifact in Actions. The `dev-build`
-   workflow targets a `dev` prerelease; an unpublished draft is visible only to maintainers.
+   Signed development snapshots are available as `LensPreset-dev-apk` artifacts in Actions and
+   published `dev` prereleases. The `ci` artifact `LensPreset-apk` uses a debug key for testing.
+   An unpublished release draft is visible only to maintainers.
 2. Camera: *Setup → USB Connection → Mass Storage*, connect USB.
 3. Install with [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE):
    `pmca-console install -d native -f LensPreset-<version>.apk`, or PMCA-GUI → *Install app*.
