@@ -1,8 +1,6 @@
 # Changelog
 
-## Unreleased — 1.0.1
-
-Prepared on 2026-11-01; not yet published as a GitHub release.
+## 1.1.0 — 2026-11-02
 
 ### Shooting
 
@@ -26,11 +24,6 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
   Page Up / Page Down simulate wheel turns on an emulator.
 - The ? / Trash button cycles live-view detail: hide hints, hide the key guide too, hide all
   overlays (including composition guides), then show everything again.
-- Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
-  with English and Vietnamese light, framing, and highlight hints.
-- Preset-owned hint translations in `hint_text` for all twelve bundled presets, so adding
-  card presets does not require new app language-table entries. Missing preset hint text is
-  rejected with a profile error; duplicate hint translations have been removed from app i18n.
 
 ### Profile format
 
@@ -40,6 +33,26 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 - Group-specific distance guidance and depth-of-field warnings live in `subject.distance_hint`
   and `aperture.dof_warning`. These optional translated fields support English fallback; the
   distance template receives `{m}`. Presets without overrides use shared generic guidance.
+
+### Validation and compatibility
+
+- The new live-view controls and ISO/EV choices have automated tests and emulator checks;
+  real-camera testing of these changes is pending. Existing A5100 evidence is listed below.
+
+## 1.0.1 — 2026-11-01
+
+Published on [GitHub Releases](https://github.com/alfrededison/LensPreset-sony-pmca/releases/tag/v1.0.1).
+
+### Shooting
+
+- Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
+  with English and Vietnamese light, framing, and highlight hints.
+- Preset-owned hint translations in `hint_text` for all twelve bundled presets, so adding
+  card presets does not require new app language-table entries. Missing preset hint text is
+  rejected with a profile error; duplicate hint translations have been removed from app i18n.
+
+### Profile format
+
 - Presets with hints must include matching `hint_text` entries. Update custom card presets
   that previously relied on app translations before loading them in this version.
 - All twelve bundled presets carry their own English and Vietnamese hint text.

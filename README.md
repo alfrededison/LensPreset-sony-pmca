@@ -18,6 +18,10 @@ preset works on a 16–50 kit zoom and on a Sigma 30 mm f/1.4.
 > **Disclaimer.** Unofficial software, not made or endorsed by Sony. Installing apps through
 > Sony-PMCA-RE and running them is at your own risk.
 
+Current release: [v1.1.0](https://github.com/alfrededison/LensPreset-sony-pmca/releases/tag/v1.1.0).
+This version adds live-view ISO/EV adjustment, wheel selection of preset options, and a card-based
+settings display.
+
 ## Presets
 
 | Situation | What it does |
@@ -155,7 +159,7 @@ Languages: English, Tiếng Việt. Translations are welcome.
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). In short: `./tools/test.sh` (JDK 17+ only) and
 `./build.sh` (Android SDK with `platforms;android-10` and `build-tools;35.0.0`). No Gradle.
 Maintainers: see [docs/RELEASING.md](docs/RELEASING.md) for signing, release validation, and
-publishing. Changes for the 1.0.1 release candidate are recorded in [CHANGELOG.md](CHANGELOG.md).
+publishing. Release notes for 1.1.0 are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

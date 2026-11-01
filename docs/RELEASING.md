@@ -1,9 +1,12 @@
 # Releasing LensPreset
 
-The current release candidate is version 1.0.1. Existing compatibility evidence is for the MVP
-on ILCE-5100 firmware 3.10 with a Sigma 30mm F1.4 DC DN, tested by
-[@alfrededison](https://github.com/alfrededison). The new trip presets and preset-owned hints
-still need real-camera testing. Do not describe the release as verified on all PMCA bodies.
+This document covers release **1.1.0**: live-view ISO/EV adjustment, wheel selection of preset
+options, and a card-based settings display. The release tag is `v1.1.0`.
+
+Existing compatibility evidence is for the MVP on ILCE-5100 firmware 3.10 with a Sigma 30mm
+F1.4 DC DN, tested by [@alfrededison](https://github.com/alfrededison). The trip presets and
+preset-owned hints from 1.0.1, plus the new ISO/EV controls for 1.1.0, still need real-camera
+testing. Do not describe the release as verified on all PMCA bodies.
 The [README](../README.md) and [changelog](../CHANGELOG.md) state the tested scope and current limits.
 
 ## Keep one signing identity
@@ -50,16 +53,16 @@ SDK's `apksigner` and compare it with the established signing identity. With the
 on `PATH`:
 
 ```bash
-apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.0.1.apk
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.1.0.apk
 ```
 
 Different signing certificates prevent an in-place update. A transition from an earlier local
 debug key requires an uninstall/reinstall, which removes the app's preferences; tell testers if
 such a transition is necessary. Do not commit a keystore, encoded keystore, or credentials.
 
-## Prepare the candidate
+## Prepare the release commit
 
-1. Make sure `app/AndroidManifest.xml` has the intended `versionName` (currently `1.0.1`). A
+1. Make sure `app/AndroidManifest.xml` has the intended `versionName` (currently `1.1.0`). A
    release tag must be exactly `v` plus that version. A version bump starts its dev counter at
    `dev.1`; later first-parent commits increment it independently of tags, counting merges once.
    After publishing a release, bump
@@ -70,9 +73,10 @@ such a transition is necessary. Do not commit a keystore, encoded keystore, or c
    tests, profile schemas, committed firmware-report coverage, firmware-tool tests, and the APK
    build. For local commands, see [Development](DEVELOPMENT.md#tests).
 3. Check that README compatibility claims, the camera profile's test provenance, and the
-   changelog match the evidence. Keep pending changes under `Unreleased` until publication;
-   an unreleased section may name its target version and preparation date. Replace that heading
-   with the version and actual publication date when the release is published.
+   changelog match the evidence. In the release commit, use the version and release date in the
+   changelog heading (`1.1.0 — 2026-11-02`), and update README and this guide to that version.
+   Remove stale `Unreleased`, development-target, and previous-latest wording from the release
+   notes. Start a new `Unreleased` section when work begins on the following version.
 4. Verify the signing secrets and certificate identity. Never treat a green build alone as
    evidence that the expected project key was used.
 
@@ -81,25 +85,25 @@ such a transition is necessary. Do not commit a keystore, encoded keystore, or c
 Create the tag only after the version and release notes are committed and checks have passed:
 
 ```bash
-git tag -a v1.0.1 -m "LensPreset 1.0.1"
+git tag -a v1.1.0 -m "LensPreset 1.1.0"
 git push origin main
-git push origin v1.0.1
+git push origin v1.1.0
 ```
 
 Pushing the intended `vX.Y.Z` tag triggers `.github/workflows/release.yml`. The workflow checks
 the tag against the manifest, runs unit tests, builds a v1-signed APK with `RELEASE=1`, and creates
-a **draft** release with these assets (for `v1.0.1`):
+a **draft** release with these assets (for `v1.1.0`):
 
-- `LensPreset-v1.0.1.apk`
-- `LensPreset-v1.0.1.apk.sha256`
+- `LensPreset-v1.1.0.apk`
+- `LensPreset-v1.1.0.apk.sha256`
 
 The workflow's draft is intentional; a successful job does not mean users can download it from a
 public release. Download the draft assets as a maintainer, verify the checksum from the asset's
 directory, and inspect the signing certificate:
 
 ```bash
-shasum -a 256 -c LensPreset-v1.0.1.apk.sha256
-apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.0.1.apk
+shasum -a 256 -c LensPreset-v1.1.0.apk.sha256
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.1.0.apk
 ```
 
 Use the **actual draft APK** for a short test on the A5100, rather than assuming the local dev
@@ -118,8 +122,9 @@ Replace the generated commit summary with release notes based on the changelog. 
 - Links to the camera test report form and profile/preset contribution instructions.
 
 Publish the draft from GitHub Releases after its assets and body test have been checked. Verify
-the release page and both download links without maintainer authentication. Record the released
-version/date in the changelog; do not imply that an unpublished draft is a public download.
+the release page and both download links without maintainer authentication. Confirm that the
+version/date in the changelog matches publication; do not imply that an unpublished draft is a
+public download.
 
 ## Where development APKs appear
 
@@ -134,5 +139,5 @@ For example, maintainer metadata can be inspected without exposing any signing c
 
 ```bash
 gh release view dev --json tagName,isDraft,isPrerelease,assets,url
-gh release view v1.0.1 --json tagName,isDraft,isPrerelease,assets,url
+gh release view v1.1.0 --json tagName,isDraft,isPrerelease,assets,url
 ```
