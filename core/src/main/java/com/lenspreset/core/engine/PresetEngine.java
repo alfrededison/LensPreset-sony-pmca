@@ -248,7 +248,8 @@ public final class PresetEngine {
                     "near", Scales.formatMetres(dofNear), "far", Scales.formatMetres(dofFar)));
         }
         messages.addAll(hints);
-        for (String h : preset.hints) messages.add(Message.of(Message.Level.HINT, "hint." + h));
+        for (String h : preset.hints)
+            messages.add(Message.localized(Message.Level.HINT, "hint." + h, preset.hintText.get(h)));
         messages.addAll(notices);
 
         return new Recommendation(preset.exposureMode, aperture, lens.electronic, shutter, minShutter,

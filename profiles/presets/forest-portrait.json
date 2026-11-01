@@ -2,22 +2,67 @@
   "$schema": "../schema/preset.schema.json",
   "id": "forest-portrait",
   "order": 33,
-  "name": { "en": "Portrait in a garden", "vi": "Chân dung rừng / vườn" },
+  "name": {
+    "en": "Portrait in a garden",
+    "vi": "Chân dung rừng / vườn"
+  },
   "description": {
     "en": "Open the lens with a little stopping down, targeting f/2 to f/4 within its limits, for a soft leafy background. A 1/250 s Auto ISO minimum and face AF suit posed people in shade.",
     "vi": "Mở khẩu rồi khép nhẹ, hướng tới f/2–f/4 trong giới hạn ống kính, để phông lá mềm. Tốc tối thiểu cho ISO tự động 1/250 s và ưu tiên khuôn mặt cho người tạo dáng dưới bóng cây."
   },
   "goal": "shallow_dof",
   "exposure_mode": "aperture_priority",
-  "aperture": { "strategy": "widest_safe", "stop_down_from_max": 0.67, "min_f": 2, "max_f": 4 },
-  "shutter": { "strategy": "handheld_min", "min": "1/250", "stabilization_stops": 0 },
+  "aperture": {
+    "strategy": "widest_safe",
+    "stop_down_from_max": 0.67,
+    "min_f": 2,
+    "max_f": 4
+  },
+  "shutter": {
+    "strategy": "handheld_min",
+    "min": "1/250",
+    "stabilization_stops": 0
+  },
   "iso": "auto",
   "ev": 0,
   "metering": "multi",
-  "af": { "mode": "single", "area": "wide", "face": true, "eye": "if_available" },
-  "drive": { "mode": "single" },
-  "style": { "creative_style": "portrait", "fallback": "standard", "soft_skin": "off" },
-  "subject": { "framing": "half_body" },
-  "hints": ["forest_even_shade", "background_far", "focus_on_eyes"],
-  "overlays": ["thirds"]
+  "af": {
+    "mode": "single",
+    "area": "wide",
+    "face": true,
+    "eye": "if_available"
+  },
+  "drive": {
+    "mode": "single"
+  },
+  "style": {
+    "creative_style": "portrait",
+    "fallback": "standard",
+    "soft_skin": "off"
+  },
+  "subject": {
+    "framing": "half_body"
+  },
+  "hints": [
+    "forest_even_shade",
+    "background_far",
+    "focus_on_eyes"
+  ],
+  "overlays": [
+    "thirds"
+  ],
+  "hint_text": {
+    "forest_even_shade": {
+      "en": "Place the face in even shade, turned toward an opening in the trees; avoid patches of sunlight on skin.",
+      "vi": "Cho mặt ở bóng râm đều, hướng về khoảng trời thoáng; tránh đốm nắng trên da."
+    },
+    "background_far": {
+      "en": "Keep the background far behind the person for the softest blur.",
+      "vi": "Để phông nền ở xa phía sau người để xoá phông mềm nhất."
+    },
+    "focus_on_eyes": {
+      "en": "Put the focus point on the nearer eye.",
+      "vi": "Đặt điểm lấy nét vào mắt gần máy hơn."
+    }
+  }
 }

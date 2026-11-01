@@ -65,7 +65,7 @@ public final class Hud {
     /** Messages in display order, translated. */
     public static List<String> lines(Recommendation r, I18n i18n) {
         List<String> out = new ArrayList<String>();
-        for (Message m : r.messages) out.add(i18n.t(m.key, m.args));
+        for (Message m : r.messages) out.add(m.render(i18n));
         return out;
     }
 }

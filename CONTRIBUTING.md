@@ -40,8 +40,10 @@ while reopening is enabled. Mark untried cases as such.
    `tools/test.sh` runs every camera × lens × preset combination through the engine and fails if
    anything leaves the body's or lens's limits.
 4. For a lens, include the name the camera reports (`getLensInfo` in PROBE.TXT) under `match.names`.
-5. A new preset needs `name` and `description` in every language in `i18n/`, and any new hint keys
-   added to every `i18n/*.json`.
+5. A new preset needs `name`, `description`, and its own `hint_text` entries in every bundled
+   language. Keep new hint translations in the preset JSON so it can be copied from the card
+   without changing the app's `i18n/*.json`. Every hint id must have local text, including
+   presets loaded from the card.
 
 For a new camera, keep untested features `unknown` and its status `untested`. Include the model
 name, sensor dimensions, firmware version, probe, and hardware results before changing them.
@@ -56,14 +58,14 @@ modes. Do not describe a preset as preserving a complete Recipe Lab recipe witho
 ## Translate
 
 Copy `i18n/en.json` to `i18n/<code>.json` and translate the values; keep the keys and the
-`{placeholders}`. Add your language to every bundled preset's `name` and `description`.
+`{placeholders}`. Add your language to every bundled preset's `name`, `description` and `hint_text`.
 `./tools/test.sh` checks that nothing is missing. The camera's font draws Latin scripts
 (Vietnamese included); other scripts need a bundled font first — open an issue.
 
 ## Code
 
 - Read [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Code, comments and files the app writes are in
-  English; only `i18n/` is multilingual.
+  English; app language tables and localized profile text are multilingual.
 - Java must run on Android 2.3.7: `./build.sh` compiles against API 10 and fails on newer calls.
 - Logic that needs no camera goes into `core/` with a test; `MainActivity` and `SonyCamera` stay thin.
 - A new Sony API call means adding it to `camera-adapter/stubs/` — that is the contract the

@@ -63,7 +63,13 @@ report from a real body.
   "drive": { "mode": "single" },
   "style": { "creative_style": "portrait", "fallback": "standard", "soft_skin": "low" },
   "subject": { "framing": "half_body" },
-  "hints": ["background_far", "focus_on_eyes"],
+  "hints": ["local_light"],
+  "hint_text": {
+    "local_light": {
+      "en": "Turn the face toward soft light.",
+      "vi": "Cho mặt hướng về ánh sáng mềm."
+    }
+  },
   "overlays": ["thirds"]
 }
 ```
@@ -81,11 +87,20 @@ report from a real body.
 | `style` | `creative_style` and `fallback` (Sony names: `standard`, `vivid`, `portrait`, `landscape`, `light`, `mono`, …), `soft_skin` `off`/`low`/`mid`/`high` |
 | `subject.framing` | `head_shoulders`, `half_body`, `full_body`, `environment`, `group` (+ `people_per_row`): drives the distance hint and depth of field |
 | `adjust` | values the user changes with left/right: `rows` (`min`, `max`, `default`; group only), `self_timer` (`values`, `default`) |
-| `hints` | i18n keys under `hint.` (add the text to every `i18n/*.json`) |
+| `hints` | ordered hint ids; every id must have text in this preset's `hint_text` |
+| `hint_text` | map of hint id to `{"en": "…", "vi": "…"}` or plain English text; required when `hints` is non-empty, and every id must appear in `hints`. Missing languages fall back to English |
 | `overlays` | `thirds`, `center`, `horizon` guides |
 
 A preset written for yourself can carry `name` as plain English text; bundled presets need every
 bundled language.
+
+Keep new hint text inside the preset's `hint_text`: copying a single JSON file to the memory
+card then carries its settings, name, description and hints together, with no app i18n changes.
+Text belongs only to that preset; it never changes another preset's hints. The parser rejects
+missing hint text and reports the field under MENU → *Profile problems*. App language tables
+contain UI and generated guidance (distance, depth of field, manual focus), not preset hints.
+All bundled presets include local text for every hint. Apps built before `hint_text` support
+need an update to read this field.
 
 The app's **Keep current look** setting is on by default and skips `style` writes entirely.
 When it is off, a missing `creative_style` becomes `standard` and a missing `soft_skin` becomes

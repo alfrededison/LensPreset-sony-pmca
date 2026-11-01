@@ -16,5 +16,15 @@
   "af": { "mode": "single", "area": "center", "face": false, "eye": "off" },
   "drive": { "mode": "single" },
   "hints": ["meter_on_sky", "clear_outline"],
+  "hint_text": {
+    "meter_on_sky": {
+      "en": "Aim the centre at the bright sky, half-press to lock, then recompose.",
+      "vi": "Chĩa tâm vào vùng trời sáng, nhấn nửa nút để khoá, rồi bố cục lại."
+    },
+    "clear_outline": {
+      "en": "Keep the subject's outline clear: arms away from the body, profile against the light.",
+      "vi": "Giữ đường viền chủ thể rõ: tay tách khỏi người, đứng nghiêng ngược sáng."
+    }
+  },
   "overlays": ["thirds", "horizon"]
 }

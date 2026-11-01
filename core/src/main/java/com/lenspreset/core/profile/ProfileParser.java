@@ -234,6 +234,25 @@ public final class ProfileParser {
         for (String h : hints) {
             if (!h.matches("[a-z0-9_]{1,40}")) throw new ProfileException("hints: \"" + h + "\" is not a hint key");
         }
+        Map<String, Map<String, String>> hintText = new LinkedHashMap<String, Map<String, String>>();
+        Node ht = n.optObject("hint_text");
+        if (ht != null) {
+            for (String key : ht.keys()) {
+                if (!hints.contains(key))
+                    throw new ProfileException("hint_text." + key + ": must be listed in hints");
+                Map<String, String> translations = ht.localized(key, true);
+                for (Map.Entry<String, String> entry : translations.entrySet()) {
+                    if (!entry.getKey().matches("[a-z]{2}(-[A-Za-z]{2,4})?") || entry.getValue().trim().length() == 0)
+                        throw new ProfileException("hint_text." + key + ": needs language codes and non-empty text");
+                }
+                hintText.put(key, translations);
+            }
+            ht.finish();
+        }
+        for (String hint : hints) {
+            if (!hintText.containsKey(hint))
+                throw new ProfileException("hint_text." + hint + ": required text is missing");
+        }
         List<String> overlays = n.optStrings("overlays");
         for (String o : overlays) {
             if (!contains(OVERLAYS, o)) throw new ProfileException("overlays: \"" + o + "\" is not one of thirds, center, horizon");
@@ -274,7 +293,7 @@ public final class ProfileParser {
         }
 
         Preset p = new Preset(id, name, description, goal, order, mode, aperture, shutter, iso, ev,
-                metering, af, drive, selfTimer, style, subject, hints, overlays, adjust);
+                metering, af, drive, selfTimer, style, subject, hints, hintText, overlays, adjust);
         checkConsistency(p);
         n.finish();
         return p;

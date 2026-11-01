@@ -34,7 +34,6 @@ class I18nTest {
         for (String m : ProfileParser.METERING) if (!"multi".equals(m)) keys.add("hud.metering." + m);
         for (String d : ProfileParser.DRIVES) if (!"single".equals(d)) keys.add("hud." + d);
         for (String s : ProfileParser.CREATIVE_STYLES) keys.add("style." + s);
-        for (Preset p : Fixtures.bundled().presets()) for (String h : p.hints) keys.add("hint." + h);
         for (String s : Arrays.asList("verified", "community_tested", "untested")) keys.add("status." + s);
         keys.add("ui.adjust." + Preset.Adjust.ROWS);
         keys.add("ui.adjust." + Preset.Adjust.SELF_TIMER);

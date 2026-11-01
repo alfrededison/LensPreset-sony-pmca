@@ -31,13 +31,16 @@ public final class Preset {
     public final StyleRule style;
     public final Subject subject;
     public final List<String> hints;
+    /** Preset-owned translations for every id in hints. */
+    public final Map<String, Map<String, String>> hintText;
     public final List<String> overlays;
     public final Map<String, Adjust> adjust;
 
     public Preset(String id, Map<String, String> name, Map<String, String> description, String goal,
                   int order, ExposureMode exposureMode, ApertureRule aperture, ShutterRule shutter,
                   IsoRule iso, double ev, String metering, AfRule af, String drive, int selfTimer,
-                  StyleRule style, Subject subject, List<String> hints, List<String> overlays,
+                  StyleRule style, Subject subject, List<String> hints, Map<String, Map<String, String>> hintText,
+                  List<String> overlays,
                   Map<String, Adjust> adjust) {
         this.id = id;
         this.name = name;
@@ -56,6 +59,7 @@ public final class Preset {
         this.style = style;
         this.subject = subject;
         this.hints = hints;
+        this.hintText = hintText;
         this.overlays = overlays;
         this.adjust = adjust;
     }

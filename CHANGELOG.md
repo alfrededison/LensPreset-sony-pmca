@@ -9,6 +9,9 @@ Initial MVP planned for version 1.0.0.
 - Twelve shooting situations with body- and lens-aware exposure, focus, and drive settings.
 - Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
   with English and Vietnamese light, framing, and highlight hints.
+- Preset-owned hint translations in `hint_text` for all twelve bundled presets, so adding
+  card presets does not require new app language-table entries. Missing preset hint text is
+  rejected with a profile error; duplicate hint translations have been removed from app i18n.
 - Live view with composition guides, estimated framing distance, and depth-of-field hints.
 - English and Vietnamese, button and touch navigation, and profiles loaded from the memory card.
 - Settings read-back with unsupported values and mismatches recorded in the app log.

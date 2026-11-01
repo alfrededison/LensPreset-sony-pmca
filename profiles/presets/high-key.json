@@ -16,5 +16,15 @@
   "af": { "mode": "single", "area": "wide", "face": true, "eye": "off" },
   "drive": { "mode": "single" },
   "style": { "creative_style": "light", "fallback": "standard" },
-  "hints": ["bright_background", "watch_highlights"]
+  "hints": ["bright_background", "watch_highlights"],
+  "hint_text": {
+    "bright_background": {
+      "en": "Use a bright background and soft, even light.",
+      "vi": "Dùng phông nền sáng và ánh sáng mềm, đều."
+    },
+    "watch_highlights": {
+      "en": "Check the picture: lower the brightness if the skin loses detail.",
+      "vi": "Xem lại ảnh: giảm sáng nếu da bị mất chi tiết."
+    }
+  }
 }

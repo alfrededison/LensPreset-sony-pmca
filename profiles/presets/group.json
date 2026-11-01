@@ -22,5 +22,15 @@
     "self_timer": { "values": [0, 2, 10], "default": 0 }
   },
   "hints": ["group_focus_middle_row", "group_eyes_open"],
+  "hint_text": {
+    "group_focus_middle_row": {
+      "en": "Focus on a face in the middle row.",
+      "vi": "Lấy nét vào một khuôn mặt ở hàng giữa."
+    },
+    "group_eyes_open": {
+      "en": "Shoot a short burst: one frame will have everyone's eyes open.",
+      "vi": "Chụp liên tiếp vài tấm: sẽ có tấm mọi người đều mở mắt."
+    }
+  },
   "overlays": ["center"]
 }

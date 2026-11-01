@@ -54,9 +54,16 @@ class BundledProfilesTest {
     @Test
     void everyPresetHasEveryBundledLanguage() {
         for (Preset p : SET.presets()) {
+            for (String hint : p.hints)
+                assertTrue(p.hintText.containsKey(hint), p.id + " has no local text for " + hint);
             for (String lang : Fixtures.languageTables().keySet()) {
                 assertTrue(p.name.containsKey(lang), p.id + " name has no " + lang);
                 assertTrue(p.description.containsKey(lang), p.id + " description has no " + lang);
+                for (Map.Entry<String, Map<String, String>> h : p.hintText.entrySet()) {
+                    assertTrue(h.getValue().containsKey(lang), p.id + " hint " + h.getKey() + " has no " + lang);
+                    assertEquals(com.lenspreset.core.i18n.I18n.placeholders(h.getValue().get("en")),
+                            com.lenspreset.core.i18n.I18n.placeholders(h.getValue().get(lang)));
+                }
             }
         }
     }
@@ -121,7 +128,8 @@ class BundledProfilesTest {
         if (r.focalMm < l.focalMin || r.focalMm > l.focalMax) fail(where + ": focal " + r.focalMm);
         if (r.subjectDistanceM != null && r.subjectDistanceM < l.minFocusM - 1e-9) fail(where + ": inside min focus");
         for (Message m : r.messages) {
-            if (!EN.containsKey(m.key)) fail(where + ": no English text for " + m.key);
+            if (!EN.containsKey(m.key) && !m.localizedText.containsKey("en"))
+                fail(where + ": no English text for " + m.key);
         }
     }
 

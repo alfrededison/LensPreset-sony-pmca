@@ -13,7 +13,7 @@ camera-adapter/
 app/                Android 2.3.7 UI: MainActivity (screens, keys), OverlayView, ListPanel, card
                     storage, preferences
 profiles/           cameras/, lenses/, presets/ (bundled into the APK) and schema/
-i18n/               en.json, vi.json — every on-screen word
+i18n/               en.json, vi.json — UI and generated messages (preset hints live in profiles/)
 firmware/           sources.json (Sony's download pages, file sha256s) and reports/ (capability facts)
 tools/              test.sh, version.sh, validate_profiles.py, make_icon.py, firmware/
 ```

@@ -2,21 +2,70 @@
   "$schema": "../schema/preset.schema.json",
   "id": "pool-kids",
   "order": 61,
-  "name": { "en": "Kids splashing in the pool", "vi": "Trẻ nghịch bể bơi" },
+  "name": {
+    "en": "Kids splashing in the pool",
+    "vi": "Trẻ nghịch bể bơi"
+  },
   "description": {
     "en": "1/1000 s targets jumps and splashes in a bright pool; continuous AF, fast burst and Auto ISO. -1/3 EV gives highlights some margin; dim pools may need the 1/500 s Kids on the move preset.",
     "vi": "Tốc 1/1000 s ưu tiên bắt dính trẻ nhảy và nước bắn ở bể sáng; AF liên tục, chụp liên tiếp nhanh, ISO tự động. Bù -1/3 EV chừa sáng; bể tối nên dùng Trẻ con chạy nhảy ở 1/500 s."
   },
   "goal": "freeze_motion",
   "exposure_mode": "shutter_priority",
-  "shutter": { "strategy": "fixed", "value": "1/1000" },
+  "shutter": {
+    "strategy": "fixed",
+    "value": "1/1000"
+  },
   "iso": "auto",
   "ev": -0.33,
   "metering": "multi",
-  "af": { "mode": "continuous", "area": "wide", "face": true, "eye": "off" },
-  "drive": { "mode": "burst_hi" },
-  "style": { "creative_style": "standard", "fallback": "standard", "soft_skin": "off" },
-  "subject": { "framing": "full_body" },
-  "hints": ["half_press_to_track", "shoot_at_their_level", "pool_short_bursts", "pool_dim_light", "watch_highlights"],
-  "overlays": ["thirds"]
+  "af": {
+    "mode": "continuous",
+    "area": "wide",
+    "face": true,
+    "eye": "off"
+  },
+  "drive": {
+    "mode": "burst_hi"
+  },
+  "style": {
+    "creative_style": "standard",
+    "fallback": "standard",
+    "soft_skin": "off"
+  },
+  "subject": {
+    "framing": "full_body"
+  },
+  "hints": [
+    "half_press_to_track",
+    "shoot_at_their_level",
+    "pool_short_bursts",
+    "pool_dim_light",
+    "watch_highlights"
+  ],
+  "overlays": [
+    "thirds"
+  ],
+  "hint_text": {
+    "half_press_to_track": {
+      "en": "Keep the shutter half-pressed to keep tracking, then shoot a burst.",
+      "vi": "Giữ nửa nút chụp để máy bám nét, rồi chụp liên tiếp."
+    },
+    "shoot_at_their_level": {
+      "en": "Crouch to the children's eye level.",
+      "vi": "Hạ thấp người ngang tầm mắt trẻ."
+    },
+    "pool_short_bursts": {
+      "en": "Leave room above the child for splashes; shoot short bursts at the peak of the action.",
+      "vi": "Chừa khoảng phía trên đầu trẻ cho nước bắn; chụp từng loạt ngắn lúc động tác đẹp nhất."
+    },
+    "pool_dim_light": {
+      "en": "If the pool is dim and photos are dark, try Kids on the move at 1/500 s.",
+      "vi": "Bể thiếu sáng, ảnh tối: thử Trẻ con chạy nhảy với tốc 1/500 s."
+    },
+    "watch_highlights": {
+      "en": "Check the picture: lower the brightness if the skin loses detail.",
+      "vi": "Xem lại ảnh: giảm sáng nếu da bị mất chi tiết."
+    }
+  }
 }

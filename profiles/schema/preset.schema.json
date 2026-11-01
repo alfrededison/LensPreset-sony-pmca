@@ -6,6 +6,12 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "name", "exposure_mode", "af"],
+  "allOf": [
+    {
+      "if": { "required": ["hints"], "properties": { "hints": { "minItems": 1 } } },
+      "then": { "required": ["hint_text"] }
+    }
+  ],
   "properties": {
     "$schema": { "type": "string" },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$" },
@@ -82,8 +88,14 @@
       }
     },
     "hints": {
-      "description": "i18n keys under hint., e.g. background_far -> hint.background_far.",
+      "description": "Ordered hint ids. Every id must have text in this preset's hint_text; app translations are not used.",
       "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$" }
+    },
+    "hint_text": {
+      "description": "Translations for every id in hints. Plain text means English; localized objects require en. Required when hints is non-empty.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9_]{1,40}$" },
+      "additionalProperties": { "$ref": "#/definitions/localized" }
     },
     "overlays": { "type": "array", "items": { "enum": ["thirds", "center", "horizon"] } },
     "adjust": {

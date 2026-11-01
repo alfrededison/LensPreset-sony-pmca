@@ -2,21 +2,65 @@
   "$schema": "../schema/preset.schema.json",
   "id": "beach-landscape",
   "order": 31,
-  "name": { "en": "Beach scenery", "vi": "Phong cảnh biển" },
+  "name": {
+    "en": "Beach scenery",
+    "vi": "Phong cảnh biển"
+  },
   "description": {
     "en": "The narrower end of the lens's sweet spot, at least f/5.6, with a 1/250 s Auto ISO minimum for handheld coastlines. +1/3 EV is a starting point for bright sand; check highlights.",
     "vi": "Khẩu ở đầu khép của vùng nét nhất, từ f/5.6, tốc tối thiểu cho ISO tự động 1/250 s để chụp biển cầm tay. Bù +1/3 EV làm điểm bắt đầu cho cát sáng; kiểm tra vùng cháy."
   },
   "goal": "deep_dof",
   "exposure_mode": "aperture_priority",
-  "aperture": { "strategy": "sweet_spot", "position": "high", "min_f": 5.6, "max_f": 8 },
-  "shutter": { "strategy": "handheld_min", "min": "1/250", "stabilization_stops": 0 },
+  "aperture": {
+    "strategy": "sweet_spot",
+    "position": "high",
+    "min_f": 5.6,
+    "max_f": 8
+  },
+  "shutter": {
+    "strategy": "handheld_min",
+    "min": "1/250",
+    "stabilization_stops": 0
+  },
   "iso": "auto",
   "ev": 0.33,
   "metering": "multi",
-  "af": { "mode": "single", "area": "center", "face": false, "eye": "off" },
-  "drive": { "mode": "single" },
-  "style": { "creative_style": "landscape", "fallback": "standard", "soft_skin": "off" },
-  "hints": ["horizon_level", "sand_highlights", "landscape_focus"],
-  "overlays": ["thirds", "horizon"]
+  "af": {
+    "mode": "single",
+    "area": "center",
+    "face": false,
+    "eye": "off"
+  },
+  "drive": {
+    "mode": "single"
+  },
+  "style": {
+    "creative_style": "landscape",
+    "fallback": "standard",
+    "soft_skin": "off"
+  },
+  "hints": [
+    "horizon_level",
+    "sand_highlights",
+    "landscape_focus"
+  ],
+  "overlays": [
+    "thirds",
+    "horizon"
+  ],
+  "hint_text": {
+    "horizon_level": {
+      "en": "Keep the horizon level with the guide line.",
+      "vi": "Giữ đường chân trời thẳng theo đường dẫn."
+    },
+    "sand_highlights": {
+      "en": "Check the sand and clouds; if detail is lost, reduce EV and shoot again.",
+      "vi": "Xem lại cát và mây; nếu mất chi tiết, giảm bù sáng EV rồi chụp lại."
+    },
+    "landscape_focus": {
+      "en": "Put the centre point on a clear detail in the main scene, half-press, then recompose.",
+      "vi": "Đặt điểm giữa vào chi tiết rõ của cảnh chính, nhấn nửa nút lấy nét rồi bố cục lại."
+    }
+  }
 }

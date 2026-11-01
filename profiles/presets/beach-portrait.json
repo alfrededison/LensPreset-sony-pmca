@@ -2,22 +2,73 @@
   "$schema": "../schema/preset.schema.json",
   "id": "beach-portrait",
   "order": 32,
-  "name": { "en": "Portrait by the sea", "vi": "Chân dung bên biển" },
+  "name": {
+    "en": "Portrait by the sea",
+    "vi": "Chân dung bên biển"
+  },
   "description": {
     "en": "The wider end of the lens's sweet spot, at least f/4, keeps a person and some scenery clear. A 1/250 s Auto ISO minimum and face AF suit posed portraits; +1/3 EV is a starting point for bright sand.",
     "vi": "Khẩu ở đầu mở của vùng nét nhất, từ f/4, giữ rõ người và một phần cảnh biển. Tốc tối thiểu cho ISO tự động 1/250 s, ưu tiên khuôn mặt cho người đứng tạo dáng; bù +1/3 EV làm điểm bắt đầu cho cát sáng."
   },
   "goal": "subject_and_scene",
   "exposure_mode": "aperture_priority",
-  "aperture": { "strategy": "sweet_spot", "position": "low", "min_f": 4, "max_f": 5.6 },
-  "shutter": { "strategy": "handheld_min", "min": "1/250", "stabilization_stops": 0 },
+  "aperture": {
+    "strategy": "sweet_spot",
+    "position": "low",
+    "min_f": 4,
+    "max_f": 5.6
+  },
+  "shutter": {
+    "strategy": "handheld_min",
+    "min": "1/250",
+    "stabilization_stops": 0
+  },
   "iso": "auto",
   "ev": 0.33,
   "metering": "multi",
-  "af": { "mode": "single", "area": "wide", "face": true, "eye": "if_available" },
-  "drive": { "mode": "single" },
-  "style": { "creative_style": "portrait", "fallback": "standard", "soft_skin": "off" },
-  "subject": { "framing": "environment" },
-  "hints": ["beach_soft_light", "watch_highlights", "subject_on_third", "horizon_level"],
-  "overlays": ["thirds", "horizon"]
+  "af": {
+    "mode": "single",
+    "area": "wide",
+    "face": true,
+    "eye": "if_available"
+  },
+  "drive": {
+    "mode": "single"
+  },
+  "style": {
+    "creative_style": "portrait",
+    "fallback": "standard",
+    "soft_skin": "off"
+  },
+  "subject": {
+    "framing": "environment"
+  },
+  "hints": [
+    "beach_soft_light",
+    "watch_highlights",
+    "subject_on_third",
+    "horizon_level"
+  ],
+  "overlays": [
+    "thirds",
+    "horizon"
+  ],
+  "hint_text": {
+    "beach_soft_light": {
+      "en": "Use morning or late-afternoon light, or open shade, for softer light on faces.",
+      "vi": "Chụp sáng sớm, chiều muộn hoặc dưới bóng râm thoáng để mặt nhận ánh sáng mềm."
+    },
+    "watch_highlights": {
+      "en": "Check the picture: lower the brightness if the skin loses detail.",
+      "vi": "Xem lại ảnh: giảm sáng nếu da bị mất chi tiết."
+    },
+    "subject_on_third": {
+      "en": "Place the person on a third line, looking into the frame.",
+      "vi": "Đặt người trên đường 1/3, nhìn vào trong khung hình."
+    },
+    "horizon_level": {
+      "en": "Keep the horizon level with the guide line.",
+      "vi": "Giữ đường chân trời thẳng theo đường dẫn."
+    }
+  }
 }

@@ -137,6 +137,32 @@ class ProfileParserTest {
     }
 
     @Test
+    void rejectsInvalidPresetHintTranslations() {
+        String[] invalid = {
+                "null", "{}", "{\"vi\":\"Gợi ý\"}", "\"\"", "{\"en\":\" \"}",
+                "{\"en\":42}", "{\"en\":\"Hint\",\"vietnamese\":\"Gợi ý\"}", "[]"
+        };
+        for (String text : invalid) {
+            String json = String.format(PRESET, "program",
+                    "\"hints\":[\"local\"],\"hint_text\":{\"local\":" + text + "},");
+            assertTrue(error(() -> ProfileParser.preset(json)).startsWith("hint_text.local"), text);
+        }
+    }
+
+    @Test
+    void hintTranslationsMustReferToListedHints() {
+        String json = String.format(PRESET, "program", "\"hint_text\":{\"typo\":\"Hint\"},");
+        assertEquals("hint_text.typo: must be listed in hints", error(() -> ProfileParser.preset(json)));
+    }
+
+    @Test
+    void everyHintNeedsItsOwnText() {
+        String json = String.format(PRESET, "program",
+                "\"hints\":[\"first\",\"second\"],\"hint_text\":{\"first\":\"First hint\"},");
+        assertEquals("hint_text.second: required text is missing", error(() -> ProfileParser.preset(json)));
+    }
+
+    @Test
     void presetAdjustRowsOnlyForGroups() {
         assertEquals("adjust.rows: only a group subject has rows",
                 error(() -> ProfileParser.preset(String.format(PRESET, "program",

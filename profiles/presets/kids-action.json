@@ -15,5 +15,15 @@
   "af": { "mode": "continuous", "area": "wide", "face": true, "eye": "off" },
   "drive": { "mode": "burst_hi" },
   "subject": { "framing": "full_body" },
-  "hints": ["shoot_at_their_level", "half_press_to_track"]
+  "hints": ["shoot_at_their_level", "half_press_to_track"],
+  "hint_text": {
+    "shoot_at_their_level": {
+      "en": "Crouch to the children's eye level.",
+      "vi": "Hạ thấp người ngang tầm mắt trẻ."
+    },
+    "half_press_to_track": {
+      "en": "Keep the shutter half-pressed to keep tracking, then shoot a burst.",
+      "vi": "Giữ nửa nút chụp để máy bám nét, rồi chụp liên tiếp."
+    }
+  }
 }

@@ -16,5 +16,15 @@
   "af": { "mode": "single", "area": "wide", "face": true, "eye": "if_available" },
   "drive": { "mode": "single" },
   "subject": { "framing": "half_body" },
-  "hints": ["brace_yourself", "face_the_window"]
+  "hints": ["brace_yourself", "face_the_window"],
+  "hint_text": {
+    "brace_yourself": {
+      "en": "Brace your elbows or lean on something; breathe out as you press.",
+      "vi": "Tì khuỷu tay hoặc dựa vào vật chắc; thở ra khi bấm."
+    },
+    "face_the_window": {
+      "en": "Turn the person toward the window or the brightest light.",
+      "vi": "Cho người quay mặt về phía cửa sổ hoặc nguồn sáng mạnh nhất."
+    }
+  }
 }

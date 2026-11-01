@@ -17,5 +17,15 @@
   "drive": { "mode": "single" },
   "subject": { "framing": "environment" },
   "hints": ["subject_on_third", "horizon_level"],
+  "hint_text": {
+    "subject_on_third": {
+      "en": "Place the person on a third line, looking into the frame.",
+      "vi": "Đặt người trên đường 1/3, nhìn vào trong khung hình."
+    },
+    "horizon_level": {
+      "en": "Keep the horizon level with the guide line.",
+      "vi": "Giữ đường chân trời thẳng theo đường dẫn."
+    }
+  },
   "overlays": ["thirds", "horizon"]
 }

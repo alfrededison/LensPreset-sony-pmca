@@ -493,7 +493,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         }
         rec = PresetEngine.compute(camera, lens, preset, conditions(preset));
         List<OverlayView.Line> lines = new ArrayList<OverlayView.Line>();
-        for (Message m : rec.messages) lines.add(new OverlayView.Line(i18n.t(m.key, m.args), m.level));
+        for (Message m : rec.messages) lines.add(new OverlayView.Line(m.render(i18n), m.level));
         overlay.show(i18n.pick(preset.name), subtitle(), Hud.chips(rec, i18n), lines, rec.overlays);
     }
 

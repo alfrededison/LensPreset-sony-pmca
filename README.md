@@ -39,6 +39,9 @@ Creative Style and Soft Skin are applied only when **Keep current look** is off.
 subject framing also estimate where to stand ("about 2.0 m for a half-body shot") and depth of
 field ("1.8 m to 2.1 m"); these are guides, not measured subject distances. Add your own presets
 on the memory card — see [docs/PROFILES.md](docs/PROFILES.md).
+All bundled presets carry their own translated hints in `hint_text`, so a single file on the card
+contains their settings and guidance without changes to the app's language tables. Every id in
+`hints` must have text in that preset's `hint_text`.
 
 ## Compatibility
 

@@ -18,5 +18,15 @@
   "style": { "creative_style": "portrait", "fallback": "standard", "soft_skin": "low" },
   "subject": { "framing": "half_body" },
   "hints": ["background_far", "focus_on_eyes"],
+  "hint_text": {
+    "background_far": {
+      "en": "Keep the background far behind the person for the softest blur.",
+      "vi": "Để phông nền ở xa phía sau người để xoá phông mềm nhất."
+    },
+    "focus_on_eyes": {
+      "en": "Put the focus point on the nearer eye.",
+      "vi": "Đặt điểm lấy nét vào mắt gần máy hơn."
+    }
+  },
   "overlays": ["thirds"]
 }
