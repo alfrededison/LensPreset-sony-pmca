@@ -58,13 +58,18 @@ class PresetEngineTest {
 
     @Test
     void messagesComeHintsFirstThenNotices() {
-        Recommendation r = run(A5100, SIGMA_30, "portrait-bokeh", Conditions.none());
+        Recommendation r = run(Fixtures.camera("generic"), SIGMA_30, "portrait-bokeh", Conditions.none());
         assertEquals("hint.distance.half_body", r.messages.get(0).key);
         assertEquals("2.0", r.messages.get(0).args.get("m"));
         assertEquals("hint.dof", r.messages.get(1).key);
         assertTrue(r.hasMessage("hint.eye_af_button"));
         assertTrue(r.hasMessage("hint.background_far"));
         assertEquals("notice.untested_camera", r.messages.get(r.messages.size() - 1).key);
+    }
+
+    @Test
+    void aTestedCameraGetsNoUntestedNotice() {
+        assertFalse(run(A5100, SIGMA_30, "portrait-bokeh", Conditions.none()).hasMessage("notice.untested_camera"));
     }
 
     @Test

@@ -65,13 +65,14 @@ the apply report and in the app's log, never a crash.
 
 | setting | call | confidence |
 |---|---|---|
-| exposure mode | `Camera.Parameters.setSceneMode("aperture-priority" / "shutter-speed" / "manual-exposure" / "program-auto")` | used by BetterManual (A, M) |
-| aperture, shutter | `increment/decrementAperture()`, `increment/decrementShutterSpeed()`, stepped with feedback from the change listeners (`ValueSeeker` learns the direction) | used by BetterManual |
+| exposure mode | `Camera.Parameters.setSceneMode("aperture-priority" / "shutter-speed" / "manual-exposure" / "program-auto")` | used by BetterManual (A, M); all four checked on ILCE-5100 3.10 |
+| aperture, shutter | `increment/decrementAperture()`, `increment/decrementShutterSpeed()`, stepped with feedback from the change listeners (`ValueSeeker` learns the direction) | used by BetterManual; checked on ILCE-5100 3.10 |
 | ISO, Auto ISO | `setISOSensitivity(0 = auto)`, `setISOAutoMin/Max` | ISO used by BetterManual; the range calls do not exist on ILCE-5100 3.10 (firmware report) |
-| Auto ISO minimum speed | `setAutoShutterSpeedLowLimit(code)`, BetterManual's experimental code table | used by BetterManual |
-| EV | `Camera.Parameters.setExposureCompensation(index)` | used by BetterManual |
-| metering, AF mode / area, face detection, drive, self-timer, Creative Style, Soft Skin | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | unverified |
-| lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (unit unknown: `Matcher.focalMm` infers ×1/×10/×100 from the lens range); `ApertureInfo.currentAvailableMin` as the widest aperture now | unverified |
+| Auto ISO minimum speed | `setAutoShutterSpeedLowLimit(code)`, BetterManual's experimental code table | used by BetterManual; checked on ILCE-5100 3.10 |
+| EV | `Camera.Parameters.setExposureCompensation(index)` | used by BetterManual; checked on ILCE-5100 3.10 |
+| metering, AF mode / area, face detection, drive, Creative Style | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | checked on ILCE-5100 3.10; the A5100 lists AF area `wide` but keeps `center`, so `multi` is used |
+| self-timer, Soft Skin | as above | read back on ILCE-5100 3.10; the self-timer only tested off, Soft Skin not seen in a photo yet (the body applies it to detected faces only) |
+| lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (tenths of a mm on ILCE-5100 3.10; `Matcher.focalMm` still infers ×1/×10/×100 from the lens range for other bodies); `ApertureInfo.currentAvailableMin` as the widest aperture now | name and focal length checked on ILCE-5100 3.10 with a prime; tracking a zoom unverified |
 | eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
 
 **Roadmap steps 1–2 (spike and API survey on the A5100)** are what MENU → *Run camera probe*
@@ -188,8 +189,9 @@ How a setting is known to have taken:
    something else. "OK" without "read back" only means the call did not throw.
 2. **The photo (`--photos`).** One picture per preset; its EXIF and Sony MakerNotes (exposure
    program, f-number, shutter, exposure compensation, metering, focus mode, Creative Style, Soft Skin)
-   are compared with the report by `tools/camera-test/exif_check.py`: `photo ok` or
-   `PHOTO MISMATCH`. This is what the camera really shot with. The pictures stay on the card; delete
+   are compared with the report by `tools/camera-test/exif_check.py`: `photo ok`, `PHOTO MISMATCH`,
+   `photo has no …` when the picture does not record a setting, or `photo can't tell` for Soft Skin
+   in a picture without a face (the body records Off then). This is what the camera really shot with. The pictures stay on the card; delete
    them on the camera.
 3. **Your eyes**, for what a photo does not record (face frames on the live view).
 

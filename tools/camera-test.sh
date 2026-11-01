@@ -97,7 +97,7 @@ shoot_and_check() {
   a shell rm /data/local/tmp/lenspreset-exif.jpg >/dev/null 2>&1
   say "  photo $new"
   exiftool -j -q -q -ExposureTime# -FNumber# -ExposureCompensation# -ISO -ExposureProgram -MeteringMode \
-    -FocusMode -AFAreaMode -CreativeStyle -SoftSkinEffect -FaceDetection -ReleaseMode "$OUT/$p.jpg" > "$OUT/$p.exif.json" 2>/dev/null || true
+    -FocusMode -AFAreaMode -CreativeStyle -SoftSkinEffect -FacesDetected# -ReleaseMode "$OUT/$p.jpg" > "$OUT/$p.exif.json" 2>/dev/null || true
   python3 tools/camera-test/exif_check.py "$OUT/$p.exif.json" "$OUT/$p.report.txt" | tee -a "$OUT/summary.txt" || true
 }
 

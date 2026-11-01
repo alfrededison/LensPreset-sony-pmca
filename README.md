@@ -35,7 +35,7 @@ sharp ("1.8 m to 2.1 m"). Add your own presets on the memory card — see [docs/
 
 | Body | Profile | Status |
 |---|---|---|
-| A5100 (ILCE-5100) | `ilce-5100` | untested |
+| A5100 (ILCE-5100) | `ilce-5100` | community-tested (firmware 3.10) |
 | A6000 (ILCE-6000) | `ilce-6000` | untested |
 | any other PMCA body | `generic` (APS-C assumed) | untested |
 

@@ -49,7 +49,7 @@ class ProfileParserTest {
         assertEquals(Feature.UNKNOWN, c.feature(Feature.EYE_AF));
         assertTrue(c.controls.touchscreen);
         assertNull(c.fixedLens);
-        assertEquals(CameraProfile.Status.UNTESTED, c.status);
+        assertEquals(CameraProfile.Status.COMMUNITY_TESTED, c.status);
     }
 
     @Test

@@ -70,7 +70,11 @@ def main(exif_path, report_path):
         compare("creative style", "creative_style", v, "CreativeStyle", lambda h: text_match(STYLE.get(v, v), h))
     if "soft_skin" in set_:
         v = value("soft_skin")
-        compare("soft skin", "soft_skin", v, "SoftSkinEffect", lambda h: text_match(SOFT_SKIN.get(v, v), h))
+        if v != "off" and exif.get("FacesDetected") == 0 and exif.get("SoftSkinEffect") == "Off":
+            # The body applies soft skin to faces only and records Off when it found none.
+            lines.append("  photo can't tell soft_skin %s: no face in the picture" % v)
+        else:
+            compare("soft skin", "soft_skin", v, "SoftSkinEffect", lambda h: text_match(SOFT_SKIN.get(v, v), h))
     if "ev" in set_:
         v = value("ev")
         compare("exposure compensation", "ev", v, "ExposureCompensation",
@@ -87,7 +91,7 @@ def main(exif_path, report_path):
             want = float(m.group(1)) / float(m.group(2)) if m.group(1) else float(m.group(3))
             compare("shutter", "shutter", m.group(0)[4:], "ExposureTime",
                     lambda h: abs(math.log2(float(h) / want)) < 0.2)
-    for tag in ("ISO", "FNumber", "ExposureTime", "AFAreaMode", "FaceDetection", "ReleaseMode"):
+    for tag in ("ISO", "FNumber", "ExposureTime", "AFAreaMode", "FacesDetected", "ReleaseMode"):
         if tag in exif:
             lines.append("  photo says  %-14s %s" % (tag, exif[tag]))
     print("\n".join(lines))
