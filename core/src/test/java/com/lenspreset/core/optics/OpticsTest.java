@@ -52,6 +52,10 @@ class OpticsTest {
         assertNull(Shutter.parse("fast"));
         assertNull(Shutter.parse("1/0"));
         assertNull(Shutter.parse("-1"));
+        assertNull(Shutter.parse("100000/1"), "over 60 s");
+        assertNull(Shutter.parse("NaN"));
+        assertEquals("1/8", Shutter.parse("1/7").format(), "snapped to the nearest mark in stops");
+        assertEquals("1/4000", Shutter.parse("1/8000").format(), "the scale's fastest");
     }
 
     @Test

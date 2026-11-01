@@ -23,26 +23,30 @@ public final class Shutter {
     }
 
     /**
-     * Parses {@code 1/125}, {@code 0.5}, {@code 2"} or {@code 2s}. Returns null for anything else;
-     * callers report the field name.
+     * Parses {@code 1/125}, {@code 0.5}, {@code 2"} or {@code 2s} and snaps it to the camera's scale
+     * ({@code 1/7} becomes {@code 1/8}), since the camera can only step between marked speeds.
+     * Returns null for anything else or anything over 60 s; callers report the field name.
      */
     public static Shutter parse(String s) {
         if (s == null) return null;
         String t = s.trim();
+        double sec;
         try {
             int slash = t.indexOf('/');
             if (slash > 0) {
                 int n = Integer.parseInt(t.substring(0, slash).trim());
                 int d = Integer.parseInt(t.substring(slash + 1).trim());
-                return n > 0 && d > 0 ? new Shutter(n, d) : null;
+                if (n <= 0 || d <= 0) return null;
+                sec = n / (double) d;
+            } else {
+                if (t.endsWith("\"") || t.endsWith("s")) t = t.substring(0, t.length() - 1);
+                sec = Double.parseDouble(t);
             }
-            if (t.endsWith("\"") || t.endsWith("s")) t = t.substring(0, t.length() - 1);
-            double sec = Double.parseDouble(t);
-            if (sec <= 0 || sec > 60) return null;
-            return Scales.nearestShutter(sec);
         } catch (NumberFormatException e) {
             return null;
         }
+        if (!(sec > 0) || sec > 60) return null;
+        return Scales.nearestShutter(sec);
     }
 
     /** As the camera shows it: {@code 1/125}, {@code 0.5"}, {@code 2"}. */

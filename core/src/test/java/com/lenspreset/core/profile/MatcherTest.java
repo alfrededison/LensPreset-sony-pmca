@@ -49,11 +49,24 @@ class MatcherTest {
     @Test
     void focalScaleIsInferredFromTheLensRange() {
         LensProfile kit = Fixtures.lens("sony-e-pz-16-50-f35-56-oss");
-        assertEquals(35.0, Matcher.focalMm(35, kit));
-        assertEquals(35.0, Matcher.focalMm(350, kit));
-        assertEquals(16.0, Matcher.focalMm(1600, kit));
-        assertNull(Matcher.focalMm(5, kit));
-        assertNull(Matcher.focalMm(0, kit));
-        assertNull(Matcher.focalMm(35, null));
+        assertEquals(35.0, Matcher.focalMm(35, 0, kit));
+        assertEquals(35.0, Matcher.focalMm(350, 0, kit));
+        assertEquals(16.0, Matcher.focalMm(1600, 0, kit));
+        assertNull(Matcher.focalMm(5, 0, kit));
+        assertNull(Matcher.focalMm(0, 0, kit));
+        assertNull(Matcher.focalMm(35, 0, null));
+    }
+
+    @Test
+    void focalScaleComesFromTheReportedWideEnd() throws ProfileException {
+        LensProfile superzoom = ProfileParser.lens("{\"id\": \"z\", \"name\": \"Z\", \"mount\": \"E\","
+                + " \"coverage\": \"APS-C\", \"type\": \"zoom\", \"focal_min\": 18, \"focal_max\": 200,"
+                + " \"aperture_max\": 3.5, \"aperture_max_tele\": 6.3, \"aperture_min\": 22}");
+        // Raw 180 is 18 mm in tenths or 180 mm in millimetres: ambiguous without the wide end.
+        assertNull(Matcher.focalMm(180, 0, superzoom));
+        assertEquals(18.0, Matcher.focalMm(180, 180, superzoom));
+        assertEquals(180.0, Matcher.focalMm(180, 18, superzoom));
+        assertEquals(50.0, Matcher.focalMm(500, 180, superzoom));
+        assertNull(Matcher.focalMm(180, 999, superzoom), "a wide end matching no unit");
     }
 }

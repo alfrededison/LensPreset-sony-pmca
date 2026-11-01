@@ -11,12 +11,34 @@ ODEX_MAGIC = b"dey\n"
 DEX_MAGIC = b"dex\n"
 
 
+class _Null:
+    """A static field whose value is null, as opposed to None: "no value known" (instance fields)."""
+
+    def __repr__(self):
+        return "null"
+
+
+NULL = _Null()
+
+
+def _default(descriptor):
+    """The value of a static field the DEX leaves out of static_values: its type's default."""
+    if descriptor == "Z":
+        return False
+    if descriptor in ("F", "D"):
+        return 0.0
+    if descriptor in ("B", "S", "C", "I", "J"):
+        return 0
+    return NULL
+
+
 class DexClass:
     def __init__(self, name, superclass):
         self.name = name                # binary name with dots: com.sony.scalar.hardware.CameraEx$LensInfo
         self.superclass = superclass
         self.methods = set()            # "name(params)return", JVM descriptor syntax
-        self.fields = {}                # name -> (descriptor, static value or None)
+        self.fields = {}                # name -> (descriptor, value): static fields always have one
+                                        # (NULL for null), instance fields None
 
 
 def _uleb(data, pos):
@@ -100,7 +122,7 @@ class _Reader:
                 _, pos = self._encoded_value(pos)
             return None, pos
         if vtype == 0x1E:  # null
-            return None, pos
+            return NULL, pos
         if vtype == 0x1F:  # boolean in the argument
             return bool(arg), pos
         raise ValueError("bad encoded value type 0x%x" % vtype)
@@ -130,7 +152,13 @@ class _Reader:
                         _acc, pos = _uleb(self.d, pos)
                         idx += diff
                         _, typ, fname = self.fields[idx]
-                        value = static_values[k] if group == 0 and k < len(static_values) else None
+                        if group == 1:
+                            value = None
+                        elif k < len(static_values):
+                            value = static_values[k]
+                        else:
+                            # DEX drops trailing defaults: 0, false, null.
+                            value = _default(typ)
                         c.fields[fname] = (typ, value)
                 for group in range(2):  # direct methods, virtual methods
                     idx = 0

@@ -93,6 +93,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         surface = new SurfaceView(this);
         // Required for camera preview on Android 2.x.
         surface.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        // Registered for the activity's whole life, so surfaceReady always matches the surface.
+        surface.getHolder().addCallback(this);
         overlay = new OverlayView(this);
         panel = new ListPanel(this);
         panel.hide();
@@ -143,7 +145,6 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             sony = null;
             card.log(Collections.singletonList("camera open failed: " + ApplyReport.describe(t)));
         }
-        surface.getHolder().addCallback(this);
         if (surfaceReady) startPreview();
         overlay.setVideoRect(SystemHooks.liveViewRect());
         overlay.setOnTouchListener(camera != null && camera.controls.touchscreen ? new View.OnTouchListener() {
@@ -175,7 +176,6 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     protected void onPause() {
         super.onPause();
         handler.removeCallbacksAndMessages(null);
-        surface.getHolder().removeCallback(this);
         if (sony != null) {
             sony.close();
             sony = null;
@@ -228,7 +228,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     private Double focalNow() {
-        return sony == null || lens == null ? null : Matcher.focalMm(sony.focalRaw(), lens);
+        if (sony == null || lens == null) return null;
+        return Matcher.focalMm(sony.focalRaw(), lensReading == null ? 0 : lensReading.focalWideRaw, lens);
     }
 
     private void detectLens() {
@@ -286,7 +287,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         refresh();
         if (rec == null || sony == null) return;
         final Recommendation applying = rec;
-        final String presetId = preset.id;
+        // The report can arrive seconds later, after a lens change or a reload: log what was applied.
+        final String what = "apply " + preset.id + " camera=" + camera.id + " lens=" + lens.id;
         appliedFocal = applying.focalMm;
         overlay.setStatus(i18n.t("apply.applying"));
         sony.apply(applying, new SonyCamera.ApplyCallback() {
@@ -308,8 +310,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                     overlay.setStatus(i18n.t("apply.partial", args), true);
                 }
                 List<String> log = new ArrayList<String>();
-                log.add("apply " + presetId + " camera=" + camera.id + " lens=" + lens.id
-                        + " focal=" + Math.round(applying.focalMm));
+                log.add(what + " focal=" + Math.round(applying.focalMm));
                 for (String l : report.logLines()) log.add("  " + l);
                 card.log(log);
             }

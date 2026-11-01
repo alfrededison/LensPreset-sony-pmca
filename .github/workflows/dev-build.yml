@@ -8,9 +8,10 @@ on:
 permissions:
   contents: write
 
+# Never cancel a run: one stopped between deleting and recreating the release would leave none.
 concurrency:
   group: dev-build
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   dev:

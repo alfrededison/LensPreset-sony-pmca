@@ -61,7 +61,7 @@ remove the old one first. Installation problems belong in the
 
 | Key | Live view | Lists |
 |---|---|---|
-| Up / Down, wheel | next / previous situation (applied at once) | move |
+| Up / Down, wheel | previous / next situation (applied at once) | move |
 | Left / Right | change the situation's first setting (e.g. rows) | change a value |
 | Centre | list of situations | select |
 | MENU | app menu: lens, language, camera probe, reload, about, exit | back |

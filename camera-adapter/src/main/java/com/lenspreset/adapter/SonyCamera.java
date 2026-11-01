@@ -48,8 +48,11 @@ public final class SonyCamera {
         }
     }
 
-    /** Wait for a stepped value to report back before treating the step as "no movement". */
-    private static final int STEP_TIMEOUT_MS = 600;
+    /**
+     * Wait for a stepped value to report back before treating the step as "no movement". Generous,
+     * because a report arriving after the timeout would be credited to the next step.
+     */
+    private static final int STEP_TIMEOUT_MS = 1000;
     /** Let a new exposure mode settle before stepping aperture or shutter in it. */
     private static final int MODE_SETTLE_MS = 400;
     private static final int MAX_STEPS = 40;
@@ -66,6 +69,10 @@ public final class SonyCamera {
     private Shutter shutter;
     private int focalRaw;
     private Seek seek;
+    /** The settle delay of the apply in progress, removed when a newer apply starts. */
+    private Runnable pendingSettle;
+    /** Bumped by every apply; an older apply's steps and callback are dropped. */
+    private int applyGeneration;
     private boolean closed;
 
     private SonyCamera(CameraEx cam) {
@@ -93,7 +100,7 @@ public final class SonyCamera {
                 public void onApertureChange(CameraEx.ApertureInfo info, CameraEx c) {
                     aperture = SonyValues.fNumber(info.currentAperture);
                     widestAperture = SonyValues.fNumber(info.currentAvailableMin);
-                    if (seek != null && seek.aperture && aperture != null) seek.step(Scales.apertureStops(aperture));
+                    if (seek != null && seek.aperture && aperture != null) seek.reported(Scales.apertureStops(aperture));
                     notifyLive(false);
                 }
             });
@@ -106,7 +113,7 @@ public final class SonyCamera {
                 public void onShutterSpeedChange(CameraEx.ShutterSpeedInfo info, CameraEx c) {
                     if (info.currentShutterSpeed_n > 0 && info.currentShutterSpeed_d > 0)
                         shutter = new Shutter(info.currentShutterSpeed_n, info.currentShutterSpeed_d);
-                    if (seek != null && !seek.aperture && shutter != null) seek.step(shutter.stops());
+                    if (seek != null && !seek.aperture && shutter != null) seek.reported(shutter.stops());
                     notifyLive(false);
                 }
             });
@@ -264,6 +271,10 @@ public final class SonyCamera {
      */
     public void apply(final Recommendation r, final ApplyCallback done) {
         if (seek != null) seek.cancel();
+        seek = null;
+        if (pendingSettle != null) handler.removeCallbacks(pendingSettle);
+        pendingSettle = null;
+        final int generation = ++applyGeneration;
         final ApplyReport report = new ApplyReport();
         Camera.Parameters now;
         final CameraEx.ParametersModifier cur;
@@ -358,19 +369,21 @@ public final class SonyCamera {
             done.onApplied(report);
             return;
         }
-        handler.postDelayed(new Runnable() {
+        pendingSettle = new Runnable() {
             @Override
             public void run() {
-                if (closed) return;
+                pendingSettle = null;
+                if (closed || generation != applyGeneration) return;
                 final Runnable finished = new Runnable() {
                     @Override
                     public void run() {
-                        if (!closed) done.onApplied(report);
+                        if (!closed && generation == applyGeneration) done.onApplied(report);
                     }
                 };
                 Runnable afterAperture = new Runnable() {
                     @Override
                     public void run() {
+                        if (generation != applyGeneration) return;
                         if (seekShutter) startSeek(false, r.shutter.stops(), report, finished);
                         else finished.run();
                     }
@@ -378,7 +391,8 @@ public final class SonyCamera {
                 if (seekAperture) startSeek(true, Scales.apertureStops(r.aperture), report, afterAperture);
                 else afterAperture.run();
             }
-        }, MODE_SETTLE_MS);
+        };
+        handler.postDelayed(pendingSettle, MODE_SETTLE_MS);
     }
 
     private void applyMinShutter(ApplyReport report, CameraEx.ParametersModifier cur, final Shutter min) {
@@ -438,12 +452,19 @@ public final class SonyCamera {
         });
     }
 
+    /** The current value in stops, or null when the camera has not reported one. */
+    private Double currentStops(boolean isAperture) {
+        if (isAperture) return aperture != null ? Double.valueOf(Scales.apertureStops(aperture)) : null;
+        return shutter != null ? Double.valueOf(shutter.stops()) : null;
+    }
+
     private void startSeek(boolean isAperture, double targetStops, ApplyReport report, Runnable next) {
-        Double start = isAperture ? (aperture != null ? Double.valueOf(Scales.apertureStops(aperture)) : null)
-                : (shutter != null ? Double.valueOf(shutter.stops()) : null);
-        String key = isAperture ? "aperture" : "shutter";
+        if (seek != null) seek.cancel();
+        seek = null;
+        Double start = currentStops(isAperture);
         if (start == null) {
-            report.add(key, ApplyReport.Status.FAILED, "the camera has not reported a current value");
+            report.add(isAperture ? "aperture" : "shutter", ApplyReport.Status.FAILED,
+                    "the camera has not reported a current value");
             next.run();
             return;
         }
@@ -459,6 +480,8 @@ public final class SonyCamera {
         final ApplyReport report;
         final Runnable next;
         boolean cancelled;
+        /** The value when the last command was sent; a report of the same value is not an answer to it. */
+        double sentAt = Double.NaN;
 
         Seek(boolean aperture, double target, ApplyReport report, Runnable next) {
             this.aperture = aperture;
@@ -468,10 +491,21 @@ public final class SonyCamera {
             this.next = next;
         }
 
+        /**
+         * A report from the camera's listener. Reports repeat (the aperture listener also fires when
+         * only the widest available aperture changes while zooming), so one that shows no change is
+         * left to the timeout, the only place "no movement" is decided.
+         */
+        void reported(double currentStops) {
+            if (Math.abs(currentStops - sentAt) < 1e-6) return;
+            step(currentStops);
+        }
+
         void step(double currentStops) {
             if (cancelled) return;
             handler.removeCallbacks(this);
             int cmd = seeker.next(currentStops);
+            sentAt = currentStops;
             if (cmd == ValueSeeker.DONE) {
                 finish(currentStops);
                 return;
@@ -485,10 +519,7 @@ public final class SonyCamera {
                     else cam.decrementShutterSpeed();
                 }
             } catch (Throwable t) {
-                cancelled = true;
-                seek = null;
-                report.add(aperture ? "aperture" : "shutter", ApplyReport.Status.FAILED, ApplyReport.describe(t));
-                next.run();
+                fail(ApplyReport.describe(t));
                 return;
             }
             handler.postDelayed(this, STEP_TIMEOUT_MS);
@@ -497,14 +528,25 @@ public final class SonyCamera {
         /** Timeout: no report since the last step. */
         @Override
         public void run() {
-            Double v = aperture ? (SonyCamera.this.aperture != null ? Double.valueOf(Scales.apertureStops(SonyCamera.this.aperture)) : null)
-                    : (shutter != null ? Double.valueOf(shutter.stops()) : null);
+            Double v = currentStops(aperture);
             if (v != null) step(v);
+            else fail("the camera stopped reporting a value (lens removed?)");
+        }
+
+        private void release() {
+            cancelled = true;
+            handler.removeCallbacks(this);
+            if (seek == this) seek = null;
+        }
+
+        void fail(String why) {
+            release();
+            report.add(aperture ? "aperture" : "shutter", ApplyReport.Status.FAILED, why);
+            next.run();
         }
 
         void finish(double currentStops) {
-            cancelled = true;
-            seek = null;
+            release();
             boolean ok = Math.abs(currentStops - target) <= TOLERANCE_STOPS;
             String got = aperture ? Scales.formatAperture(Scales.fromApertureStops(currentStops))
                     : Scales.nearestShutter(Math.pow(2, currentStops)).format();

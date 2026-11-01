@@ -74,8 +74,8 @@ def scan_framework(extracted):
             path = os.path.join(d, n)
             try:
                 classes = dex.read_file(path)
-            except (ValueError, IndexError, KeyError) as e:
-                print("  skipped %s: %s" % (os.path.relpath(path, extracted), e), file=sys.stderr)
+            except Exception as e:  # noqa: BLE001 — one unreadable file must not stop the scan
+                print("  skipped %s: %s: %s" % (os.path.relpath(path, extracted), type(e).__name__, e), file=sys.stderr)
                 continue
             if any(c.startswith("com.sony.scalar.") for c in classes):
                 files.append(os.path.relpath(path, extracted))

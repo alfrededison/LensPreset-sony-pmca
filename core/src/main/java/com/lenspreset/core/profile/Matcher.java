@@ -67,18 +67,34 @@ public final class Matcher {
         return sb.toString();
     }
 
+    private static final int[] FOCAL_SCALES = {1, 10, 100};
+
     /**
      * Converts a focal length the camera reported into millimetres. The firmware's unit has not been
-     * confirmed on a body yet, so the scale (1, 10 or 100 raw units per mm) whose result falls in the
-     * lens's range is used. Returns null when no scale fits.
+     * confirmed on a body yet (1, 10 or 100 raw units per mm), so it is worked out from the lens:
+     * from {@code rawWide}, the wide end the lens reports, when there is one; otherwise from the
+     * reading itself, but only when exactly one unit puts it inside the lens's range (on zooms of
+     * about 10x and more, more than one does). Returns null when the unit cannot be told.
      */
-    public static Double focalMm(int raw, LensProfile lens) {
+    public static Double focalMm(int raw, int rawWide, LensProfile lens) {
         if (raw <= 0 || lens == null) return null;
-        int[] scales = {1, 10, 100};
-        for (int s : scales) {
-            double mm = raw / (double) s;
-            if (mm >= lens.focalMin * 0.95 && mm <= lens.focalMax * 1.05) return lens.clampFocal(mm);
+        Integer scale = null;
+        if (rawWide > 0) {
+            for (int s : FOCAL_SCALES) {
+                if (Math.abs(rawWide / (double) s - lens.focalMin) <= lens.focalMin * 0.1) scale = s;
+            }
+        } else {
+            for (int s : FOCAL_SCALES) {
+                double mm = raw / (double) s;
+                if (mm >= lens.focalMin * 0.95 && mm <= lens.focalMax * 1.05) {
+                    if (scale != null) return null;
+                    scale = s;
+                }
+            }
         }
-        return null;
+        if (scale == null) return null;
+        double mm = raw / (double) scale;
+        if (mm < lens.focalMin * 0.95 || mm > lens.focalMax * 1.05) return null;
+        return lens.clampFocal(mm);
     }
 }

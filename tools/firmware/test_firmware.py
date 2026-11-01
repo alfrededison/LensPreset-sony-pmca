@@ -200,6 +200,53 @@ class DexTest(unittest.TestCase):
                       report["observations"])
 
 
+@unittest.skipUnless(find_d8(), "Android SDK d8 not found")
+class DefaultsAndDamageTest(unittest.TestCase):
+    def compile(self, d, source):
+        os.makedirs(d)
+        src = os.path.join(d, "K.java")
+        with open(src, "w") as f:
+            f.write(source)
+        subprocess.check_call(["javac", "--release", "8", "-d", d, src])
+        return d
+
+    def test_trailing_default_constants_are_compared(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            firmware = self.compile(os.path.join(tmp, "fw"),
+                                    "public class K { public static final int A = 7; public static final int Z = 0;"
+                                    " public static final boolean F = false; }")
+            found = dex.read_file(to_dex(firmware, os.path.join(tmp, "dex")))
+            # d8 leaves 0 and false out of static_values; the reader puts the defaults back.
+            self.assertEqual(("I", 0), found["K"].fields["Z"])
+            self.assertEqual(("Z", False), found["K"].fields["F"])
+            stubs = classfile.read_dir(self.compile(os.path.join(tmp, "stub"),
+                                                    "public class K { public static final int A = 7;"
+                                                    " public static final int Z = 635; public static final boolean F = false; }"))
+            _, _, missing, mismatches = contract.check(stubs, found)
+            self.assertEqual([], missing)
+            self.assertEqual(["K.Z: app uses 635, firmware has 0"], mismatches)
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_a_damaged_file_does_not_stop_the_scan(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            classes = contract.compile_stubs(os.path.join(tmp, "stubs"))
+            tree = os.path.join(tmp, "tree")
+            os.makedirs(tree)
+            shutil.copy(to_dex(classes, os.path.join(tmp, "dex")), os.path.join(tree, "good.dex"))
+            with open(os.path.join(tree, "broken.odex"), "wb") as f:
+                f.write(b"dey\n036\x00" + bytes(72))
+            with open(os.path.join(tree, "broken.jar"), "wb") as f:
+                f.write(b"PK\x03\x04" + bytes(40))
+            found, files = contract.scan_framework(tree)
+            self.assertEqual(["good.dex"], files)
+            self.assertIn("com.sony.scalar.hardware.CameraEx", found)
+        finally:
+            shutil.rmtree(tmp)
+
+
 class ClassfileTest(unittest.TestCase):
     def test_skips_private_and_synthetic_members(self):
         tmp = tempfile.mkdtemp()
