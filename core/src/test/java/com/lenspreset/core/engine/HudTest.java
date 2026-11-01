@@ -5,6 +5,7 @@ import com.lenspreset.core.i18n.I18n;
 import com.lenspreset.core.model.Preset;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,15 +45,15 @@ class HudTest {
     void groupDetailsShowDefaultsAndUpdateWithTheSelectedValues() {
         Preset group = Fixtures.preset("group");
         I18n vi = Fixtures.i18n("vi");
-        assertEquals(Arrays.asList("Số hàng người: 2", "Hẹn giờ: tắt"),
-                Hud.adjustments(group, Collections.<String, Integer>emptyMap(), vi));
+        assertEquals(Arrays.asList("Số hàng: 2", "Hẹn giờ: tắt"),
+                summaries(Hud.adjustments(group, Collections.<String, Integer>emptyMap(), vi)));
         Map<String, Integer> selected = new HashMap<String, Integer>();
         selected.put("rows", group.adjust.get("rows").step(2, 1));
         selected.put("self_timer", 10);
-        assertEquals(Arrays.asList("Số hàng người: 3", "Hẹn giờ: 10 giây"),
-                Hud.adjustments(group, selected, vi));
-        assertEquals(Arrays.asList("Rows of people: 3", "Self-timer: 10 s"),
-                Hud.adjustments(group, selected, vi.withLanguage("en")));
+        assertEquals(Arrays.asList("Số hàng: 3", "Hẹn giờ: 10 s"),
+                summaries(Hud.adjustments(group, selected, vi)));
+        assertEquals(Arrays.asList("Rows: 3", "Self-timer: 10 s"),
+                summaries(Hud.adjustments(group, selected, vi.withLanguage("en"))));
     }
 
     @Test
@@ -64,12 +65,13 @@ class HudTest {
                 Map<String, Integer> selected = Collections.singletonMap("self_timer", seconds);
                 Recommendation rec = PresetEngine.compute(Fixtures.camera("ilce-5100"),
                         Fixtures.lens("sigma-30-f14-dc-dn"), group, new Conditions(null, null, selected));
-                List<String> chips = Hud.chips(rec, group, selected, i18n);
+                List<Hud.Chip> chips = Hud.chips(rec, group, selected, i18n);
                 String timerLabel = i18n.t("ui.adjust.self_timer");
-                assertEquals(1, chips.stream().filter(s -> s.startsWith(timerLabel)).count(), chips.toString());
-                assertTrue(chips.contains(timerLabel + ": " + Hud.adjustmentValue("self_timer", seconds, i18n)));
-                assertFalse(chips.contains(i18n.t("hud.timer",
-                        Collections.singletonMap("s", Integer.toString(seconds)))));
+                assertEquals(1, chips.stream().filter(c -> c.label.equals(timerLabel)).count(), chips.toString());
+                assertEquals(Hud.adjustmentValue("self_timer", seconds, i18n),
+                        chips.stream().filter(c -> c.label.equals(timerLabel)).findFirst().get().value);
+                assertTrue(chips.stream().filter(c -> c.label.equals(timerLabel)).findFirst().get().presetOption);
+                assertEquals(group.adjust.size(), chips.stream().filter(c -> c.presetOption).count());
             }
         }
     }
@@ -79,8 +81,8 @@ class HudTest {
         Map<String, Integer> selected = new HashMap<String, Integer>();
         selected.put("rows", 99);
         selected.put("self_timer", 5);
-        assertEquals(Arrays.asList("Số hàng người: 2", "Hẹn giờ: tắt"),
-                Hud.adjustments(Fixtures.preset("group"), selected, Fixtures.i18n("vi")));
+        assertEquals(Arrays.asList("Số hàng: 2", "Hẹn giờ: tắt"),
+                summaries(Hud.adjustments(Fixtures.preset("group"), selected, Fixtures.i18n("vi"))));
     }
 
     @Test
@@ -92,4 +94,41 @@ class HudTest {
         }
         assertTrue(Hud.adjustments(null, Collections.<String, Integer>emptyMap(), Fixtures.i18n("vi")).isEmpty());
     }
+    @Test
+    void cardsHaveTranslatedLabelsAndKeepExposureAndFocusValues() {
+        for (String language : Arrays.asList("en", "vi")) {
+            I18n i18n = Fixtures.i18n(language);
+            for (Preset preset : Fixtures.bundled().presets()) {
+                Recommendation rec = PresetEngine.compute(Fixtures.camera("ilce-5100"),
+                        Fixtures.lens("sigma-30-f14-dc-dn"), preset,
+                        new Conditions(null, null, Collections.<String, Integer>emptyMap()));
+                List<Hud.Chip> chips = Hud.chips(rec, preset, Collections.<String, Integer>emptyMap(), i18n);
+                for (Hud.Chip chip : chips) {
+                    assertFalse(chip.label.isEmpty(), preset.id);
+                    assertFalse(chip.value.isEmpty(), preset.id);
+                    assertFalse(chip.label.startsWith("hud."), chip.label);
+                    assertFalse(chip.value.startsWith("hud."), chip.value);
+                }
+                assertEquals(preset.adjust.size(), chips.stream().filter(c -> c.presetOption).count(), preset.id);
+                assertFalse(chips.stream().filter(c -> c.label.equals("ISO") || c.label.equals("EV"))
+                        .anyMatch(c -> c.presetOption), preset.id);
+                assertTrue(chips.stream().anyMatch(c -> c.label.equals(i18n.t("hud.label.mode"))
+                        && c.value.equals(Hud.modeLetter(rec.exposureMode))), preset.id);
+                assertTrue(chips.stream().anyMatch(c -> c.label.equals("ISO")
+                        && (rec.isoAuto ? c.value.startsWith("AUTO") : c.value.equals(Integer.toString(rec.iso)))), preset.id);
+                assertTrue(chips.stream().anyMatch(c -> c.label.equals("EV")
+                        && c.value.equals(com.lenspreset.core.optics.Scales.formatEv(rec.ev))), preset.id);
+                assertTrue(chips.stream().anyMatch(c -> c.label.equals(i18n.t("hud.label.focus"))
+                        && c.value.startsWith(Hud.focusLabel(rec.focusMode))
+                        && (!rec.faceDetection || c.value.contains(i18n.t("hud.face")))), preset.id);
+            }
+        }
+    }
+
+    private static List<String> summaries(List<Hud.Chip> chips) {
+        List<String> out = new ArrayList<String>();
+        for (Hud.Chip chip : chips) out.add(chip.label + ": " + chip.value);
+        return out;
+    }
+
 }

@@ -5,10 +5,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
 import com.lenspreset.core.engine.Message;
+import com.lenspreset.core.engine.Hud;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,13 +40,16 @@ public final class OverlayView extends View {
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint band = new Paint();
     private final Paint guide = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint card = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF cardBounds = new RectF();
 
     private Rect video;
     private String title = "";
     private String subtitle = "";
     private String status = "";
     private String legend = "";
-    private List<String> chips = Collections.emptyList();
+    private List<Hud.Chip> chips = Collections.emptyList();
+    private List<Hud.Chip> options = Collections.emptyList();
     private List<Line> messages = Collections.emptyList();
     private List<String> guides = Collections.emptyList();
     private DetailLevel detailLevel = DetailLevel.FULL;
@@ -70,10 +75,15 @@ public final class OverlayView extends View {
         invalidate();
     }
 
-    void show(String title, String subtitle, List<String> chips, List<Line> messages, List<String> guides) {
+    void show(String title, String subtitle, List<Hud.Chip> chips, List<Line> messages, List<String> guides) {
         this.title = title;
         this.subtitle = subtitle;
-        this.chips = chips;
+        this.chips = new ArrayList<Hud.Chip>();
+        this.options = new ArrayList<Hud.Chip>();
+        for (Hud.Chip chip : chips) {
+            if (chip.presetOption) this.options.add(chip);
+            else this.chips.add(chip);
+        }
         this.messages = messages;
         this.guides = guides;
         invalidate();
@@ -127,6 +137,10 @@ public final class OverlayView extends View {
         // Top band: preset, kit, status.
         float top = pad + size * 1.05f;
         float bandBottom = top + pad + (subtitle.length() > 0 ? size * 0.75f + pad : 0);
+        float optionsTop = bandBottom + size * 0.15f;
+        List<ChipBox> optionBoxes = layoutChips(options, size, w - 2 * pad);
+        if (!optionBoxes.isEmpty())
+            bandBottom = optionsTop + optionBoxes.get(optionBoxes.size() - 1).bounds.bottom + pad;
         c.drawRect(0, 0, w, bandBottom, band);
         text.setTextSize(size * 0.75f);
         String statusText = TextFit.ellipsize(text, status, w * 0.32f);
@@ -146,20 +160,20 @@ public final class OverlayView extends View {
             text.setColor(Color.rgb(200, 200, 200));
             c.drawText(TextFit.ellipsize(text, subtitle, w - 2 * pad), pad, top + pad + size * 0.75f, text);
         }
+        for (ChipBox box : optionBoxes) drawChip(c, box, pad, optionsTop, size, true);
 
         // Bottom: legend, chips, then messages above them.
-        float y = h - pad;
         List<String> lines = new ArrayList<String>();
         text.setTextSize(size * 0.75f);
         if (detailLevel != DetailLevel.NO_HINTS_OR_KEYS && legend.length() > 0)
             lines.addAll(TextFit.wrap(text, legend, w - 2 * pad));
         float legendHeight = lines.size() * size * 0.95f;
 
-        text.setTextSize(size * 0.9f);
-        text.setFakeBoldText(true);
-        List<String> chipLines = TextFit.chips(text, chips, w - 2 * pad);
-        text.setFakeBoldText(false);
-        float chipsHeight = chipLines.size() * size * 1.15f;
+        List<ChipBox> boxes = layoutChips(chips, size, w - 2 * pad);
+        float chipsHeight = boxes.isEmpty() ? 0 : boxes.get(boxes.size() - 1).bounds.bottom;
+        float gap = size * 0.3f;
+        float legendTop = h - pad - legendHeight;
+        float chipsTop = legendTop - (legendHeight > 0 && chipsHeight > 0 ? gap : 0) - chipsHeight;
 
         List<Line> shown = new ArrayList<Line>();
         if (detailLevel == DetailLevel.FULL) {
@@ -172,30 +186,120 @@ public final class OverlayView extends View {
             }
         }
         float messagesHeight = shown.size() * size * 1.1f;
-        float bottomBand = legendHeight + chipsHeight + messagesHeight + 2 * pad;
-        c.drawRect(0, h - bottomBand, w, h, band);
+        float messagesTop = chipsTop - (shown.isEmpty() ? 0 : gap) - messagesHeight;
+        c.drawRect(0, messagesTop - pad, w, h, band);
 
+        float y = legendTop + size * 0.75f;
         text.setTextSize(size * 0.75f);
         text.setColor(Color.rgb(170, 170, 170));
-        for (int i = lines.size() - 1; i >= 0; i--) {
-            c.drawText(lines.get(i), pad, y, text);
-            y -= size * 0.95f;
+        for (String line : lines) {
+            c.drawText(line, pad, y, text);
+            y += size * 0.95f;
         }
-        text.setTextSize(size * 0.9f);
-        text.setColor(Color.WHITE);
-        text.setFakeBoldText(true);
-        for (int i = chipLines.size() - 1; i >= 0; i--) {
-            c.drawText(chipLines.get(i), pad, y, text);
-            y -= size * 1.15f;
+        for (ChipBox box : boxes) {
+            drawChip(c, box, pad, chipsTop, size, false);
         }
         text.setFakeBoldText(false);
         text.setTextSize(size * 0.9f);
-        for (int i = shown.size() - 1; i >= 0; i--) {
-            Line l = shown.get(i);
+        y = messagesTop + size * 0.9f;
+        for (Line l : shown) {
             text.setColor(colorOf(l.level));
             c.drawText(l.text, pad, y, text);
-            y -= size * 1.1f;
+            y += size * 1.1f;
         }
+    }
+
+    private static final class ChipBox {
+        final String label;
+        final String value;
+        final RectF bounds;
+
+        ChipBox(String label, String value, RectF bounds) {
+            this.label = label;
+            this.value = value;
+            this.bounds = bounds;
+        }
+    }
+
+    private void drawChip(Canvas c, ChipBox box, float x, float y, float size, boolean option) {
+        cardBounds.set(box.bounds);
+        cardBounds.offset(x, y);
+        card.setStyle(Paint.Style.FILL);
+        card.setColor(option ? Color.argb(225, 53, 43, 29) : Color.argb(220, 47, 49, 54));
+        c.drawRoundRect(cardBounds, size * 0.22f, size * 0.22f, card);
+        card.setStyle(Paint.Style.STROKE);
+        card.setStrokeWidth(1);
+        card.setColor(option ? Color.rgb(245, 177, 92) : Color.argb(75, 255, 255, 255));
+        c.drawRoundRect(cardBounds, size * 0.22f, size * 0.22f, card);
+
+        text.setFakeBoldText(false);
+        text.setTextSize(size * 0.55f);
+        text.setColor(option ? Color.rgb(245, 177, 92) : Color.rgb(185, 189, 198));
+        c.drawText(box.label, cardBounds.centerX() - text.measureText(box.label) / 2,
+                cardBounds.top + size * 0.62f, text);
+        text.setFakeBoldText(true);
+        text.setTextSize(size * 0.87f);
+        text.setColor(Color.WHITE);
+        c.drawText(box.value, cardBounds.centerX() - text.measureText(box.value) / 2,
+                cardBounds.top + size * 1.65f, text);
+        text.setFakeBoldText(false);
+    }
+
+    /** Measure and draw with the same fonts; wrap complete cards instead of splitting values. */
+    private List<ChipBox> layoutChips(List<Hud.Chip> items, float size, float width) {
+        List<ChipBox> boxes = measureChips(items, size, width);
+        float gap = size * 0.3f;
+        // Use the fewest rows, then balance their widths to avoid a lone card on the last row.
+        int n = boxes.size();
+        int[] rows = new int[n + 1];
+        int[] next = new int[n];
+        float[] slack = new float[n + 1];
+        for (int i = n - 1; i >= 0; i--) {
+            rows[i] = Integer.MAX_VALUE;
+            float used = 0;
+            for (int j = i; j < n; j++) {
+                used += (j == i ? 0 : gap) + boxes.get(j).bounds.width();
+                if (used > width + 0.01f) break;
+                int count = 1 + rows[j + 1];
+                float cost = (width - used) * (width - used) + slack[j + 1];
+                if (count < rows[i] || (count == rows[i] && cost < slack[i])) {
+                    rows[i] = count;
+                    slack[i] = cost;
+                    next[i] = j + 1;
+                }
+            }
+        }
+        float y = 0;
+        for (int i = 0; i < n; y += size * 2 + gap) {
+            float x = 0;
+            int end = next[i];
+            while (i < end) {
+                RectF bounds = boxes.get(i++).bounds;
+                bounds.offsetTo(x, y);
+                x += bounds.width() + gap;
+            }
+        }
+        text.setFakeBoldText(false);
+        return boxes;
+    }
+
+    private List<ChipBox> measureChips(List<Hud.Chip> items, float size, float width) {
+        List<ChipBox> boxes = new ArrayList<ChipBox>();
+        float inset = size * 0.4f;
+        for (Hud.Chip chip : items) {
+            text.setTextSize(size * 0.55f);
+            text.setFakeBoldText(false);
+            String label = TextFit.ellipsize(text, chip.label, width - 2 * inset);
+            float labelWidth = text.measureText(label);
+            text.setTextSize(size * 0.87f);
+            text.setFakeBoldText(true);
+            String value = TextFit.ellipsize(text, chip.value, width - 2 * inset);
+            float chipWidth = Math.max(size * 1.8f, Math.max(labelWidth, text.measureText(value)) + 2 * inset);
+            chipWidth = Math.min(width, chipWidth);
+            boxes.add(new ChipBox(label, value, new RectF(0, 0, chipWidth, size * 2)));
+        }
+        text.setFakeBoldText(false);
+        return boxes;
     }
 
     private void drawGuides(Canvas c, Rect v) {

@@ -231,7 +231,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         shown.add(new OverlayView.Line(ApplyReport.describe(t), Message.Level.WARN));
         shown.add(new OverlayView.Line("Details: the app log (MENU > Save log to card on a later start). MENU: exit.",
                 Message.Level.INFO));
-        overlay.show("LensPreset", "Start-up failed (" + step + ")", Collections.<String>emptyList(), shown,
+        overlay.show("LensPreset", "Start-up failed (" + step + ")", Collections.<Hud.Chip>emptyList(), shown,
                 Collections.<String>emptyList());
         overlay.setLegend("");
         panel.hide();

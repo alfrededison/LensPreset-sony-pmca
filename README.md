@@ -119,8 +119,10 @@ Lists use the full screen, with one line per choice and the selected item's desc
 The main menu fits all nine entries at 640×480; longer lists show a position counter and scrollbar.
 About and profile errors wrap their text; Up / Down or the wheel scrolls them.
 The key guide names the setting Left / Right changes and omits those keys for presets without
-adjustments. Group photo shows the selected row count and self-timer beside the exposure settings;
-these values remain visible when hints and the key guide are hidden.
+adjustments. Group photo shows the selected row count and self-timer in an amber options area
+below the preset and lens. These values remain visible when hints and the key guide are hidden.
+Computed camera settings appear in rounded cards at the bottom, with a small label above each
+value. The cards wrap into balanced rows while recipe hints remain above them.
 On opening or resuming, the app reapplies the last selected preset and its saved adjustments
 after live view and lens identification are ready. Wait for the apply status before shooting.
 On a fresh install, choose and apply a situation first.

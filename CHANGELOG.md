@@ -11,6 +11,10 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
   Vietnamese labels and key guides; live-view settings wrap without splitting individual values.
   Recipe hints are unchanged. Text pages now wrap and scroll with Up / Down or the wheel.
 - The main menu shows the current lens and language beside their labels.
+- Live-view settings use rounded cards with translated labels above their values, wrapping into
+  balanced rows. Recipe hint text and its font size are unchanged.
+- Preset options such as group row count and self-timer have a separate amber area below the
+  preset and lens. Computed exposure and focus settings stay in the bottom strip.
 - In preset options, the wheel changes the selected value; Up / Down selects the setting.
   Page Up / Page Down simulate wheel turns on an emulator.
 - Live-view Left / Right guidance appears only for configurable presets and names the setting.

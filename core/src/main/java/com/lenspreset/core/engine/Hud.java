@@ -14,6 +14,24 @@ public final class Hud {
     private Hud() {
     }
 
+    /** A setting's translated name and formatted value, drawn on separate lines of a card. */
+    public static final class Chip {
+        public final String label;
+        public final String value;
+        /** A user-selected preset option, shown separately from computed camera settings. */
+        public final boolean presetOption;
+
+        Chip(String label, String value) {
+            this(label, value, false);
+        }
+
+        Chip(String label, String value, boolean presetOption) {
+            this.label = label;
+            this.value = value;
+            this.presetOption = presetOption;
+        }
+    }
+
     private static final Map<String, String> NO_ARGS = Collections.emptyMap();
 
     /** Only advertise live-view controls that the selected preset handles. */
@@ -30,13 +48,13 @@ public final class Hud {
     }
 
     /** Keep the selected values visible with the settings, even when hints or keys are hidden. */
-    public static List<String> adjustments(Preset preset, Map<String, Integer> overrides, I18n i18n) {
-        List<String> out = new ArrayList<String>();
+    public static List<Chip> adjustments(Preset preset, Map<String, Integer> overrides, I18n i18n) {
+        List<Chip> out = new ArrayList<Chip>();
         if (preset == null) return out;
         for (Map.Entry<String, Preset.Adjust> e : preset.adjust.entrySet()) {
             Integer saved = overrides.get(e.getKey());
             int value = saved != null && e.getValue().allows(saved) ? saved : e.getValue().defaultValue;
-            out.add(i18n.t("ui.adjust." + e.getKey()) + ": " + adjustmentValue(e.getKey(), value, i18n));
+            out.add(new Chip(i18n.t("ui.adjust." + e.getKey()), adjustmentValue(e.getKey(), value, i18n), true));
         }
         return out;
     }
@@ -49,38 +67,41 @@ public final class Hud {
         return Integer.toString(value);
     }
 
-    public static List<String> chips(Recommendation r, I18n i18n) {
+    public static List<Chip> chips(Recommendation r, I18n i18n) {
         return chips(r, null, Collections.<String, Integer>emptyMap(), i18n);
     }
 
-    public static List<String> chips(Recommendation r, Preset preset,
+    public static List<Chip> chips(Recommendation r, Preset preset,
                                      Map<String, Integer> overrides, I18n i18n) {
-        List<String> out = adjustments(preset, overrides, i18n);
-        out.add(modeLetter(r.exposureMode));
+        List<Chip> out = adjustments(preset, overrides, i18n);
+        out.add(new Chip(i18n.t("hud.label.mode"), modeLetter(r.exposureMode)));
         if (r.aperture != null) {
             String f = Scales.formatAperture(r.aperture);
-            out.add(r.apertureSettable ? f : f + " " + i18n.t("hud.ring"));
+            out.add(new Chip(i18n.t("hud.label.aperture"),
+                    r.apertureSettable ? f : f + " " + i18n.t("hud.ring")));
         }
-        if (r.shutter != null) out.add(r.shutter.format());
-        if (r.minShutter != null) out.add("≥" + r.minShutter.format());
-        if (r.isoAuto && r.isoAutoRangeSettable) out.add("ISO AUTO " + r.isoAutoMin + "–" + r.isoAutoMax);
-        else if (r.isoAuto) out.add("ISO AUTO");
-        else out.add("ISO " + r.iso);
-        out.add("EV " + Scales.formatEv(r.ev));
-        if (r.metering != null && !"multi".equals(r.metering)) out.add(i18n.t("hud.metering." + r.metering));
+        if (r.shutter != null) out.add(new Chip(i18n.t("hud.label.shutter"), r.shutter.format()));
+        if (r.minShutter != null) out.add(new Chip(i18n.t("hud.label.min_shutter"), "≥" + r.minShutter.format()));
+        String iso = r.isoAuto ? "AUTO" : Integer.toString(r.iso);
+        if (r.isoAuto && r.isoAutoRangeSettable) iso += " " + r.isoAutoMin + "–" + r.isoAutoMax;
+        out.add(new Chip("ISO", iso));
+        out.add(new Chip("EV", Scales.formatEv(r.ev)));
+        if (r.metering != null && !"multi".equals(r.metering))
+            out.add(new Chip(i18n.t("hud.label.metering"), i18n.t("hud.metering." + r.metering)));
 
         StringBuilder focus = new StringBuilder(focusLabel(r.focusMode));
         if (r.faceDetection) focus.append(" · ").append(i18n.t("hud.face"));
         if (r.eyeAf) focus.append(" · ").append(i18n.t("hud.eye"));
-        out.add(focus.toString());
+        out.add(new Chip(i18n.t("hud.label.focus"), focus.toString()));
 
-        if (!"single".equals(r.drive)) out.add(i18n.t("hud." + r.drive));
+        if (!"single".equals(r.drive)) out.add(new Chip(i18n.t("hud.label.drive"), i18n.t("hud." + r.drive)));
         if (r.selfTimer > 0 && (preset == null || !preset.adjust.containsKey(Preset.Adjust.SELF_TIMER))) {
             Map<String, String> args = new java.util.HashMap<String, String>();
             args.put("s", Integer.toString(r.selfTimer));
-            out.add(i18n.t("hud.timer", args));
+            out.add(new Chip(i18n.t("ui.adjust.self_timer"), i18n.t("ui.seconds", args)));
         }
-        if (r.creativeStyle != null) out.add(i18n.t("style." + r.creativeStyle, NO_ARGS));
+        if (r.creativeStyle != null)
+            out.add(new Chip(i18n.t("hud.label.style"), i18n.t("style." + r.creativeStyle, NO_ARGS)));
         return out;
     }
 
