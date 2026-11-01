@@ -93,8 +93,10 @@ Turning the timer off restores direct shutter and the group's burst mode. On ILC
 a Sigma 30mm F1.4, the user confirmed the 2 s / 10 s delay and immediate shooting when disabled;
 the log records successful timed shots about 2.8 s / 10.8 s after full press and reads back single
 drive with the timer, burst without it. Autofocus performance and cancellation still need testing
-on the body. On opening, the app displays the saved recommendation and asks the user to select a
-preset to apply it; settings are not automatically applied at startup.
+on the body. On opening or resuming, the app reapplies the saved preset and its adjustments once
+profiles, lens identification, and live view are ready. This includes rearming the self-timer;
+the shutter button still starts the shot. A fresh install, or a saved preset that no longer
+exists, asks the user to choose a preset first.
 
 ## Firmware contract pipeline
 

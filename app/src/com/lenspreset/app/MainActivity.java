@@ -82,6 +82,9 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     /** Language tables and profiles are in (see startLoading); until then keys are ignored. */
     private boolean loaded;
     private boolean resumed;
+    private boolean previewStarted;
+    /** Restore the saved choice once profiles, lens identification, and preview are ready. */
+    private boolean restorePending;
     /** Delivers the loading thread's result; unlike {@link #handler}, onPause does not clear it. */
     private final Handler loadHandler = new Handler();
     /** Commands from tools/camera-test.sh; registered only with the DEBUG.TXT switch adb-control. */
@@ -322,22 +325,33 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         trace("lens");
         detectLens();
         preset = profiles.preset(prefs.preset());
+        restorePending = preset != null;
         if (preset == null && !profiles.presets().isEmpty()) preset = profiles.presets().get(0);
         card.log(Collections.singletonList("open: model=" + device.model + " firmware=" + device.firmware
                 + " camera=" + (camera == null ? "none" : camera.id) + " lens=" + (lens == null ? "none" : lens.id)
                 + " reported=" + (lensReading == null ? "none" : lensReading.name + "/" + lensReading.id)
                 + (sony != null && sony.lensProblem() != null ? " (" + sony.lensProblem() + ")" : "")));
-        // Nothing is applied on opening: settings change only when the user picks a situation.
         showLive();
         if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
         else overlay.setStatus(i18n.t("apply.choose_preset"));
+        restoreSavedPreset();
         trace("ready");
+    }
+
+    private void restoreSavedPreset() {
+        if (!restorePending || !resumed || !loaded || !previewStarted
+                || sony == null || camera == null || lens == null || preset == null) return;
+        restorePending = false;
+        trace("restore preset " + preset.id);
+        apply();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         resumed = false;
+        previewStarted = false;
+        restorePending = false;
         if (adbControl != null) {
             unregisterReceiver(adbControl);
             adbControl = null;
@@ -378,11 +392,13 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         if (sony == null || debug.contains("no-preview")) return;
         try {
             sony.startPreview(surface.getHolder());
+            previewStarted = true;
         } catch (Throwable t) {
             // Possibly before the language tables have loaded (see startLoading).
             overlay.setStatus(i18n != null ? i18n.t("ui.preview_failed") : "Live view could not start", true);
             card.log(Collections.singletonList("preview failed: " + ApplyReport.describe(t)));
         }
+        restoreSavedPreset();
     }
 
     @Override
@@ -399,6 +415,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        previewStarted = false;
     }
 
     // ---- what the camera reports ----
@@ -410,6 +427,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             detectLens();
             refresh();
             overlay.setStatus(i18n.t("ui.lens_changed"));
+            restoreSavedPreset();
             return;
         }
         if (lens == null || !lens.zoom || rec == null || appliedFocal < 0) return;
@@ -478,6 +496,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private void apply() {
+        restorePending = false;
         refresh();
         if (rec == null || sony == null) return;
         final Recommendation applying = rec;
