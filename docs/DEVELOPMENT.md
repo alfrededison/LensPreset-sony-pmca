@@ -8,8 +8,8 @@ core/               plain Java, no Android: JSON, profile models and parser, opt
 camera-adapter/
   stubs/            compile-time stubs of Sony's API (CameraEx, ScalarInput, ...): exactly what the
                     adapter calls; never packaged; the contract the firmware check verifies
-  src/main/java     SonyCamera (open, preview, listeners, apply, probe), SystemHooks,
-                    DeviceIdentity; SonyValues / ApplyReport / ProbeReport are Android-free and tested
+  src/main/java     SonyCamera (open, preview, listeners, apply, probe), DeviceIdentity;
+                    SonyValues / ApplyReport / ProbeReport are Android-free and tested
 app/                Android 2.3.7 UI: MainActivity (screens, keys), OverlayView, ListPanel, card
                     storage, preferences
 profiles/           cameras/, lenses/, presets/ (bundled into the APK) and schema/
@@ -61,7 +61,7 @@ needs a real body — say so in a PR rather than implying a green build means it
 
 The adapter uses Sony's `CameraEx` as BetterManual does, applying settings while the app is open
 (roadmap option (a)). Every call is wrapped; a missing method or refused value becomes a line in
-the apply report and in `LOG.TXT`, never a crash.
+the apply report and in the app's log, never a crash.
 
 | setting | call | confidence |
 |---|---|---|
@@ -121,6 +121,54 @@ not checked yet — re-run `extract.py` for that firmware and commit the new rep
 
 The stubs were cross-checked by hand against OpenMemories-Framework's Jasmin stubs (which were
 taken from firmware): every member and constant matches.
+
+## When the app misbehaves on a body
+
+The app's log lives in its own storage (`files/log.txt`); *MENU → Save log to card* copies it to
+`LENSPRST/LOG.TXT`. It
+traces start-up step by step (`boot +<uptime>ms: <step>`; the camera's clock reads 1970 to apps),
+then window focus, the first draw, the first 30 key presses with their scan codes, pause / stop /
+destroy, every apply, crashes, and why the lens could not be read. The last line before a hang says
+where it is.
+
+`LENSPRST/DEBUG.TXT` leaves start-up steps out without a new build, one switch per line:
+
+| switch | leaves out |
+|---|---|
+| `no-camera` | opening the camera (no live view, nothing applied) |
+| `no-preview` | starting the live view |
+| `card-log` | adds, rather than leaves out: every log line is also appended to `LENSPRST/LOG.TXT` as it happens, for a body where the app never gets as far as its menu |
+
+USB always closes the app, and the app never asks to be reopened after power-off (see
+`BaseActivity`), so a misbehaving build can be left and replaced.
+
+## The live view activity follows BetterManual
+
+`app/.../BaseActivity.java` and the camera lifecycle in `MainActivity` copy BetterManual, which runs
+on the A5100: the layout is inflated from `res/layout/main.xml`; `onResume` sets the framebuffer to
+16-bit (RGBA4444), announces the app, opens a `DisplayManager` kept until `onPause`, then opens the
+camera, registers the surface callback and starts direct shutter; the preview starts in
+`surfaceCreated`; `onPause` removes the callback, stops the preview and releases the camera. The
+first builds did all of this differently (32-bit colour, a `DisplayManager` opened and closed at
+once, views built in code) and showed only a black screen on an A5100. Change this order only with
+a test on a body.
+
+What Sony's own apps on ILCE-5100 3.10 do (read from the firmware's odex files with
+`dexdump`; dexopt mangles virtual calls, so only static and direct calls and constants are certain):
+
+- **The framebuffer is a screen-wide setting, 16-bit by default.** Smart Remote (a live view app)
+  only ever sets `RGBA4444`, when it leaves its playback thumbnail grid; the Application List
+  (`ScalarALauncher`) never sets it and draws in whatever the previous app left. A build that switches
+  to 32-bit and exits without switching back (USB, a kill, a hang) leaves the Application List black
+  until another app sets 16-bit again — what happened on the A5100. Never use `ABGR8888` with the live
+  view, and set `RGBA4444` on both resume and pause.
+- `DisplayManager` instances live as long as the app (`HDMIInfoWrapper`, `OLEDBurning`).
+- `CameraEx.open` is called on an init thread with an `OpenOptions` (still recording mode, the media
+  id); BetterManual's `open(0, null)` on the UI thread works too, and is what this app does.
+- `AppInfoReceive` also carries `large_category` (`CATEGORY_REC` for shooting) and `small_category`
+  (`STILL`), and per-state `pullingback_key` / `resume_key` lists. BetterManual sends neither
+  category; adding them is a candidate once the app runs, not before.
+- The Application List's `Mode.BLACK` is its own exit transition (MENU), unrelated to the above.
 
 ## Running on a desktop emulator
 

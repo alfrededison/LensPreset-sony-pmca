@@ -56,7 +56,11 @@ public final class SonyCamera {
     /** Let a new exposure mode settle before stepping aperture or shutter in it. */
     private static final int MODE_SETTLE_MS = 400;
     private static final int MAX_STEPS = 40;
-    private static final double TOLERANCE_STOPS = 0.17;
+    /**
+     * Close enough to the target, in stops. Under a sixth of a stop: an A5100 reporting f/1.7 for a
+     * target of f/1.8 (0.165 stops off) was left there at 0.17.
+     */
+    private static final double TOLERANCE_STOPS = 0.12;
     /** Device type of a lens in {@link CameraEx.EquipmentCallback} (CameraEx.DEVICE_TYPE_LENS). */
     private static final int DEVICE_TYPE_LENS = 1;
 
@@ -80,18 +84,26 @@ public final class SonyCamera {
         this.cam = cam;
     }
 
-    /** Opens the camera; throws when it is not available (another app, or not a Sony body). */
+    /**
+     * Opens the camera; throws when it is not available (another app, or not a Sony body). Then, as
+     * BetterManual does: register the surface callback, call {@link #startDirectShutter()}, and start
+     * the preview from {@code surfaceCreated}.
+     */
     public static SonyCamera open(Listener listener) {
         CameraEx cam = CameraEx.open(0, null);
         SonyCamera c = new SonyCamera(cam);
         c.listener = listener;
         c.registerListeners();
+        return c;
+    }
+
+    /** Lets the shutter button shoot while the app is in front. */
+    public void startDirectShutter() {
         try {
             cam.startDirectShutter();
         } catch (Throwable ignored) {
             // Without direct shutter the camera still shoots through its own pipeline.
         }
-        return c;
     }
 
     private void registerListeners() {
@@ -503,6 +515,8 @@ public final class SonyCamera {
         final double target;
         final ValueSeeker seeker;
         final ApplyReport report;
+        /** Every value seen, as the camera reports it, for the log: "2.80 2.50 2.20 ...". */
+        final StringBuilder trail = new StringBuilder();
         final Runnable next;
         boolean cancelled;
         /** The value when the last command was sent; a report of the same value is not an answer to it. */
@@ -531,6 +545,8 @@ public final class SonyCamera {
             handler.removeCallbacks(this);
             int cmd = seeker.next(currentStops);
             sentAt = currentStops;
+            trail.append(trail.length() == 0 ? "" : " ").append(String.format(java.util.Locale.US,
+                    aperture ? "%.2f" : "%.4fs", aperture ? Scales.fromApertureStops(currentStops) : Math.pow(2, currentStops)));
             if (cmd == ValueSeeker.DONE) {
                 finish(currentStops);
                 return;
@@ -576,7 +592,7 @@ public final class SonyCamera {
             String got = aperture ? Scales.formatAperture(Scales.fromApertureStops(currentStops))
                     : Scales.nearestShutter(Math.pow(2, currentStops)).format();
             report.add(aperture ? "aperture" : "shutter", ok ? ApplyReport.Status.OK : ApplyReport.Status.PARTIAL,
-                    "got " + got + " in " + seeker.steps() + " steps");
+                    "got " + got + " in " + seeker.steps() + " steps (" + trail + ")");
             next.run();
         }
 

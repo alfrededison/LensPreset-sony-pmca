@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you! Before filling this in: MENU > **Run camera probe**, then copy `LENSPRST/PROBE.TXT` (and `LENSPRST/LOG.TXT`) from the memory card.
+        Thank you! Before filling this in: MENU > **Run camera probe** and MENU > **Save log to card**, then copy `LENSPRST/PROBE.TXT` and `LENSPRST/LOG.TXT` from the memory card.
   - type: input
     id: model
     attributes:

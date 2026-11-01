@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.AttributeSet;
 import android.view.View;
 
 import com.lenspreset.core.engine.Message;
@@ -18,7 +19,7 @@ import java.util.List;
  * and the hints and notices. Everything is Canvas-drawn because the camera's font has no symbol
  * glyphs and the layout must fit 640x480.
  */
-final class OverlayView extends View {
+public final class OverlayView extends View {
     static final class Line {
         final String text;
         final Message.Level level;
@@ -44,14 +45,21 @@ final class OverlayView extends View {
     private List<Line> messages = Collections.emptyList();
     private List<String> guides = Collections.emptyList();
     private boolean showHints = true;
+    /** Runs once, on the first draw: the log records when the screen first showed something. */
+    private Runnable onFirstDraw;
     private boolean statusWarn;
     /** A list is open over the left of the screen: only the guides and the top band are drawn. */
     private boolean underPanel;
 
-    OverlayView(Context context) {
-        super(context);
+    /** Inflated from res/layout/main.xml. */
+    public OverlayView(Context context, AttributeSet attrs) {
+        super(context, attrs);
         band.setColor(Color.argb(150, 0, 0, 0));
         guide.setStrokeWidth(1.5f);
+    }
+
+    void setOnFirstDraw(Runnable r) {
+        onFirstDraw = r;
     }
 
     void setVideoRect(Rect r) {
@@ -97,6 +105,11 @@ final class OverlayView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
+        if (onFirstDraw != null) {
+            Runnable r = onFirstDraw;
+            onFirstDraw = null;
+            r.run();
+        }
         int w = getWidth();
         int h = getHeight();
         if (w == 0 || h == 0) return;

@@ -17,12 +17,17 @@ final class Text {
 
     /** Reads and closes {@code in}. */
     static String read(InputStream in) throws IOException {
+        return new String(readBytes(in), "UTF-8");
+    }
+
+    /** Reads and closes {@code in}. */
+    static byte[] readBytes(InputStream in) throws IOException {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[4096];
+            byte[] buf = new byte[16384];
             int n;
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            return out.toString("UTF-8");
+            return out.toByteArray();
         } finally {
             in.close();
         }

@@ -8,7 +8,8 @@ All kinds of help move this forward, most of all **tests on real cameras**.
 2. MENU → *Run camera probe*. Try each preset, take a few shots, and watch what the camera actually
    does (the app's status line says what it set; the camera's own display says what happened).
 3. Open a [camera test report](../../issues/new?template=compatibility_report.yml) with
-   `LENSPRST/PROBE.TXT`, `LENSPRST/LOG.TXT` and the feature table filled in.
+   `LENSPRST/PROBE.TXT`, `LENSPRST/LOG.TXT` (MENU → *Save log to card*) and the feature table
+   filled in.
 
 A report is how a profile's `features` move from `unknown` to `yes` / `no`, and its `status` from
 `untested` to `community-tested`. Report what you saw, not what the app claimed.

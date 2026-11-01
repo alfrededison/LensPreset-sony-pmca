@@ -36,7 +36,7 @@ echo "building $VERSION_NAME (versionCode $VERSION_CODE)"
 
 OUT=out/build
 rm -rf "$OUT"
-mkdir -p "$OUT"/{stubs,gen,classes,dex,assets/i18n}
+mkdir -p "$OUT"/{stubs,gen,classes,dex,assets}
 JAVAC_OPTS=(-encoding UTF-8 -source 8 -target 8 -bootclasspath "$AJ" -Xlint:-options -nowarn)
 
 echo "[1/7] Sony API stubs (compile-time only, never packaged)"
@@ -44,20 +44,29 @@ find camera-adapter/stubs/src -name '*.java' > "$OUT/stubs.txt"
 javac "${JAVAC_OPTS[@]}" -d "$OUT/stubs" "@$OUT/stubs.txt"
 (cd "$OUT/stubs" && jar cf ../stubs.jar .)
 
-echo "[2/7] assets: profiles and language tables"
+# One asset, read with one open: on an A5100 every AssetManager list or open took about half a
+# second, and twenty separate files kept the app loading for ten seconds. Format: core's AssetBundle.
+echo "[2/7] assets: profiles and language tables, bundled"
+BUNDLE="$OUT/assets/lenspreset.bundle"
+: > "$BUNDLE"
+add_to_bundle() {
+  printf '@@ %s %s %d\n' "$1" "$(basename "$2")" "$(wc -c < "$2" | tr -d ' ')" >> "$BUNDLE"
+  cat "$2" >> "$BUNDLE"
+  printf '\n' >> "$BUNDLE"
+}
+for f in i18n/*.json; do add_to_bundle i18n "$f"; done
 for kind in cameras lenses presets; do
-  mkdir -p "$OUT/assets/profiles/$kind"
-  cp profiles/$kind/*.json "$OUT/assets/profiles/$kind/"
+  for f in profiles/$kind/*.json; do add_to_bundle "$kind" "$f"; done
 done
-cp i18n/*.json "$OUT/assets/i18n/"
 
 MANIFEST="$OUT/AndroidManifest.xml"
 sed -e "s/android:versionCode=\"[^\"]*\"/android:versionCode=\"$VERSION_CODE\"/" \
     -e "s/android:versionName=\"[^\"]*\"/android:versionName=\"$VERSION_NAME\"/" \
     app/AndroidManifest.xml > "$MANIFEST"
 
+# The bundle is stored uncompressed (-0 bundle), so opening it needs no inflating.
 echo "[3/7] aapt: R.java"
-"$BT/aapt" package -f -m -J "$OUT/gen" -M "$MANIFEST" -S app/res -A "$OUT/assets" -I "$AJ"
+"$BT/aapt" package -f -m -0 bundle -J "$OUT/gen" -M "$MANIFEST" -S app/res -A "$OUT/assets" -I "$AJ"
 
 echo "[4/7] javac against API 10"
 { find "$OUT/gen" core/src/main/java camera-adapter/src/main/java app/src -name '*.java'; } > "$OUT/sources.txt"
@@ -69,7 +78,7 @@ java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 10 \
   --lib "$AJ" --classpath "$OUT/stubs.jar" --output "$OUT/dex" "@$OUT/classes.txt"
 
 echo "[6/7] package and align"
-"$BT/aapt" package -f -M "$MANIFEST" -S app/res -A "$OUT/assets" -I "$AJ" -F "$OUT/unaligned.apk"
+"$BT/aapt" package -f -0 bundle -M "$MANIFEST" -S app/res -A "$OUT/assets" -I "$AJ" -F "$OUT/unaligned.apk"
 (cd "$OUT/dex" && "$BT/aapt" add ../unaligned.apk classes.dex >/dev/null)
 "$BT/zipalign" -f 4 "$OUT/unaligned.apk" "$OUT/aligned.apk"
 

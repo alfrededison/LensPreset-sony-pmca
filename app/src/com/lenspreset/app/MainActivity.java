@@ -1,22 +1,20 @@
 package com.lenspreset.app;
 
-import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
 
+import com.lenspreset.R;
 import com.lenspreset.adapter.ApplyReport;
 import com.lenspreset.adapter.DeviceIdentity;
 import com.lenspreset.adapter.ProbeReport;
 import com.lenspreset.adapter.SonyCamera;
-import com.lenspreset.adapter.SystemHooks;
 import com.lenspreset.core.engine.Conditions;
 import com.lenspreset.core.engine.Hud;
 import com.lenspreset.core.engine.Message;
@@ -39,13 +37,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The one screen: live view with the overlay, and lists drawn over it. Pick a situation, and the
  * engine works out settings for this body and lens; the camera adapter applies them. Settings
  * apply while the app is open (roadmap option (a)); shoot from inside the app.
  */
-public final class MainActivity extends Activity implements SurfaceHolder.Callback, SonyCamera.Listener {
+public final class MainActivity extends BaseActivity implements SurfaceHolder.Callback, SonyCamera.Listener {
     private enum Screen { LIVE, PRESETS, OPTIONS, MENU, LENSES, LANGUAGES, TEXT }
 
     /** Re-apply this long after the zoom stops moving. */
@@ -69,13 +68,24 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
     private SonyCamera sony;
     private SurfaceView surface;
-    private boolean surfaceReady;
     private OverlayView overlay;
     private ListPanel panel;
     private Screen screen = Screen.LIVE;
     private Preset optionsPreset;
     /** Start-up failed: the screen shows why and any key exits. */
     private boolean failed;
+    /** Language tables and profiles are in (see startLoading); until then keys are ignored. */
+    private boolean loaded;
+    private boolean resumed;
+    /** Delivers the loading thread's result; unlike {@link #handler}, onPause does not clear it. */
+    private final Handler loadHandler = new Handler();
+    /** The APK's profiles, kept for MENU > Reload so it rereads only the card. */
+    private List<ProfileSet.Entry> bundledProfiles = Collections.emptyList();
+    /** LENSPRST/DEBUG.TXT switches; see CardStore.debugSwitches. */
+    private Set<String> debug = Collections.emptySet();
+    /** Key presses written to the log so far; only the first few of a session are. */
+    private int keysLogged;
+    private static final int KEYS_TO_LOG = 30;
 
     private final Runnable reapplyAfterZoom = new Runnable() {
         @Override
@@ -88,39 +98,97 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = new Prefs(this);
-        card = new CardStore();
+        card = new CardStore(getFilesDir());
         installCrashLog();
+        debug = card.debugSwitches();
+        card.setCardLog(debug.contains("card-log"));
 
-        FrameLayout root = new FrameLayout(this);
-        surface = new SurfaceView(this);
+        setContentView(R.layout.main);
+        surface = (SurfaceView) findViewById(R.id.surface);
         // Required for camera preview on Android 2.x.
         surface.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        // Registered for the activity's whole life, so surfaceReady always matches the surface.
-        surface.getHolder().addCallback(this);
-        overlay = new OverlayView(this);
-        panel = new ListPanel(this);
-        panel.hide();
-        ViewGroup.LayoutParams fill = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT);
-        root.addView(surface, fill);
-        root.addView(overlay, fill);
-        root.addView(panel, fill);
-        setContentView(root);
+        overlay = (OverlayView) findViewById(R.id.overlay);
+        panel = (ListPanel) findViewById(R.id.panel);
 
-        try {
-            trace("create " + appVersion());
-            try {
-                tables = Assets.languages(getAssets());
-            } catch (IOException e) {
-                // A build without its English table cannot show words; keys are still readable.
-                tables = new LinkedHashMap<String, Map<String, String>>();
-                tables.put(I18n.FALLBACK, new HashMap<String, String>());
+        trace("create " + appVersion() + (debug.isEmpty() ? "" : " debug switches " + debug));
+        overlay.setOnFirstDraw(new Runnable() {
+            @Override
+            public void run() {
+                trace("first draw " + overlay.getWidth() + "x" + overlay.getHeight());
             }
-            setLanguage();
-            trace("profiles");
-            loadProfiles();
-        } catch (Throwable t) {
-            startupFailed("create", t);
+        });
+        startLoading();
+    }
+
+    /**
+     * Language tables and profiles load on a thread of their own: on an A5100 they took 10 s, and
+     * reading them in onCreate kept the live view off the screen until they were done. The camera
+     * opens in onResume meanwhile, as in BetterManual, whose onCreate is as light; the overlay and the
+     * keys start working once {@link #onLoaded} has run.
+     */
+    private void startLoading() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Map<String, Map<String, String>> t;
+                ProfileSet set;
+                final List<ProfileSet.Entry> fromApk;
+                try {
+                    long start = SystemClock.uptimeMillis();
+                    Assets.Loaded bundle;
+                    try {
+                        bundle = Assets.load(getAssets());
+                    } catch (IOException e) {
+                        // A broken build: no words and no profiles, but the keys still exit.
+                        card.log(Collections.singletonList("bundle unreadable: " + e.getMessage()));
+                        Map<String, Map<String, String>> none = new LinkedHashMap<String, Map<String, String>>();
+                        none.put(I18n.FALLBACK, new HashMap<String, String>());
+                        bundle = new Assets.Loaded(none, new ArrayList<ProfileSet.Entry>());
+                    }
+                    t = bundle.languages;
+                    fromApk = bundle.profiles;
+                    long bundled = SystemClock.uptimeMillis();
+                    List<ProfileSet.Entry> entries = new ArrayList<ProfileSet.Entry>(fromApk);
+                    entries.addAll(card.profiles());
+                    long cardDone = SystemClock.uptimeMillis();
+                    set = ProfileSet.load(entries);
+                    trace("loaded: bundle " + (bundled - start) + "ms, card " + (cardDone - bundled)
+                            + "ms, parsing " + (SystemClock.uptimeMillis() - cardDone) + "ms");
+                } catch (final Throwable e) {
+                    loadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            startupFailed("loading", e);
+                        }
+                    });
+                    return;
+                }
+                final Map<String, Map<String, String>> loadedTables = t;
+                final ProfileSet loadedProfiles = set;
+                loadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        bundledProfiles = fromApk;
+                        onLoaded(loadedTables, loadedProfiles);
+                    }
+                });
+            }
+        }, "load").start();
+    }
+
+    private void onLoaded(Map<String, Map<String, String>> loadedTables, ProfileSet loadedProfiles) {
+        if (failed) return;
+        tables = loadedTables;
+        setLanguage();
+        profiles = loadedProfiles;
+        logProfiles();
+        loaded = true;
+        if (resumed) {
+            try {
+                finishResume();
+            } catch (Throwable t) {
+                startupFailed("resume", t);
+            }
         }
     }
 
@@ -129,7 +197,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * hangs on a body, the last line says where.
      */
     private void trace(String step) {
-        card.log(Collections.singletonList("boot: " + step));
+        // The camera's clock reads 1970 to apps; uptime orders the lines and shows the gaps.
+        card.log(Collections.singletonList("boot +" + SystemClock.uptimeMillis() + "ms: " + step));
     }
 
     /**
@@ -146,7 +215,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         card.log(lines);
         List<OverlayView.Line> shown = new ArrayList<OverlayView.Line>();
         shown.add(new OverlayView.Line(ApplyReport.describe(t), Message.Level.WARN));
-        shown.add(new OverlayView.Line("Details: LENSPRST/LOG.TXT on the memory card. MENU: exit.", Message.Level.INFO));
+        shown.add(new OverlayView.Line("Details: the app log (MENU > Save log to card on a later start). MENU: exit.",
+                Message.Level.INFO));
         overlay.show("LensPreset", "Start-up failed (" + step + ")", Collections.<String>emptyList(), shown,
                 Collections.<String>emptyList());
         overlay.setLegend("");
@@ -158,10 +228,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         i18n = I18n.of(tables, I18n.resolve(prefs.language(), Locale.getDefault().getLanguage(), langs));
     }
 
+    /** Bundled profiles plus the card's again (MENU > Reload): the card may have changed. */
     private void loadProfiles() {
-        List<ProfileSet.Entry> entries = Assets.profiles(getAssets());
+        List<ProfileSet.Entry> entries = new ArrayList<ProfileSet.Entry>(bundledProfiles);
         entries.addAll(card.profiles());
         profiles = ProfileSet.load(entries);
+        logProfiles();
+    }
+
+    private void logProfiles() {
         List<String> log = new ArrayList<String>();
         log.add("profiles: " + profiles.cameras().size() + " cameras, " + profiles.interchangeableLenses().size()
                 + " lenses, " + profiles.presets().size() + " presets; card overrides " + profiles.overridden());
@@ -172,6 +247,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         if (failed) return;
         try {
             resume();
@@ -180,25 +256,37 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         }
     }
 
+    /**
+     * The order of BetterManual's ManualActivity: open the camera, register the surface callback,
+     * start direct shutter; the preview starts in surfaceCreated. BaseActivity has already set the
+     * colour depth, announced the app and opened the DisplayManager.
+     */
     private void resume() {
-        trace("framebuffer");
-        SystemHooks.setHighColor(true);
-        trace("announce");
-        SystemHooks.announce(this);
-        trace("identity");
         device = DeviceIdentity.read();
-        camera = Matcher.camera(profiles, device.model);
-        trace("camera open (model " + device.model + ")");
-        try {
-            sony = SonyCamera.open(this);
-        } catch (Throwable t) {
-            sony = null;
-            card.log(Collections.singletonList("camera open failed: " + ApplyReport.describe(t)));
+        sony = null;
+        if (!debug.contains("no-camera")) {
+            trace("camera open (model " + device.model + ")");
+            try {
+                sony = SonyCamera.open(this);
+            } catch (Throwable t) {
+                card.log(Collections.singletonList("camera open failed: " + ApplyReport.describe(t)));
+            }
         }
-        trace("preview (surface ready: " + surfaceReady + ")");
-        if (surfaceReady) startPreview();
+        surface.getHolder().addCallback(this);
+        if (sony != null) {
+            trace("direct shutter");
+            sony.startDirectShutter();
+        }
         trace("live view rect");
-        overlay.setVideoRect(SystemHooks.liveViewRect());
+        overlay.setVideoRect(liveViewRect());
+        if (loaded) finishResume();
+        else trace("waiting for profiles");
+    }
+
+    /** What needs the profiles: which body and lens this is, the overlay, touch. */
+    private void finishResume() {
+        trace("identity");
+        camera = Matcher.camera(profiles, device.model);
         overlay.setOnTouchListener(camera != null && camera.controls.touchscreen ? new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent e) {
@@ -219,37 +307,63 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (preset == null && !profiles.presets().isEmpty()) preset = profiles.presets().get(0);
         card.log(Collections.singletonList("open: model=" + device.model + " firmware=" + device.firmware
                 + " camera=" + (camera == null ? "none" : camera.id) + " lens=" + (lens == null ? "none" : lens.id)
-                + " reported=" + (lensReading == null ? "none" : lensReading.name + "/" + lensReading.id)));
+                + " reported=" + (lensReading == null ? "none" : lensReading.name + "/" + lensReading.id)
+                + (sony != null && sony.lensProblem() != null ? " (" + sony.lensProblem() + ")" : "")));
+        // Nothing is applied on opening: settings change only when the user picks a situation.
         showLive();
         if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
-        else if (prefs.preset() != null) apply();
         trace("ready");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        resumed = false;
+        trace("pause");
         handler.removeCallbacksAndMessages(null);
+        surface.getHolder().removeCallback(this);
         if (sony != null) {
             sony.close();
             sony = null;
         }
-        SystemHooks.setHighColor(false);
+    }
+
+    @Override
+    protected void onDisplayChanged() {
+        overlay.setVideoRect(liveViewRect());
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        trace("stop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        trace("destroy");
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        trace("window focus " + hasFocus);
     }
 
     private void startPreview() {
-        if (sony == null) return;
+        if (sony == null || debug.contains("no-preview")) return;
         try {
             sony.startPreview(surface.getHolder());
         } catch (Throwable t) {
-            overlay.setStatus(i18n.t("ui.preview_failed"), true);
+            // Possibly before the language tables have loaded (see startLoading).
+            overlay.setStatus(i18n != null ? i18n.t("ui.preview_failed") : "Live view could not start", true);
             card.log(Collections.singletonList("preview failed: " + ApplyReport.describe(t)));
         }
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        surfaceReady = true;
         if (failed) return;
         trace("surface created, preview");
         startPreview();
@@ -262,13 +376,13 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        surfaceReady = false;
     }
 
     // ---- what the camera reports ----
 
     @Override
     public void onLiveChanged(boolean lensChanged) {
+        if (!loaded || !resumed) return;
         if (lensChanged) {
             detectLens();
             refresh();
@@ -386,6 +500,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         int action = Keys.action(event);
+        if (keysLogged < KEYS_TO_LOG) {
+            keysLogged++;
+            trace("key scan=" + event.getScanCode() + " code=" + keyCode + " action=" + action
+                    + " repeat=" + event.getRepeatCount() + " screen=" + screen);
+        }
         if (action == Keys.NONE) return super.onKeyDown(keyCode, event);
         boolean single = action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH;
         if (!(single && event.getRepeatCount() > 0)) handle(action);
@@ -402,6 +521,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             if (action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH) finish();
             return;
         }
+        if (!loaded) return;
         switch (screen) {
             case LIVE: handleLive(action); break;
             case PRESETS: handlePresets(action); break;
@@ -521,10 +641,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private static final int MENU_LENS = 0;
     private static final int MENU_LANGUAGE = 1;
     private static final int MENU_PROBE = 2;
-    private static final int MENU_RELOAD = 3;
-    private static final int MENU_PROBLEMS = 4;
-    private static final int MENU_ABOUT = 5;
-    private static final int MENU_EXIT = 6;
+    private static final int MENU_SAVE_LOG = 3;
+    private static final int MENU_RELOAD = 4;
+    private static final int MENU_PROBLEMS = 5;
+    private static final int MENU_ABOUT = 6;
+    private static final int MENU_EXIT = 7;
 
     private void openMenu() {
         overlay.setUnderPanel(true);
@@ -536,6 +657,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         rows.add(new ListPanel.Row(i18n.t("menu.language"), null,
                 Prefs.AUTO.equals(prefs.language()) ? i18n.t("menu.auto") : i18n.languageName(i18n.language()), false));
         rows.add(new ListPanel.Row(i18n.t("menu.probe"), null, i18n.t("menu.probe_detail"), false));
+        rows.add(new ListPanel.Row(i18n.t("menu.save_log"), null, i18n.t("menu.save_log_detail"), false));
         rows.add(new ListPanel.Row(i18n.t("menu.reload"), null, null, false));
         Map<String, String> n = new HashMap<String, String>();
         n.put("n", Integer.toString(profiles.problems().size()));
@@ -554,6 +676,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 case MENU_LENS: openLenses(); break;
                 case MENU_LANGUAGE: openLanguages(); break;
                 case MENU_PROBE: runProbe(); break;
+                case MENU_SAVE_LOG: saveLog(); break;
                 case MENU_RELOAD:
                     loadProfiles();
                     camera = Matcher.camera(profiles, device.model);
@@ -689,7 +812,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 .put("cameraProfile", camera == null ? null : camera.id)
                 .put("lensProfile", lens == null ? null : lens.id)
                 .put("screen", overlay.getWidth() + "x" + overlay.getHeight())
-                .put("liveViewRect", SystemHooks.liveViewRect());
+                .put("liveViewRect", liveViewRect());
         if (sony != null) sony.probe(report);
         else report.section("camera").put("open", "failed");
         try {
@@ -704,7 +827,25 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         showLive();
     }
 
-    /** Crashes go to LOG.TXT on the card, which is the only log a camera owner can easily share. */
+    private void saveLog() {
+        if (!card.available()) {
+            overlay.setStatus(i18n.t("status.no_card"), true);
+            showLive();
+            return;
+        }
+        try {
+            Map<String, String> args = new HashMap<String, String>();
+            args.put("path", card.saveLog());
+            overlay.setStatus(i18n.t("log.saved", args));
+        } catch (IOException e) {
+            Map<String, String> args = new HashMap<String, String>();
+            args.put("reason", ApplyReport.describe(e));
+            overlay.setStatus(i18n.t("log.failed", args), true);
+        }
+        showLive();
+    }
+
+    /** Crashes go to the app log; MENU > Save log to card copies it where a camera owner can share it. */
     private void installCrashLog() {
         Thread.UncaughtExceptionHandler current = Thread.getDefaultUncaughtExceptionHandler();
         if (current instanceof CrashLog) return;

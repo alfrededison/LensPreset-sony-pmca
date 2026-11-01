@@ -53,13 +53,14 @@ tells you where to turn the aperture and focus rings).
 4. Open it from the camera's *Application List*.
 
 To remove it: *MENU → Application → Application Management → Manage and Remove → LensPreset*.
+An APK signed with a different key cannot be installed over an existing one: remove the old one
+first. Installation problems belong in the
+[Sony-PMCA-RE issues](https://github.com/ma1co/Sony-PMCA-RE/issues); preset and app problems here.
 
 **If the app hangs or shows a black screen:** connect the USB cable to a computer — the camera
 closes the app — then remove it as above or install a newer build over it. If that does not work,
-take the battery out for a minute. `LENSPRST/LOG.TXT` on the card says how far start-up got;
-please attach it to a [bug report](../../issues/new?template=bug_report.yml). An APK signed with a different key cannot be installed over an existing one:
-remove the old one first. Installation problems belong in the
-[Sony-PMCA-RE issues](https://github.com/ma1co/Sony-PMCA-RE/issues); preset and app problems here.
+take the battery out for a minute. Please open a [bug report](../../issues/new?template=bug_report.yml)
+with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 
 ## Using it
 
@@ -68,15 +69,16 @@ remove the old one first. Installation problems belong in the
 | Up / Down, wheel | previous / next situation (applied at once) | move |
 | Left / Right | change the situation's first setting (e.g. rows) | change a value |
 | Centre | list of situations | select |
-| MENU | app menu: lens, language, camera probe, reload, about, exit | back |
+| MENU | app menu: lens, language, camera probe, save log, reload, about, exit | back |
 | Trash | hide / show hints | back |
 
 On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
 as usual; settings apply while the app is open.
 
 **The memory card** (`LENSPRST/`): `CAMERAS/`, `LENSES/`, `PRESETS/` for your own profiles
-(8.3 file names such as `NIGHT.JSN`), `PROBE.TXT` from *Run camera probe*, `LOG.TXT` with what
-each apply did and any crash.
+(8.3 file names such as `NIGHT.JSN`), `PROBE.TXT` from *Run camera probe*, `LOG.TXT` from *Save log
+to card* (start-up, what each apply did, any crash). The app writes to the card only when you choose
+one of those two.
 
 Languages: English, Tiếng Việt. Translations are welcome.
 

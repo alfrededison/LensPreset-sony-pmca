@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.MotionEvent;
+import android.util.AttributeSet;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import java.util.List;
  * app menu. Rows with a value show it between arrows; left / right change it. Touch is only
  * enabled on bodies whose profile says they have a touchscreen.
  */
-final class ListPanel extends View {
+public final class ListPanel extends View {
     static final class Row {
         final String label;
         /** Shown between arrows when not null; left / right change it. */
@@ -48,8 +49,9 @@ final class ListPanel extends View {
     private float rowHeight = 1;
     private float rowsTop;
 
-    ListPanel(Context context) {
-        super(context);
+    /** Inflated from res/layout/main.xml. */
+    public ListPanel(Context context, AttributeSet attrs) {
+        super(context, attrs);
     }
 
     void show(String title, List<Row> rows, int selected, String legend) {

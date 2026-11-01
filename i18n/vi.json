@@ -32,6 +32,8 @@
   "menu.auto": "Tự động",
   "menu.probe": "Khảo sát máy ảnh",
   "menu.probe_detail": "Lưu các khả năng của máy vào LENSPRST/PROBE.TXT",
+  "menu.save_log": "Lưu log ra thẻ nhớ",
+  "menu.save_log_detail": "Chép log của app vào LENSPRST/LOG.TXT để gửi báo lỗi",
   "menu.reload": "Nạp lại profile từ thẻ nhớ",
   "menu.problems": "Lỗi profile ({n})",
   "menu.problems_title": "Lỗi profile",
@@ -52,6 +54,9 @@
 
   "probe.saved": "Đã lưu {path}",
   "probe.failed": "Không lưu được kết quả khảo sát: {reason}",
+
+  "log.saved": "Đã lưu {path}",
+  "log.failed": "Không lưu được log: {reason}",
 
   "apply.no_camera": "Không mở được máy ảnh",
   "apply.applying": "Đang áp dụng…",

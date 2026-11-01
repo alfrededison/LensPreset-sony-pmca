@@ -32,6 +32,8 @@
   "menu.auto": "Automatic",
   "menu.probe": "Run camera probe",
   "menu.probe_detail": "Saves what the camera supports to LENSPRST/PROBE.TXT",
+  "menu.save_log": "Save log to card",
+  "menu.save_log_detail": "Copies the app's log to LENSPRST/LOG.TXT, for a bug report",
   "menu.reload": "Reload profiles from the card",
   "menu.problems": "Profile problems ({n})",
   "menu.problems_title": "Profile problems",
@@ -52,6 +54,9 @@
 
   "probe.saved": "Saved {path}",
   "probe.failed": "Probe not saved: {reason}",
+
+  "log.saved": "Saved {path}",
+  "log.failed": "Log not saved: {reason}",
 
   "apply.no_camera": "Camera not available",
   "apply.applying": "Applying…",
