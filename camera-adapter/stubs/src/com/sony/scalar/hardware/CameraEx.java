@@ -24,6 +24,8 @@ public class CameraEx {
     public void burstableTakePicture() { throw new RuntimeException("Stub!"); }
     public void startSelfTimerShutter() { throw new RuntimeException("Stub!"); }
     public boolean cancelSelfTimerShutter() { throw new RuntimeException("Stub!"); }
+    public void setQuickAutoFocus(String mode) { throw new RuntimeException("Stub!"); }
+    public void resetQuickAutoFocus(String mode) { throw new RuntimeException("Stub!"); }
     public void cancelTakePicture() { throw new RuntimeException("Stub!"); }
     public void setShutterListener(ShutterListener l) { throw new RuntimeException("Stub!"); }
     public void incrementAperture() { throw new RuntimeException("Stub!"); }
@@ -98,6 +100,9 @@ public class CameraEx {
 
     public static class ParametersModifier {
         private ParametersModifier() {}
+        public static final String QUICK_AF_WI_AEL = "af_wiae";
+        public static final String QUICK_AF_WO_AEL = "af_woaf";
+        public List getSupportedQuickAutoFocus() { throw new RuntimeException("Stub!"); }
 
         public static final String SCENE_MODE_PROGRAM_AUTO = "program-auto";
         public static final String SCENE_MODE_APERTURE_PRIORITY = "aperture-priority";

@@ -85,6 +85,9 @@ public final class SonyCamera {
     private Runnable shotRestore;
     private int selfTimer;
     private boolean timerReady;
+    /** Native AF/AE lock held by a half press while direct shutter is disabled. */
+    private String quickFocus;
+    private boolean halfPressed;
     /** Give direct shutter a moment to stop before a shot from code (BetterManual counts down 1 s+). */
     private static final int SHUTTER_STOP_MS = 1000;
     private static final int SHOT_TIMEOUT_MS = 10000;
@@ -203,6 +206,7 @@ public final class SonyCamera {
         if (shotTimeout != null) handler.removeCallbacks(shotTimeout);
         pendingCapture = null;
         shotTimeout = null;
+        if (!halfPressed) releaseQuickFocus();
         Runnable restore = shotRestore;
         shotRestore = null;
         if (restore != null) restore.run();
@@ -225,6 +229,40 @@ public final class SonyCamera {
     public boolean hasSelfTimer() { return selfTimer > 0; }
 
     public boolean isTakingPicture() { return shot != null; }
+
+    /** Direct shutter normally handles S1; timed mode must drive Sony's AF/AE path itself. */
+    public String halfPress(boolean down) {
+        if (closed || selfTimer == 0) return "ignored";
+        halfPressed = down;
+        if (shot != null) return down ? "held during capture" : "release deferred";
+        if (!down) return releaseQuickFocus();
+        if (quickFocus != null) return "held " + quickFocus;
+        try {
+            Camera.Parameters p = cam.getNormalCamera().getParameters();
+            if (CameraEx.ParametersModifier.FOCUS_MODE_MANUAL.equals(p.getFocusMode())) return "manual focus";
+            String mode = SonyValues.pick(cam.createParametersModifier(p).getSupportedQuickAutoFocus(),
+                    new String[]{CameraEx.ParametersModifier.QUICK_AF_WI_AEL,
+                            CameraEx.ParametersModifier.QUICK_AF_WO_AEL});
+            if (mode == null) return "failed: native half-press AF unavailable";
+            cam.setQuickAutoFocus(mode);
+            quickFocus = mode;
+            return "started " + mode;
+        } catch (Throwable t) {
+            return "failed: " + ApplyReport.describe(t);
+        }
+    }
+
+    private String releaseQuickFocus() {
+        String mode = quickFocus;
+        if (mode == null) return "released";
+        try {
+            cam.resetQuickAutoFocus(mode);
+            quickFocus = null;
+            return "released " + mode;
+        } catch (Throwable t) {
+            return "failed: " + ApplyReport.describe(t);
+        }
+    }
 
     /** MENU, a new preset, or pause cancels both a countdown and a queued capture. */
     public void cancelPicture() {
@@ -310,7 +348,9 @@ public final class SonyCamera {
 
     public void close() {
         closed = true;
+        halfPressed = false;
         cancelPicture();
+        releaseQuickFocus();
         if (seek != null) seek.cancel();
         handler.removeCallbacksAndMessages(null);
         try {
@@ -450,7 +490,9 @@ public final class SonyCamera {
      * stepped toward their targets, and {@code done} runs with the full report when they settle.
      */
     public void apply(final Recommendation r, final ApplyCallback done) {
+        halfPressed = false;
         cancelPicture();
+        releaseQuickFocus();
         if (seek != null) seek.cancel();
         seek = null;
         if (pendingSettle != null) handler.removeCallbacks(pendingSettle);

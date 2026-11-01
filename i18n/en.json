@@ -144,6 +144,7 @@
   "notice.style_unavailable": "Creative Style cannot be set on this body.",
   "notice.soft_skin_unavailable": "Soft Skin is not available on this body.",
   "apply.choose_preset": "Choose a preset to apply settings",
+  "focus.failed": "Autofocus failed; save log for details",
   "shot.waiting": "Waiting for timed shot…",
   "shot.taken": "Photo taken",
   "shot.cancelled": "Shot cancelled",

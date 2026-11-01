@@ -89,6 +89,13 @@ With a nonzero self-timer, group photos use single drive. The app stops direct s
 button is pressed and starts the native self-timer capture on S2, using the same stop-preview and
 capture cleanup as shots from code. MENU or Trash cancels a pending shot; a new preset or pause
 also cancels it. The watchdog allows the selected delay plus ten seconds for the shot to finish.
+Stopping direct shutter also disables native half-press handling. In timed mode, S1_1 instead
+starts `setQuickAutoFocus` with a supported AF/AE mode (`af_wiae`, otherwise `af_woaf`); S1_2
+is consumed as in PMCADemo. Releasing S1_1 calls `resetQuickAutoFocus`, unless a timed capture is
+in progress: release is deferred until capture cleanup. Keeping S1_1 held preserves the lock
+across shots; an unsuccessful reset remains pending so later cleanup can retry it. Manual focus
+bypasses this. Half-press autofocus followed by a timed shot was checked on ILCE-5100 3.10 with
+the Sigma 30mm F1.4. Holding half-press across several shots still needs checking on the body.
 Turning the timer off restores direct shutter and the group's burst mode. On ILCE-5100 3.10 with
 a Sigma 30mm F1.4, the user confirmed the 2 s / 10 s delay and immediate shooting when disabled;
 the log records successful timed shots about 2.8 s / 10.8 s after full press and reads back single

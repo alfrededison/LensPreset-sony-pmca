@@ -558,6 +558,13 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (sony != null && sony.hasSelfTimer()) {
+            if (event.getScanCode() == ScalarInput.ISV_KEY_S1_2) return true;
+            if (event.getScanCode() == ScalarInput.ISV_KEY_S1_1) {
+                if (screen == Screen.LIVE && event.getRepeatCount() == 0) timedHalfPress(true);
+                return true;
+            }
+        }
         if (sony != null && sony.hasSelfTimer() && event.getScanCode() == ScalarInput.ISV_KEY_S2) {
             if (screen == Screen.LIVE && event.getRepeatCount() == 0 && !sony.isTakingPicture()) {
                 trace("timed shutter pressed");
@@ -591,8 +598,21 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (sony != null && sony.hasSelfTimer()) {
+            if (event.getScanCode() == ScalarInput.ISV_KEY_S1_2) return true;
+            if (event.getScanCode() == ScalarInput.ISV_KEY_S1_1) {
+                timedHalfPress(false);
+                return true;
+            }
+        }
         if (sony != null && sony.hasSelfTimer() && event.getScanCode() == ScalarInput.ISV_KEY_S2) return true;
         return Keys.action(event) != Keys.NONE || super.onKeyUp(keyCode, event);
+    }
+
+    private void timedHalfPress(boolean down) {
+        String result = sony.halfPress(down);
+        trace("timed half press " + (down ? "down " : "up ") + result);
+        if (result.startsWith("failed:")) overlay.setStatus(i18n.t("focus.failed"), true);
     }
 
     private void handle(int action) {

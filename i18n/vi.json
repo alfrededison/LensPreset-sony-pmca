@@ -144,6 +144,7 @@
   "notice.style_unavailable": "Máy này không đặt được Creative Style.",
   "notice.soft_skin_unavailable": "Máy này không có làm mịn da.",
   "apply.choose_preset": "Chọn preset để áp dụng thông số",
+  "focus.failed": "Lấy nét thất bại; lưu log để xem chi tiết",
   "shot.waiting": "Đang chờ chụp hẹn giờ…",
   "shot.taken": "Đã chụp ảnh",
   "shot.cancelled": "Đã hủy chụp",
