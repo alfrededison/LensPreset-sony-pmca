@@ -106,7 +106,8 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 
 | Key | Live view | Lists |
 |---|---|---|
-| Up / Down, wheel | previous / next situation (applied at once) | move |
+| Up / Down | previous / next situation (applied at once) | move |
+| Wheel | previous / next situation (applied at once) | move; in preset options, change the selected value |
 | Left / Right | change the situation's first setting, when available (e.g. rows) | change a value |
 | Centre | list of situations | select |
 | MENU | app menu: lens, language, settings, camera probe, save log, reload, about, exit | back |

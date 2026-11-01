@@ -24,7 +24,7 @@
   "ui.legend.adjust": "Trái/Phải: {setting}",
   "ui.legend.touch": "Chạm: tình huống",
   "ui.legend.list": "Lên/Xuống: chọn · Giữa: chọn mục · MENU: quay lại",
-  "ui.legend.options": "Lên/Xuống: chọn · Trái/Phải: đổi · Giữa: áp dụng · MENU: quay lại",
+  "ui.legend.options": "Lên/Xuống: chọn · Vòng xoay/Trái/Phải: đổi · Giữa: áp dụng · MENU: quay lại",
   "ui.legend.menu": "Lên/Xuống: chọn · Giữa: chọn mục · MENU: đóng",
   "ui.legend.text": "Giữa hoặc MENU: quay lại",
   "ui.about.version": "LensPreset {version}",

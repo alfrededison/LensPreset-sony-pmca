@@ -7,7 +7,8 @@ import com.sony.scalar.sysutil.ScalarInput;
 /**
  * Camera keys to app actions. Every function sits on keys every body has (four-way, centre, MENU,
  * trash, a wheel or dial); bodies number their wheels differently, so every rotary code is a turn.
- * Standard Android key codes map too, for running the app in an emulator.
+ * Standard Android key codes map too, for running the app in an emulator; Page Up / Page Down
+ * stand in for a counter-clockwise / clockwise wheel turn.
  */
 final class Keys {
     private Keys() {
@@ -56,6 +57,8 @@ final class Keys {
             case KeyEvent.KEYCODE_MENU:
             case KeyEvent.KEYCODE_BACK: return MENU;
             case KeyEvent.KEYCODE_DEL: return TRASH;
+            case KeyEvent.KEYCODE_PAGE_UP: return PREV;
+            case KeyEvent.KEYCODE_PAGE_DOWN: return NEXT;
             default: return NONE;
         }
     }

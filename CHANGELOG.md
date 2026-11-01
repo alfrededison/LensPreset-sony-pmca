@@ -6,6 +6,8 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Shooting
 
+- In preset options, the wheel changes the selected value; Up / Down selects the setting.
+  Page Up / Page Down simulate wheel turns on an emulator.
 - Live-view Left / Right guidance appears only for configurable presets and names the setting.
   Group photo shows its selected row count and self-timer beside the exposure settings.
 - The ? / Trash button cycles live-view detail: hide hints, hide the key guide too, hide all

@@ -266,6 +266,24 @@ The UI runs in an API 30 emulator: every Sony call fails cleanly ("Camera not av
 lists, overlay, languages and lens choice can be checked. A 640×480, 160 dpi AVD matches the
 cameras' screens. Keys map from the D-pad, Enter, Menu/Back and Delete.
 
+Page Up / Page Down simulate counter-clockwise / clockwise wheel turns. These use the same
+PREV / NEXT actions as the Sony dial scan codes. `adb shell input keyevent` takes Android key
+codes, not Sony scan codes: sending `522` does not simulate a Sony wheel turn.
+
+With the app open, test one step in either direction:
+
+```bash
+adb -s emulator-5554 shell input keyevent KEYCODE_PAGE_DOWN  # clockwise
+adb -s emulator-5554 shell input keyevent KEYCODE_PAGE_UP    # counter-clockwise
+```
+
+In live view these switch presets; in lists they move the selection. In preset options, Up / Down
+chooses a setting and the wheel (or Left / Right) changes that setting's value. To check the group
+self-timer: Centre → Group photo → Down to Self-timer, then Page Up / Page Down. The selection
+must stay on Self-timer while its value changes among off / 2 s / 10 s; Centre applies it.
+Turning the wheel on the Apply row does nothing. Also check the row count clamps at 1 and 4.
+This verifies app action handling; actual Sony dial events still need a real-camera check.
+
 ## Installing on the camera
 
 Camera on, *USB Connection → Mass Storage*, then

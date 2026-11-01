@@ -736,10 +736,11 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private void handleOptions(int action) {
         List<String> keys = new ArrayList<String>(optionsPreset.adjust.keySet());
         int row = panel.selected();
-        if (action == Keys.UP || action == Keys.PREV) panel.move(-1);
-        else if (action == Keys.DOWN || action == Keys.NEXT) panel.move(1);
-        else if ((action == Keys.LEFT || action == Keys.RIGHT) && row < keys.size()) {
-            stepAdjust(optionsPreset, keys.get(row), action == Keys.RIGHT ? 1 : -1);
+        if (action == Keys.UP) panel.move(-1);
+        else if (action == Keys.DOWN) panel.move(1);
+        else if ((action == Keys.LEFT || action == Keys.RIGHT || action == Keys.PREV || action == Keys.NEXT)
+                && row < keys.size()) {
+            stepAdjust(optionsPreset, keys.get(row), action == Keys.RIGHT || action == Keys.NEXT ? 1 : -1);
             openOptions(optionsPreset, row);
         } else if (action == Keys.ENTER) choosePreset(optionsPreset);
         else if (action == Keys.MENU || action == Keys.TRASH) openPresets();

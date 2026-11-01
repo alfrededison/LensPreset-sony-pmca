@@ -24,7 +24,7 @@
   "ui.legend.adjust": "Left/Right: {setting}",
   "ui.legend.touch": "Tap: situations",
   "ui.legend.list": "Up/Down: choose · Centre: select · MENU: back",
-  "ui.legend.options": "Up/Down: choose · Left/Right: change · Centre: apply · MENU: back",
+  "ui.legend.options": "Up/Down: choose · Wheel/Left/Right: change · Centre: apply · MENU: back",
   "ui.legend.menu": "Up/Down: choose · Centre: select · MENU: close",
   "ui.legend.text": "Centre or MENU: back",
   "ui.about.version": "LensPreset {version}",
