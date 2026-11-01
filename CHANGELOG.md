@@ -1,17 +1,33 @@
 # Changelog
 
-## Unreleased
+## Unreleased — 1.0.1
 
-Initial MVP planned for version 1.0.0.
+Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Shooting
 
-- Twelve shooting situations with body- and lens-aware exposure, focus, and drive settings.
 - Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
   with English and Vietnamese light, framing, and highlight hints.
 - Preset-owned hint translations in `hint_text` for all twelve bundled presets, so adding
   card presets does not require new app language-table entries. Missing preset hint text is
   rejected with a profile error; duplicate hint translations have been removed from app i18n.
+
+### Profile format
+
+- Presets with hints must include matching `hint_text` entries. Update custom card presets
+  that previously relied on app translations before loading them in this version.
+- All twelve bundled presets carry their own English and Vietnamese hint text.
+
+### Validation and compatibility
+
+- The new trip presets and hint rendering are software-tested; real-camera testing of these
+  changes is still pending. Existing A5100 compatibility evidence is listed below.
+
+## 1.0.0 — tagged MVP baseline
+
+### Shooting
+
+- Seven shooting situations with body- and lens-aware exposure, focus, and drive settings.
 - Live view with composition guides, estimated framing distance, and depth-of-field hints.
 - English and Vietnamese, button and touch navigation, and profiles loaded from the memory card.
 - Settings read-back with unsupported values and mismatches recorded in the app log.

@@ -138,7 +138,7 @@ Languages: English, Tiếng Việt. Translations are welcome.
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). In short: `./tools/test.sh` (JDK 17+ only) and
 `./build.sh` (Android SDK with `platforms;android-10` and `build-tools;35.0.0`). No Gradle.
 Maintainers: see [docs/RELEASING.md](docs/RELEASING.md) for signing, release validation, and
-publishing. Changes planned for the first release are recorded in [CHANGELOG.md](CHANGELOG.md).
+publishing. Changes for the 1.0.1 release candidate are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
