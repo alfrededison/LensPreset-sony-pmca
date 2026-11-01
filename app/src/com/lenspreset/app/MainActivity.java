@@ -482,19 +482,23 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     /** Recomputes the recommendation and redraws the overlay. */
     private void refresh() {
+        overlay.setLegend(Hud.liveLegend(preset, camera != null && camera.controls.touchscreen, i18n));
+        Map<String, Integer> overrides = preset == null
+                ? Collections.<String, Integer>emptyMap() : prefs.overrides(preset);
         if (camera == null || preset == null || lens == null) {
             rec = null;
             List<OverlayView.Line> lines = new ArrayList<OverlayView.Line>();
             if (lens == null) lines.add(new OverlayView.Line(i18n.t("ui.no_lens"), Message.Level.WARN));
             if (preset == null) lines.add(new OverlayView.Line(i18n.t("ui.no_presets"), Message.Level.WARN));
             overlay.show(preset == null ? i18n.t("ui.title") : i18n.pick(preset.name), subtitle(),
-                    Collections.<String>emptyList(), lines, Collections.<String>emptyList());
+                    Hud.adjustments(preset, overrides, i18n), lines, Collections.<String>emptyList());
             return;
         }
         rec = PresetEngine.compute(camera, lens, preset, conditions(preset));
         List<OverlayView.Line> lines = new ArrayList<OverlayView.Line>();
         for (Message m : rec.messages) lines.add(new OverlayView.Line(m.render(i18n), m.level));
-        overlay.show(i18n.pick(preset.name), subtitle(), Hud.chips(rec, i18n), lines, rec.overlays);
+        overlay.show(i18n.pick(preset.name), subtitle(), Hud.chips(rec, preset, overrides, i18n),
+                lines, rec.overlays);
     }
 
     private String subtitle() {
@@ -685,9 +689,6 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         screen = Screen.LIVE;
         panel.hide();
         overlay.setUnderPanel(false);
-        String legend = i18n.t("ui.legend.live");
-        if (camera != null && camera.controls.touchscreen) legend += " · " + i18n.t("ui.legend.touch");
-        overlay.setLegend(legend);
         refresh();
     }
 
@@ -729,13 +730,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private String adjustLabel(String key, int value) {
-        if (Preset.Adjust.SELF_TIMER.equals(key)) {
-            if (value == 0) return i18n.t("ui.off");
-            Map<String, String> args = new HashMap<String, String>();
-            args.put("s", Integer.toString(value));
-            return i18n.t("ui.seconds", args);
-        }
-        return Integer.toString(value);
+        return Hud.adjustmentValue(key, value, i18n);
     }
 
     private void handleOptions(int action) {

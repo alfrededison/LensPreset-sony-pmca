@@ -6,6 +6,8 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Shooting
 
+- Live-view Left / Right guidance appears only for configurable presets and names the setting.
+  Group photo shows its selected row count and self-timer beside the exposure settings.
 - The ? / Trash button cycles live-view detail: hide hints, hide the key guide too, hide all
   overlays (including composition guides), then show everything again.
 - Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
