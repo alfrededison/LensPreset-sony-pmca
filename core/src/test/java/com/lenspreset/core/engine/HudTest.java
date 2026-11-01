@@ -27,7 +27,7 @@ class HudTest {
                 assertEquals(!preset.adjust.isEmpty(), legend.contains(keyLabel), preset.id);
                 assertFalse(legend.contains("{"), legend);
                 if (!preset.adjust.isEmpty())
-                    assertTrue(legend.contains(i18n.t("ui.adjust." + preset.adjust.keySet().iterator().next())));
+                    assertTrue(legend.contains(Hud.adjustmentLabel(preset, preset.adjust.keySet().iterator().next(), i18n)));
             }
             assertFalse(Hud.liveLegend(null, false, i18n).contains(keyLabel));
         }

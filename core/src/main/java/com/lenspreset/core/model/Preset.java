@@ -4,6 +4,7 @@ import com.lenspreset.core.optics.Shutter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * A shooting situation, written as rules rather than numbers, so one preset works on every body
@@ -85,9 +86,12 @@ public final class Preset {
         public final double depthM;
         /** dof: extra depth for each additional row. */
         public final double perRowM;
+        /** Optional preset-specific wording when the requested depth cannot be covered. */
+        public final Map<String, String> dofWarning;
 
         public ApertureRule(String strategy, double stopDownFromMax, String position, double value,
-                            Double minF, Double maxF, double depthM, double perRowM) {
+                            Double minF, Double maxF, double depthM, double perRowM,
+                            Map<String, String> dofWarning) {
             this.strategy = strategy;
             this.stopDownFromMax = stopDownFromMax;
             this.position = position;
@@ -96,6 +100,7 @@ public final class Preset {
             this.maxF = maxF;
             this.depthM = depthM;
             this.perRowM = perRowM;
+            this.dofWarning = dofWarning;
         }
     }
 
@@ -180,10 +185,13 @@ public final class Preset {
         public final String framing;
         /** group: people standing side by side in one row. */
         public final int peoplePerRow;
+        /** Optional preset-specific distance hint, with the computed distance in {m}. */
+        public final Map<String, String> distanceHint;
 
-        public Subject(String framing, int peoplePerRow) {
+        public Subject(String framing, int peoplePerRow, Map<String, String> distanceHint) {
             this.framing = framing;
             this.peoplePerRow = peoplePerRow;
+            this.distanceHint = distanceHint;
         }
     }
 
@@ -195,10 +203,17 @@ public final class Preset {
         /** Allowed values in order. */
         public final int[] values;
         public final int defaultValue;
+        /** Preset-owned label; empty for shared camera controls such as self_timer. */
+        public final Map<String, String> label;
 
         public Adjust(int[] values, int defaultValue) {
+            this(values, defaultValue, Collections.<String, String>emptyMap());
+        }
+
+        public Adjust(int[] values, int defaultValue, Map<String, String> label) {
             this.values = values;
             this.defaultValue = defaultValue;
+            this.label = label;
         }
 
         /** The value {@code steps} away from {@code current}, clamped to the ends. */

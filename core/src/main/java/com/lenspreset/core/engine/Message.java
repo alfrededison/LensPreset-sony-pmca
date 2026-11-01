@@ -27,12 +27,16 @@ public final class Message {
     }
 
     public static Message localized(Level level, String key, Map<String, String> text) {
-        return new Message(level, key, Collections.<String, String>emptyMap(), text);
+        return localized(level, key, text, Collections.<String, String>emptyMap());
+    }
+
+    public static Message localized(Level level, String key, Map<String, String> text, Map<String, String> args) {
+        return new Message(level, key, args, text);
     }
 
     /** Resolve at display time so changing language also updates preset-owned text. */
     public String render(I18n i18n) {
-        return localizedText.isEmpty() ? i18n.t(key, args) : i18n.pick(localizedText);
+        return localizedText.isEmpty() ? i18n.t(key, args) : I18n.format(i18n.pick(localizedText), args);
     }
 
     public static Message of(Level level, String key, String... pairs) {

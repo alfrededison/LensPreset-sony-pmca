@@ -86,13 +86,41 @@ report from a real body.
 | `drive.mode`, `self_timer` | `single`/`burst_lo`/`burst_hi`; 0, 2 or 10 s |
 | `style` | `creative_style` and `fallback` (Sony names: `standard`, `vivid`, `portrait`, `landscape`, `light`, `mono`, …), `soft_skin` `off`/`low`/`mid`/`high` |
 | `subject.framing` | `head_shoulders`, `half_body`, `full_body`, `environment`, `group` (+ `people_per_row`): drives the distance hint and depth of field |
-| `adjust` | values the user changes with left/right: `rows` (`min`, `max`, `default`; group only), `self_timer` (`values`, `default`) |
+| `subject.distance_hint` | optional preset-owned translated template; `{m}` is the computed distance in metres |
+| `aperture.dof_warning` | optional preset-owned translated warning when the `dof` strategy cannot cover the requested depth |
+| `adjust` | values the user changes with left/right: `rows` (`label`, `min`, `max`, `default`; group only), `self_timer` (`values`, `default`) |
 | `hints` | ordered hint ids; every id must have text in this preset's `hint_text` |
 | `hint_text` | map of hint id to `{"en": "…", "vi": "…"}` or plain English text; required when `hints` is non-empty, and every id must appear in `hints`. Missing languages fall back to English |
 | `overlays` | `thirds`, `center`, `horizon` guides |
 
 A preset written for yourself can carry `name` as plain English text; bundled presets need every
 bundled language.
+
+Group row count is a preset-specific option, so its label belongs in `adjust.rows.label`:
+
+```json
+{
+  "adjust": {
+    "rows": { "label": { "en": "Rows", "vi": "Số hàng" }, "min": 1, "max": 4, "default": 2 },
+    "self_timer": { "values": [0, 2, 10], "default": 0 }
+  }
+}
+```
+
+`label` accepts plain English text or a translated object with an `en` entry. Missing languages
+fall back to English. The same label appears in the preset options menu, live-view card, and key
+guide. Custom presets with `adjust.rows` must include this label; older files without it report
+`adjust.rows.label` under profile errors. Self-timer is a shared camera control: its label stays
+in the app's i18n tables, and `adjust.self_timer` does not accept a preset-specific label.
+
+Conditional guidance can also belong to a preset. The group preset carries its wording about
+fitting an entire row in `subject.distance_hint`, and its advice about keeping every row sharp
+in `aperture.dof_warning`. These fields accept plain English or translated objects with `en`;
+missing languages fall back to English. `{m}` is substituted when rendering the distance hint.
+Unknown placeholders are rejected. The warning still appears only when the computed depth of
+field is insufficient, at warning severity. Omitting either field uses shared generic guidance;
+custom presets do not need these overrides. Manual-focus and Eye AF instructions, camera feature
+names, and common exposure / lens limitations remain in app i18n.
 
 Keep new hint text inside the preset's `hint_text`: copying a single JSON file to the memory
 card then carries its settings, name, description and hints together, with no app i18n changes.

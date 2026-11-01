@@ -97,7 +97,7 @@ public final class I18n {
         return s;
     }
 
-    static String format(String template, Map<String, String> args) {
+    public static String format(String template, Map<String, String> args) {
         if (args.isEmpty() || template.indexOf('{') < 0) return template;
         StringBuilder sb = new StringBuilder();
         int i = 0;

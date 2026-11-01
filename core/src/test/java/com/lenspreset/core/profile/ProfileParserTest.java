@@ -166,7 +166,7 @@ class ProfileParserTest {
     void presetAdjustRowsOnlyForGroups() {
         assertEquals("adjust.rows: only a group subject has rows",
                 error(() -> ProfileParser.preset(String.format(PRESET, "program",
-                        "\"adjust\": {\"rows\": {\"min\": 1, \"max\": 3}},"))));
+                        "\"adjust\": {\"rows\": {\"label\": \"Rows\", \"min\": 1, \"max\": 3}},"))));
     }
 
     @Test

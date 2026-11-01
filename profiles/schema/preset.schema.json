@@ -22,6 +22,7 @@
     "exposure_mode": { "enum": ["program", "aperture_priority", "shutter_priority", "manual"] },
     "aperture": {
       "type": "object", "additionalProperties": false, "required": ["strategy"],
+      "allOf": [{ "if": { "required": ["dof_warning"] }, "then": { "properties": { "strategy": { "const": "dof" } } } }],
       "properties": {
         "strategy": { "enum": ["widest", "widest_safe", "sweet_spot", "dof", "fixed"] },
         "stop_down_from_max": { "type": "number", "minimum": 0, "maximum": 4 },
@@ -30,7 +31,8 @@
         "min_f": { "type": ["number", "null"], "minimum": 0.95, "maximum": 64 },
         "max_f": { "type": ["number", "null"], "minimum": 0.95, "maximum": 64 },
         "depth_m": { "type": "number", "minimum": 0.05, "maximum": 50 },
-        "per_row_m": { "type": "number", "minimum": 0, "maximum": 5 }
+        "per_row_m": { "type": "number", "minimum": 0, "maximum": 5 },
+        "dof_warning": { "$ref": "#/definitions/localized", "description": "Optional preset-owned warning when the dof strategy cannot cover the requested depth." }
       }
     },
     "shutter": {
@@ -84,7 +86,8 @@
       "type": "object", "additionalProperties": false, "required": ["framing"],
       "properties": {
         "framing": { "enum": ["head_shoulders", "half_body", "full_body", "environment", "group"] },
-        "people_per_row": { "type": "integer", "minimum": 1, "maximum": 30 }
+        "people_per_row": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "distance_hint": { "$ref": "#/definitions/localized", "description": "Optional preset-owned distance hint template. Use {m} for the computed distance in metres." }
       }
     },
     "hints": {
@@ -102,8 +105,9 @@
       "type": "object", "additionalProperties": false,
       "properties": {
         "rows": {
-          "type": "object", "additionalProperties": false, "required": ["min", "max"],
+          "type": "object", "additionalProperties": false, "required": ["label", "min", "max"],
           "properties": {
+            "label": { "$ref": "#/definitions/localized", "description": "Preset-owned option label. Missing languages fall back to English." },
             "min": { "type": "integer", "minimum": 1, "maximum": 10 },
             "max": { "type": "integer", "minimum": 1, "maximum": 10 },
             "default": { "type": "integer", "minimum": 1, "maximum": 10 }

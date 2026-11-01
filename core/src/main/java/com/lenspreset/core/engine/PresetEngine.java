@@ -9,6 +9,7 @@ import com.lenspreset.core.optics.Scales;
 import com.lenspreset.core.optics.Shutter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -103,7 +104,9 @@ public final class PresetEngine {
                 n = apertureForDepth(focal, coc, distance, depth, widest, lens.apertureMin);
                 if (n < 0) {
                     n = lens.apertureMin;
-                    notices.add(Message.of(Message.Level.WARN, "notice.dof_insufficient"));
+                    notices.add(r.dofWarning.isEmpty()
+                            ? Message.of(Message.Level.WARN, "notice.dof_insufficient")
+                            : Message.localized(Message.Level.WARN, "notice.dof_insufficient", r.dofWarning));
                 }
             } else if (Preset.ApertureRule.FIXED.equals(r.strategy)) {
                 n = r.value;
@@ -240,8 +243,13 @@ public final class PresetEngine {
         // What to tell the photographer, most useful first.
         List<Message> messages = new ArrayList<Message>();
         if (distance != null && lens.af) {
-            messages.add(Message.of(Message.Level.HINT, "hint.distance." + preset.subject.framing,
-                    "m", Scales.formatMetres(distance)));
+            String key = Preset.Subject.GROUP.equals(preset.subject.framing)
+                    ? "hint.distance" : "hint.distance." + preset.subject.framing;
+            if (preset.subject.distanceHint.isEmpty())
+                messages.add(Message.of(Message.Level.HINT, key, "m", Scales.formatMetres(distance)));
+            else
+                messages.add(Message.localized(Message.Level.HINT, key, preset.subject.distanceHint,
+                        Collections.singletonMap("m", Scales.formatMetres(distance))));
         }
         if (dofNear != null) {
             messages.add(Message.of(Message.Level.HINT, "hint.dof",

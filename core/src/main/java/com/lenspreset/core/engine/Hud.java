@@ -40,7 +40,7 @@ public final class Hud {
         if (preset != null && !preset.adjust.isEmpty()) {
             String key = preset.adjust.keySet().iterator().next();
             adjust = i18n.t("ui.legend.adjust",
-                    Collections.singletonMap("setting", i18n.t("ui.adjust." + key))) + " · ";
+                    Collections.singletonMap("setting", adjustmentLabel(preset, key, i18n))) + " · ";
         }
         String legend = i18n.t("ui.legend.live", Collections.singletonMap("adjust", adjust));
         if (touchscreen) legend += " · " + i18n.t("ui.legend.touch");
@@ -54,9 +54,15 @@ public final class Hud {
         for (Map.Entry<String, Preset.Adjust> e : preset.adjust.entrySet()) {
             Integer saved = overrides.get(e.getKey());
             int value = saved != null && e.getValue().allows(saved) ? saved : e.getValue().defaultValue;
-            out.add(new Chip(i18n.t("ui.adjust." + e.getKey()), adjustmentValue(e.getKey(), value, i18n), true));
+            out.add(new Chip(adjustmentLabel(preset, e.getKey(), i18n), adjustmentValue(e.getKey(), value, i18n), true));
         }
         return out;
+    }
+
+    /** Camera controls use shared UI text; preset-specific options carry their own labels. */
+    public static String adjustmentLabel(Preset preset, String key, I18n i18n) {
+        if (Preset.Adjust.SELF_TIMER.equals(key)) return i18n.t("ui.adjust.self_timer");
+        return i18n.pick(preset.adjust.get(key).label);
     }
 
     public static String adjustmentValue(String key, int value, I18n i18n) {

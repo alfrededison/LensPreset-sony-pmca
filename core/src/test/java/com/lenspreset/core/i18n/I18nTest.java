@@ -30,12 +30,12 @@ class I18nTest {
     /** Key prefixes the code builds at run time, with the values it appends. */
     private static List<String> dynamicKeys() {
         List<String> keys = new ArrayList<String>();
-        for (String f : ProfileParser.FRAMINGS) keys.add("hint.distance." + f);
+        for (String f : ProfileParser.FRAMINGS)
+            if (!Preset.Subject.GROUP.equals(f)) keys.add("hint.distance." + f);
         for (String m : ProfileParser.METERING) if (!"multi".equals(m)) keys.add("hud.metering." + m);
         for (String d : ProfileParser.DRIVES) if (!"single".equals(d)) keys.add("hud." + d);
         for (String s : ProfileParser.CREATIVE_STYLES) keys.add("style." + s);
         for (String s : Arrays.asList("verified", "community_tested", "untested")) keys.add("status." + s);
-        keys.add("ui.adjust." + Preset.Adjust.ROWS);
         keys.add("ui.adjust." + Preset.Adjust.SELF_TIMER);
         keys.addAll(applyItemKeys());
         return keys;

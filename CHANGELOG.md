@@ -29,6 +29,12 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Profile format
 
+- Group row-count labels belong to each preset's `adjust.rows.label`, including English and
+  Vietnamese in the bundled group preset. Custom group presets must supply this label. The
+  self-timer label remains shared app i18n text.
+- Group-specific distance guidance and depth-of-field warnings live in `subject.distance_hint`
+  and `aperture.dof_warning`. These optional translated fields support English fallback; the
+  distance template receives `{m}`. Presets without overrides use shared generic guidance.
 - Presets with hints must include matching `hint_text` entries. Update custom card presets
   that previously relied on app translations before loading them in this version.
 - All twelve bundled presets carry their own English and Vietnamese hint text.

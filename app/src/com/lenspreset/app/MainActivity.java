@@ -727,7 +727,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         for (Map.Entry<String, Preset.Adjust> e : p.adjust.entrySet()) {
             Integer v = values.get(e.getKey());
             int value = v != null && e.getValue().allows(v) ? v : e.getValue().defaultValue;
-            rows.add(new ListPanel.Row(i18n.t("ui.adjust." + e.getKey()), adjustLabel(e.getKey(), value), null, false));
+            rows.add(new ListPanel.Row(Hud.adjustmentLabel(p, e.getKey(), i18n), adjustLabel(e.getKey(), value), null, false));
         }
         rows.add(new ListPanel.Row(i18n.t("ui.apply"), null, null, false));
         panel.show(i18n.pick(p.name), rows, selected, i18n.t("ui.legend.options"));

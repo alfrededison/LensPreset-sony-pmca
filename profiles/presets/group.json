@@ -9,16 +9,28 @@
   },
   "goal": "deep_dof",
   "exposure_mode": "aperture_priority",
-  "aperture": { "strategy": "dof", "depth_m": 0.5, "per_row_m": 0.6, "min_f": 2.8 },
+  "aperture": {
+    "strategy": "dof", "depth_m": 0.5, "per_row_m": 0.6, "min_f": 2.8,
+    "dof_warning": {
+      "en": "Even the smallest aperture cannot keep every row sharp; step back or ask people to stand closer together.",
+      "vi": "Khẩu nhỏ nhất cũng không đủ nét cho mọi hàng; lùi xa hơn hoặc cho mọi người đứng sát nhau."
+    }
+  },
   "shutter": { "strategy": "handheld_min", "min": "1/125" },
   "iso": "auto",
   "metering": "multi",
   "af": { "mode": "single", "area": "wide", "face": true, "eye": "off" },
   "drive": { "mode": "burst_lo" },
   "self_timer": 0,
-  "subject": { "framing": "group", "people_per_row": 5 },
+  "subject": {
+    "framing": "group", "people_per_row": 5,
+    "distance_hint": {
+      "en": "Stand about {m} m away to fit the row.",
+      "vi": "Đứng cách khoảng {m} m để vừa cả hàng."
+    }
+  },
   "adjust": {
-    "rows": { "min": 1, "max": 4, "default": 2 },
+    "rows": { "label": { "en": "Rows", "vi": "Số hàng" }, "min": 1, "max": 4, "default": 2 },
     "self_timer": { "values": [0, 2, 10], "default": 0 }
   },
   "hints": ["group_focus_middle_row", "group_eyes_open"],

@@ -1,5 +1,6 @@
 package com.lenspreset.core.profile;
 
+import com.lenspreset.core.i18n.I18n;
 import com.lenspreset.core.json.Json;
 import com.lenspreset.core.json.JsonException;
 import com.lenspreset.core.model.CameraProfile;
@@ -176,7 +177,9 @@ public final class ProfileParser {
                     a.optNumberOrNull("min_f", 0.95, 64),
                     a.optNumberOrNull("max_f", 0.95, 64),
                     a.optNumber("depth_m", 0.5, 0.05, 50),
-                    a.optNumber("per_row_m", 0.6, 0, 5));
+                    a.optNumber("per_row_m", 0.6, 0, 5), localizedTemplate(a, "dof_warning"));
+            if (!aperture.dofWarning.isEmpty() && !Preset.ApertureRule.DOF.equals(strategy))
+                throw new ProfileException("aperture.dof_warning: only the dof strategy uses this warning");
             if (aperture.minF != null && aperture.maxF != null && aperture.minF > aperture.maxF)
                 throw new ProfileException("aperture.min_f: must not be above aperture.max_f");
             a.finish();
@@ -226,7 +229,8 @@ public final class ProfileParser {
         Preset.Subject subject = null;
         Node sub = n.optObject("subject");
         if (sub != null) {
-            subject = new Preset.Subject(sub.oneOf("framing", null, FRAMINGS), sub.optInt("people_per_row", 5, 1, 30));
+            subject = new Preset.Subject(sub.oneOf("framing", null, FRAMINGS), sub.optInt("people_per_row", 5, 1, 30),
+                    localizedTemplate(sub, "distance_hint", "m"));
             sub.finish();
         }
 
@@ -240,11 +244,7 @@ public final class ProfileParser {
             for (String key : ht.keys()) {
                 if (!hints.contains(key))
                     throw new ProfileException("hint_text." + key + ": must be listed in hints");
-                Map<String, String> translations = ht.localized(key, true);
-                for (Map.Entry<String, String> entry : translations.entrySet()) {
-                    if (!entry.getKey().matches("[a-z]{2}(-[A-Za-z]{2,4})?") || entry.getValue().trim().length() == 0)
-                        throw new ProfileException("hint_text." + key + ": needs language codes and non-empty text");
-                }
+                Map<String, String> translations = localizedText(ht, key, true);
                 hintText.put(key, translations);
             }
             ht.finish();
@@ -264,13 +264,14 @@ public final class ProfileParser {
             for (String key : adj.keys()) {
                 if (Preset.Adjust.ROWS.equals(key)) {
                     Node r = adj.object(key);
+                    Map<String, String> label = localizedText(r, "label", true);
                     int lo = r.integer("min", 1, 10);
                     int hi = r.integer("max", lo, 10);
                     int def = r.optInt("default", lo, lo, hi);
                     r.finish();
                     int[] values = new int[hi - lo + 1];
                     for (int i = 0; i < values.length; i++) values[i] = lo + i;
-                    adjust.put(key, new Preset.Adjust(values, def));
+                    adjust.put(key, new Preset.Adjust(values, def, label));
                 } else if (Preset.Adjust.SELF_TIMER.equals(key)) {
                     Node r = adj.object(key);
                     List<Double> vals = r.optNumbers("values");
@@ -297,6 +298,26 @@ public final class ProfileParser {
         checkConsistency(p);
         n.finish();
         return p;
+    }
+
+    private static Map<String, String> localizedText(Node node, String key, boolean required) throws ProfileException {
+        Map<String, String> text = node.localized(key, required || node.keys().contains(key));
+        for (Map.Entry<String, String> entry : text.entrySet()) {
+            if (!entry.getKey().matches("[a-z]{2}(-[A-Za-z]{2,4})?") || entry.getValue().trim().length() == 0)
+                throw new ProfileException(node.path() + "." + key + ": needs language codes and non-empty text");
+        }
+        return text;
+    }
+
+    private static Map<String, String> localizedTemplate(Node node, String key, String... args) throws ProfileException {
+        Map<String, String> text = localizedText(node, key, false);
+        for (String translation : text.values()) {
+            for (String placeholder : I18n.placeholders(translation)) {
+                if (!contains(args, placeholder))
+                    throw new ProfileException(node.path() + "." + key + ": unknown placeholder {" + placeholder + "}");
+            }
+        }
+        return text;
     }
 
     private static void checkConsistency(Preset p) throws ProfileException {
