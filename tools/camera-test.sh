@@ -16,7 +16,8 @@
 # or a portrait on a phone or screen), shoots and checks the photo; up to three tries.
 #
 # What it does:
-#   1. installs out/LensPreset.apk (build it first) and puts on the card, for the run only:
+#   1. installs out/LensPreset.apk (build it first) unless the camera already has it, and puts on
+#      the card, for the run only:
 #      LENSPRST/DEBUG.TXT with "adb-control" (the app then takes commands from adb) and the test
 #      presets in tools/camera-test/ (shutter priority 1/60, manual f/4 1/200);
 #   2. starts the app, keeps the camera from sleeping, applies every preset by id and waits for each
@@ -142,7 +143,15 @@ trap restore EXIT
 
 say "camera test $(date '+%Y-%m-%d %H:%M'), device ${SERIAL:-default}, $(grep -o 'versionName="[^"]*"' app/AndroidManifest.xml)"
 say "== install"
-a install -r "$APK" 2>&1 | tail -1 | tee -a "$OUT/summary.txt"
+# Skipped when the camera already has this very APK: installing takes a while over Wi-Fi.
+installed=$(a shell pm path com.lenspreset 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' || true)
+if [ -n "$installed" ] && a pull "$installed" "$OUT/installed.apk" >/dev/null 2>&1 \
+    && cmp -s "$APK" "$OUT/installed.apk"; then
+  say "  already installed"
+else
+  a install -r "$APK" 2>&1 | tail -1 | tee -a "$OUT/summary.txt"
+fi
+rm -f "$OUT/installed.apk"
 
 a shell mkdir "$DIR" "$DIR/PRESETS" >/dev/null 2>&1 || true
 if exists "$DIR/DEBUG.TXT" && a pull "$DIR/DEBUG.TXT" "$OUT/DEBUG.TXT.before" >/dev/null 2>&1; then
