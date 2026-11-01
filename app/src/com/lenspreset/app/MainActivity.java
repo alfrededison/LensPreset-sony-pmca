@@ -885,11 +885,10 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             if (sony == null) {
                 trace("adb command: no camera");
             } else {
-                final SonyCamera body = sony;
-                body.takePicture(new SonyCamera.ShotCallback() {
+                sony.takePicture(new SonyCamera.ShotCallback() {
                     @Override
                     public void onShot(int status, String detail) {
-                        trace("shot " + status + " (" + body.focusResult() + ")" + (detail.length() > 0 ? " " + detail : ""));
+                        trace("shot " + status + (detail.length() > 0 ? " " + detail : ""));
                     }
                 });
             }

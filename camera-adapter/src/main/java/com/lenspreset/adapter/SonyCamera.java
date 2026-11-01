@@ -80,8 +80,9 @@ public final class SonyCamera {
     private Seek seek;
     private String lensProblem;
     private ShotCallback shot;
-    private String focusResult = "";
-    private static final int FOCUS_TIMEOUT_MS = 3000;
+    /** Give direct shutter a moment to stop before a shot from code (BetterManual counts down 1 s+). */
+    private static final int SHUTTER_STOP_MS = 1000;
+    private static final int SHOT_TIMEOUT_MS = 10000;
     /** The settle delay of the apply in progress, removed when a newer apply starts. */
     private Runnable pendingSettle;
     /** Bumped by every apply; an older apply's steps and callback are dropped. */
@@ -106,12 +107,36 @@ public final class SonyCamera {
     }
 
     /**
-     * Takes one picture with the current settings, as BetterManual does for its timelapse; used by the
-     * adb test run to check, from the photo's EXIF, what the camera really shot with.
+     * Takes one picture with the current settings; used by the adb test run to check, from the photo's
+     * EXIF, what the camera really shot with. BetterManual's timelapse order: a shot from code is
+     * cancelled (status 1) while direct shutter (the shutter button's own path) and the preview run,
+     * so both are stopped first and started again once the camera reports the shot.
      */
     public void takePicture(ShotCallback done) {
+        shot = done;
+        final Runnable restore = new Runnable() {
+            private boolean restored;
+
+            @Override
+            public void run() {
+                if (restored || closed) return;
+                restored = true;
+                try {
+                    cam.startDirectShutter();
+                    cam.getNormalCamera().startPreview();
+                } catch (Throwable ignored) {
+                    // The next resume opens the camera afresh.
+                }
+            }
+        };
+        final Runnable timeout = new Runnable() {
+            @Override
+            public void run() {
+                restore.run();
+                deliverShot(-1, "no shutter report in " + SHOT_TIMEOUT_MS / 1000 + " s");
+            }
+        };
         try {
-            shot = done;
             cam.setShutterListener(new CameraEx.ShutterListener() {
                 @Override
                 public void onShutter(final int status, CameraEx c) {
@@ -124,56 +149,43 @@ public final class SonyCamera {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            ShotCallback s = shot;
-                            shot = null;
-                            if (s != null && !closed) s.onShot(status, "");
+                            handler.removeCallbacks(timeout);
+                            restore.run();
+                            deliverShot(status, "");
                         }
                     });
                 }
             });
-            // AF-S cancels a shot that has not focused (status 1 on an A5100), so focus first; the
-            // shot goes ahead whatever the result, which the log then shows.
-            final Runnable fire = new Runnable() {
-                private boolean fired;
-
+            cam.stopDirectShutter(new CameraEx.DirectShutterStoppedCallback() {
+                @Override
+                public void onShutterStopped(CameraEx c) {
+                }
+            });
+            cam.getNormalCamera().stopPreview();
+            handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    // Once: the focus report and the timeout can both arrive.
-                    if (fired || closed) return;
-                    fired = true;
-                    handler.removeCallbacks(this);
+                    if (closed) return;
                     try {
                         cam.burstableTakePicture();
                     } catch (Throwable t) {
-                        ShotCallback s = shot;
-                        shot = null;
-                        if (s != null) s.onShot(-1, ApplyReport.describe(t));
+                        handler.removeCallbacks(timeout);
+                        restore.run();
+                        deliverShot(-1, ApplyReport.describe(t));
                     }
                 }
-            };
-            focusResult = "no focus report";
-            try {
-                cam.getNormalCamera().autoFocus(new Camera.AutoFocusCallback() {
-                    @Override
-                    public void onAutoFocus(boolean success, Camera c) {
-                        focusResult = success ? "focused" : "focus failed";
-                        handler.post(fire);
-                    }
-                });
-                handler.postDelayed(fire, FOCUS_TIMEOUT_MS);
-            } catch (Throwable t) {
-                focusResult = "autoFocus: " + ApplyReport.describe(t);
-                fire.run();
-            }
+            }, SHUTTER_STOP_MS);
+            handler.postDelayed(timeout, SHUTTER_STOP_MS + SHOT_TIMEOUT_MS);
         } catch (Throwable t) {
-            shot = null;
-            done.onShot(-1, ApplyReport.describe(t));
+            restore.run();
+            deliverShot(-1, ApplyReport.describe(t));
         }
     }
 
-    /** What the focus step before {@link #takePicture} reported, for the log. */
-    public String focusResult() {
-        return focusResult;
+    private void deliverShot(int status, String detail) {
+        ShotCallback s = shot;
+        shot = null;
+        if (s != null && !closed) s.onShot(status, detail);
     }
 
     /** Lets the shutter button shoot while the app is in front. */

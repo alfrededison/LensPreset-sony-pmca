@@ -20,6 +20,7 @@ public class CameraEx {
     public ParametersModifier createParametersModifier(Camera.Parameters p) { throw new RuntimeException("Stub!"); }
     public void release() { throw new RuntimeException("Stub!"); }
     public void startDirectShutter() { throw new RuntimeException("Stub!"); }
+    public void stopDirectShutter(DirectShutterStoppedCallback c) { throw new RuntimeException("Stub!"); }
     public void burstableTakePicture() { throw new RuntimeException("Stub!"); }
     public void cancelTakePicture() { throw new RuntimeException("Stub!"); }
     public void setShutterListener(ShutterListener l) { throw new RuntimeException("Stub!"); }
@@ -42,6 +43,10 @@ public class CameraEx {
         public int currentAperture;
         public int currentAvailableMax;
         public int currentAvailableMin;
+    }
+
+    public interface DirectShutterStoppedCallback {
+        void onShutterStopped(CameraEx camera);
     }
 
     public interface ShutterListener {
