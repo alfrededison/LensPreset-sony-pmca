@@ -218,22 +218,23 @@ public final class PresetEngine {
         if (selfTimer > 0) drive = "single";
 
         // Look.
-        String style = null;
+        String style = now.preserveLook ? null : "standard";
         String styleFallback = null;
-        String softSkin = null;
-        if (preset.style != null) {
-            style = preset.style.creativeStyle;
+        String softSkin = now.preserveLook ? null : "off";
+        if (!now.preserveLook && preset.style != null) {
+            if (preset.style.creativeStyle != null) style = preset.style.creativeStyle;
             styleFallback = preset.style.fallback;
-            if (style != null && camera.feature(Feature.CREATIVE_STYLE) == Feature.NO) {
-                notices.add(Message.of(Message.Level.INFO, "notice.style_unavailable"));
-                style = null;
-                styleFallback = null;
-            }
-            softSkin = preset.style.softSkin;
-            if (softSkin != null && !"off".equals(softSkin) && camera.feature(Feature.SOFT_SKIN) == Feature.NO) {
+            if (preset.style.softSkin != null) softSkin = preset.style.softSkin;
+        }
+        if (style != null && camera.feature(Feature.CREATIVE_STYLE) == Feature.NO) {
+            notices.add(Message.of(Message.Level.INFO, "notice.style_unavailable"));
+            style = null;
+            styleFallback = null;
+        }
+        if (softSkin != null && camera.feature(Feature.SOFT_SKIN) == Feature.NO) {
+            if (!"off".equals(softSkin))
                 notices.add(Message.of(Message.Level.INFO, "notice.soft_skin_unavailable"));
-                softSkin = null;
-            }
+            softSkin = null;
         }
 
         // What to tell the photographer, most useful first.

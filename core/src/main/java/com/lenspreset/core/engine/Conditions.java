@@ -12,12 +12,20 @@ public final class Conditions {
     public final Double liveMaxAperture;
     /** Values chosen for the preset's {@code adjust} settings, by key. */
     public final Map<String, Integer> overrides;
+    /** Leave Creative Style and Soft Skin unchanged while applying shooting settings. */
+    public final boolean preserveLook;
 
     public Conditions(Double focalMm, Double liveMaxAperture, Map<String, Integer> overrides) {
+        this(focalMm, liveMaxAperture, overrides, false);
+    }
+
+    public Conditions(Double focalMm, Double liveMaxAperture, Map<String, Integer> overrides,
+                      boolean preserveLook) {
         this.focalMm = focalMm;
         this.liveMaxAperture = liveMaxAperture;
         this.overrides = overrides == null ? Collections.<String, Integer>emptyMap()
                 : Collections.unmodifiableMap(new HashMap<String, Integer>(overrides));
+        this.preserveLook = preserveLook;
     }
 
     public static Conditions none() {

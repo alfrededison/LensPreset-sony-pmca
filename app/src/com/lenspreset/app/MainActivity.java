@@ -50,7 +50,7 @@ import java.util.Set;
  * apply while the app is open (roadmap option (a)); shoot from inside the app.
  */
 public final class MainActivity extends BaseActivity implements SurfaceHolder.Callback, SonyCamera.Listener {
-    private enum Screen { LIVE, PRESETS, OPTIONS, MENU, LENSES, LANGUAGES, TEXT }
+    private enum Screen { LIVE, PRESETS, OPTIONS, MENU, SETTINGS, LENSES, LANGUAGES, TEXT }
 
     /** Re-apply this long after the zoom stops moving. */
     private static final int ZOOM_SETTLE_MS = 800;
@@ -90,6 +90,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     /** Commands from tools/camera-test.sh; registered only with the DEBUG.TXT switch adb-control. */
     private static final String ADB_CONTROL = "com.lenspreset.debug";
     private BroadcastReceiver adbControl;
+    /** Camera tests can exercise look writes without changing the saved user preference. */
+    private boolean debugManagedLook;
     /** The APK's profiles, kept for MENU > Reload so it rereads only the card. */
     private List<ProfileSet.Entry> bundledProfiles = Collections.emptyList();
     /** LENSPRST/DEBUG.TXT switches; see CardStore.debugSwitches. */
@@ -218,6 +220,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
      */
     private void startupFailed(String step, Throwable t) {
         failed = true;
+        updateAppInfo();
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
         List<String> lines = new ArrayList<String>();
@@ -258,6 +261,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     @Override
     protected void onResume() {
         super.onResume();
+        if (isExiting()) return;
         resumed = true;
         if (debug.contains("adb-control")) {
             adbControl = new BroadcastReceiver() {
@@ -275,6 +279,11 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         } catch (Throwable t) {
             startupFailed("resume", t);
         }
+    }
+
+    @Override
+    protected boolean autoReopenEnabled() {
+        return !failed && prefs != null && prefs.autoReopen();
     }
 
     /**
@@ -298,6 +307,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             trace("direct shutter");
             sony.startDirectShutter();
         }
+        if (surface.getHolder().getSurface().isValid()) startPreview();
         trace("live view rect");
         overlay.setVideoRect(liveViewRect());
         if (loaded) finishResume();
@@ -352,6 +362,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         resumed = false;
         previewStarted = false;
         restorePending = false;
+        settingsNeedApply = false;
+        debugManagedLook = false;
         if (adbControl != null) {
             unregisterReceiver(adbControl);
             adbControl = null;
@@ -389,7 +401,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private void startPreview() {
-        if (sony == null || debug.contains("no-preview")) return;
+        if (!resumed || isExiting() || previewStarted || sony == null || debug.contains("no-preview")) return;
         try {
             sony.startPreview(surface.getHolder());
             previewStarted = true;
@@ -403,7 +415,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        if (failed) return;
+        if (failed || !resumed || isExiting()) return;
         trace("surface created, preview");
         startPreview();
         trace("preview started");
@@ -465,7 +477,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private Conditions conditions(Preset p) {
         Double focal = lens != null && lens.zoom ? focalNow() : null;
         Double widest = sony == null ? null : sony.widestAperture();
-        return new Conditions(focal, widest, prefs.overrides(p));
+        return new Conditions(focal, widest, prefs.overrides(p), prefs.preserveLook() && !debugManagedLook);
     }
 
     /** Recomputes the recommendation and redraws the overlay. */
@@ -626,6 +638,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             case PRESETS: handlePresets(action); break;
             case OPTIONS: handleOptions(action); break;
             case MENU: handleMenu(action); break;
+            case SETTINGS: handleSettings(action); break;
             case LENSES: handleLenses(action); break;
             case LANGUAGES: handleLanguages(action); break;
             default: if (action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH) openMenu(); break;
@@ -739,12 +752,13 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     private static final int MENU_LENS = 0;
     private static final int MENU_LANGUAGE = 1;
-    private static final int MENU_PROBE = 2;
-    private static final int MENU_SAVE_LOG = 3;
-    private static final int MENU_RELOAD = 4;
-    private static final int MENU_PROBLEMS = 5;
-    private static final int MENU_ABOUT = 6;
-    private static final int MENU_EXIT = 7;
+    private static final int MENU_SETTINGS = 2;
+    private static final int MENU_PROBE = 3;
+    private static final int MENU_SAVE_LOG = 4;
+    private static final int MENU_RELOAD = 5;
+    private static final int MENU_PROBLEMS = 6;
+    private static final int MENU_ABOUT = 7;
+    private static final int MENU_EXIT = 8;
 
     private void openMenu() {
         overlay.setUnderPanel(true);
@@ -755,6 +769,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 Prefs.AUTO.equals(prefs.lens()) ? i18n.t("lens.auto") + ": " + lensName : lensName, false));
         rows.add(new ListPanel.Row(i18n.t("menu.language"), null,
                 Prefs.AUTO.equals(prefs.language()) ? i18n.t("menu.auto") : i18n.languageName(i18n.language()), false));
+        rows.add(new ListPanel.Row(i18n.t("menu.settings"), null, null, false));
         rows.add(new ListPanel.Row(i18n.t("menu.probe"), null, i18n.t("menu.probe_detail"), false));
         rows.add(new ListPanel.Row(i18n.t("menu.save_log"), null, i18n.t("menu.save_log_detail"), false));
         rows.add(new ListPanel.Row(i18n.t("menu.reload"), null, null, false));
@@ -787,8 +802,46 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 case MENU_PROBLEMS: openText(i18n.t("menu.problems_title"), problemLines()); break;
                 case MENU_ABOUT: openText(i18n.t("menu.about"), aboutLines()); break;
                 case MENU_EXIT: finish(); break;
+                case MENU_SETTINGS: openSettings(0); break;
                 default: break;
             }
+        }
+    }
+
+    private boolean settingsNeedApply;
+
+    private void openSettings(int selected) {
+        overlay.setUnderPanel(true);
+        screen = Screen.SETTINGS;
+        List<ListPanel.Row> rows = new ArrayList<ListPanel.Row>();
+        rows.add(new ListPanel.Row(i18n.t("ui.settings.preserve_look"),
+                i18n.t(prefs.preserveLook() ? "ui.on" : "ui.off"),
+                i18n.t("ui.settings.preserve_look_detail"), false));
+        rows.add(new ListPanel.Row(i18n.t("ui.settings.auto_reopen"),
+                i18n.t(prefs.autoReopen() ? "ui.on" : "ui.off"),
+                i18n.t("ui.settings.auto_reopen_detail"), false));
+        panel.show(i18n.t("menu.settings"), rows, selected, i18n.t("ui.legend.settings"));
+    }
+
+    private void handleSettings(int action) {
+        if (action == Keys.UP || action == Keys.PREV) panel.move(-1);
+        else if (action == Keys.DOWN || action == Keys.NEXT) panel.move(1);
+        else if (action == Keys.MENU || action == Keys.TRASH) {
+            showLive();
+            if (settingsNeedApply) {
+                settingsNeedApply = false;
+                apply();
+            }
+        } else if (action == Keys.ENTER || action == Keys.LEFT || action == Keys.RIGHT) {
+            int row = panel.selected();
+            if (row == 0) {
+                prefs.setPreserveLook(!prefs.preserveLook());
+                settingsNeedApply = true;
+            } else {
+                prefs.setAutoReopen(!prefs.autoReopen());
+                updateAppInfo();
+            }
+            openSettings(row);
         }
     }
 
@@ -940,6 +993,14 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             if (p == null) trace("adb command: no preset " + arg);
             else if (sony == null) trace("adb command: no camera");
             else choosePreset(p);
+        } else if ("test-look".equals(cmd)) {
+            if ("managed".equals(arg)) {
+                debugManagedLook = true;
+                trace("test look managed");
+            } else if ("restore".equals(arg)) {
+                debugManagedLook = false;
+                trace("test look restored");
+            }
         } else if ("probe".equals(cmd)) {
             runProbe();
         } else if ("shoot".equals(cmd)) {

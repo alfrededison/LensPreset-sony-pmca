@@ -140,6 +140,7 @@ cmd() { a shell am broadcast -a com.lenspreset.debug --es cmd "$1" ${2:+--es arg
 DEBUG_BACKUP=""
 restore() {
   set +e
+  cmd test-look restore 2>/dev/null
   cmd awake off 2>/dev/null
   cmd exit 2>/dev/null
   a shell rm "$DIR/PRESETS/T60.JSN" "$DIR/PRESETS/TMAN.JSN" >/dev/null 2>&1
@@ -185,6 +186,9 @@ wait_log 'adb control on' 5 || { say "FAIL: adb control is off (DEBUG.TXT not re
 show 'create|loaded:|camera open|open:|ready'
 { a logcat -d -s ActivityManager:I | tr -d '\r' | grep 'Displayed com.lenspreset' | sed 's/^.*Displayed /  displayed /'; } 2>/dev/null | tee -a "$OUT/summary.txt" || true
 cmd awake on
+cmd test-look managed
+wait_log 'test look managed' 5 || { say "FAIL: this app cannot enable look writes for the test"; exit 1; }
+show 'test look managed'
 
 # Every bundled preset once; then shutter both ways and manual mode.
 PRESETS="group portrait-bokeh portrait-environment silhouette high-key kids-action indoor-low-light \
@@ -199,6 +203,10 @@ for p in $PRESETS; do
     say "== $p"
     show 'apply |OK |FAILED|PARTIAL|UNSUPPORTED|MISMATCH|status'
     applog | sed -n "/apply $p /,/apply-end $p/p" > "$OUT/$p.report.txt" || true
+    if [ "$FACE" = 1 ] && ! grep -q -E 'OK soft_skin low(,|$)' "$OUT/$p.report.txt"; then
+      say "  FAIL: Soft Skin Low was not applied; face photo checks would be inconclusive"
+      exit 1
+    fi
     if [ "$FACE" = 1 ]; then face_shots "$p"
     elif [ "$PHOTOS" = 1 ]; then shoot_and_check "$p"; fi
   else

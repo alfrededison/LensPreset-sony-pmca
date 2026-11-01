@@ -75,6 +75,14 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
 as usual; settings apply while the app is open.
 
+**MENU → Settings** has two saved switches:
+
+- **Keep current look** (on by default): leave Creative Style and Soft Skin as they are, including
+  when switching presets. Exposure compensation still follows the selected situation. Turning
+  this off lets presets set their look; omitted fields become Standard and Soft Skin off.
+- **Reopen after power-on** (off by default): return to LensPreset after power-on or wake when it
+  was running. MENU → Exit cancels reopening for that session. USB still closes the app.
+
 **The memory card** (`LENSPRST/`): `CAMERAS/`, `LENSES/`, `PRESETS/` for your own profiles
 (8.3 file names such as `NIGHT.JSN`), `PROBE.TXT` from *Run camera probe*, `LOG.TXT` from *Save log
 to card* (start-up, what each apply did, any crash). The app writes to the card only when you choose

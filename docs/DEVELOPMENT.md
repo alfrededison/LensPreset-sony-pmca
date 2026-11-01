@@ -161,8 +161,27 @@ where it is.
 | `card-log` | adds, rather than leaves out: every log line is also appended to `LENSPRST/LOG.TXT` as it happens, for a body where the app never gets as far as its menu |
 | `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `exit`). `tools/camera-test.sh` writes and removes it |
 
-USB always closes the app, and the app never asks to be reopened after power-off (see
-`BaseActivity`), so a misbehaving build can be left and replaced.
+USB always closes the app. **Reopen after power-on** is off by default; when enabled,
+`BaseActivity` sends the Sony `resume_key` list and keeps it across pause for power-off/wake.
+Disabling it, explicit `finish()`, or a handled startup failure sends an empty list to clear it.
+Explicit exit waits for an ordered broadcast to finish before closing the activity, so Sony
+cannot resume it using stale keys while it is releasing the camera. An exiting activity cannot
+open the camera again. Resume also restarts preview when the surface already exists; it does
+not rely solely on a new `surfaceCreated` callback.
+The preference stays enabled after an explicit exit, but the platform registration is cleared
+until the user launches the app again. Framebuffer depth remains RGBA4444 in either mode.
+The settings defaults, power-on reopening with preset restoration, disabling reopening, explicit
+exit with reopening enabled, and manual relaunch with live view were checked on ILCE-5100 3.10.
+
+**Keep current look** defaults to on in app preferences and is passed through `Conditions` to
+the engine. The engine returns null look fields in that mode, so the adapter skips those writes
+and the HUD does not claim the preset's look was applied. In managed mode, omitted look fields
+resolve to Standard / Soft Skin off. EV remains under the preset's control in both modes; this
+setting alone does not guarantee an entire Recipe Lab recipe remains unchanged.
+The adb test sends `test-look managed` to exercise look writes without editing the user's saved
+preference, and `test-look restore` on cleanup. Pause also clears the temporary override. `--face`
+requires an OK Soft Skin Low apply report before it will shoot, so a missing look write cannot
+silently pass that test.
 
 ## The live view activity follows BetterManual
 

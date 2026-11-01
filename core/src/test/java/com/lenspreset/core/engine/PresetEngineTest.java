@@ -57,6 +57,43 @@ class PresetEngineTest {
     }
 
     @Test
+    void preservingTheLookSkipsStyleAndSkinButKeepsTheExposureRule() {
+        Conditions preserve = new Conditions(null, null, null, true);
+        for (String preset : new String[]{"portrait-bokeh", "high-key", "group"}) {
+            Recommendation r = run(A5100, SIGMA_30, preset, preserve);
+            Recommendation managed = run(A5100, SIGMA_30, preset, Conditions.none());
+            assertNull(r.creativeStyle);
+            assertNull(r.creativeStyleFallback);
+            assertNull(r.softSkin);
+            assertEquals(managed.ev, r.ev);
+            assertEquals(managed.exposureMode, r.exposureMode);
+            assertEquals(managed.aperture, r.aperture);
+        }
+    }
+
+    @Test
+    void managedLooksResetFieldsOmittedByTheNextPreset() {
+        Recommendation portrait = run(A5100, SIGMA_30, "portrait-bokeh", Conditions.none());
+        assertEquals("portrait", portrait.creativeStyle);
+        assertEquals("low", portrait.softSkin);
+        Recommendation highKey = run(A5100, SIGMA_30, "high-key", Conditions.none());
+        assertEquals("light", highKey.creativeStyle);
+        assertEquals("off", highKey.softSkin);
+        Recommendation group = run(A5100, SIGMA_30, "group", Conditions.none());
+        assertEquals("standard", group.creativeStyle);
+        assertEquals("off", group.softSkin);
+    }
+
+    @Test
+    void preservingTheLookDoesNotWarnAboutSkippedFeatures() {
+        CameraProfile limited = Fixtures.cameraWithFeatures("ilce-5100",
+                "creative_style", "no", "soft_skin", "no");
+        Recommendation r = run(limited, SIGMA_30, "portrait-bokeh", new Conditions(null, null, null, true));
+        assertFalse(r.hasMessage("notice.style_unavailable"));
+        assertFalse(r.hasMessage("notice.soft_skin_unavailable"));
+    }
+
+    @Test
     void messagesComeHintsFirstThenNotices() {
         Recommendation r = run(Fixtures.camera("generic"), SIGMA_30, "portrait-bokeh", Conditions.none());
         assertEquals("hint.distance.half_body", r.messages.get(0).key);

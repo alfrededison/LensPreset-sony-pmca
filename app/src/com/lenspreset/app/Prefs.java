@@ -45,6 +45,22 @@ final class Prefs {
         sp.edit().putString("language", code).commit();
     }
 
+    boolean preserveLook() {
+        return sp.getBoolean("preserve_look", true);
+    }
+
+    void setPreserveLook(boolean enabled) {
+        sp.edit().putBoolean("preserve_look", enabled).commit();
+    }
+
+    boolean autoReopen() {
+        return sp.getBoolean("auto_reopen", false);
+    }
+
+    void setAutoReopen(boolean enabled) {
+        sp.edit().putBoolean("auto_reopen", enabled).commit();
+    }
+
     /** The user's values for a preset's {@code adjust} settings. */
     Map<String, Integer> overrides(Preset p) {
         Map<String, Integer> out = new HashMap<String, Integer>();

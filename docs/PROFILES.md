@@ -86,3 +86,9 @@ report from a real body.
 
 A preset written for yourself can carry `name` as plain English text; bundled presets need every
 bundled language.
+
+The app's **Keep current look** setting is on by default and skips `style` writes entirely.
+When it is off, a missing `creative_style` becomes `standard` and a missing `soft_skin` becomes
+`off`, so values from another preset do not linger. Exposure compensation (`ev`) is always
+controlled by the preset. Keeping the look does not restore a Recipe Lab look already overwritten
+by a previous apply; apply that recipe again first.

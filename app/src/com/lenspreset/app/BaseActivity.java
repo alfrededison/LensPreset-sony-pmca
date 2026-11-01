@@ -1,6 +1,8 @@
 package com.lenspreset.app;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
 
@@ -16,19 +18,20 @@ import com.sony.scalar.sysutil.didep.Gpelibrary;
  *       and Sony's own Smart Remote keep it. The setting is screen-wide: earlier builds switched to
  *       32-bit, showed a black screen, and left the Application List black after an abnormal exit
  *       (see docs/DEVELOPMENT.md);</li>
- *   <li>no {@code resume_key}: the platform is never asked to reopen the app after power-off;</li>
+ *   <li>power-on resume is requested only when the user enables it, and cleared on explicit exit;</li>
  *   <li>every Sony call is guarded, so the app also runs (without a camera) in an emulator.</li>
  * </ul>
  */
 abstract class BaseActivity extends Activity {
     private DisplayManager displayManager;
     private boolean keptAwake;
+    private boolean exiting;
 
     @Override
     protected void onResume() {
         super.onResume();
         setLowColorDepth();
-        notifyAppInfo();
+        updateAppInfo();
         try {
             displayManager = new DisplayManager();
             displayManager.setDisplayStatusListener(new DisplayManager.DisplayEventListener() {
@@ -94,12 +97,46 @@ abstract class BaseActivity extends Activity {
         }
     }
 
-    /** Tells the platform this activity is in front, and to close it when USB is plugged in. */
-    private void notifyAppInfo() {
+    protected boolean autoReopenEnabled() {
+        return false;
+    }
+
+    /** Refresh after a settings change; pause must retain this registration for power-on resume. */
+    protected void updateAppInfo() {
+        sendBroadcast(appInfoIntent(!exiting && autoReopenEnabled()));
+    }
+
+    protected boolean isExiting() { return exiting; }
+
+    @Override
+    public void finish() {
+        if (exiting) return;
+        exiting = true;
+        // A normal broadcast can lose the race with finish(): Sony resumes the old activity
+        // before it consumes the cleared keys. Finish only after the receiver has handled them.
+        try {
+            sendOrderedBroadcast(appInfoIntent(false), null, new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    BaseActivity.super.finish();
+                }
+            }, null, 0, null, null);
+        } catch (RuntimeException e) {
+            super.finish();
+        }
+    }
+
+    /** USB always closes the app, including when automatic reopening is enabled. */
+    private Intent appInfoIntent(boolean reopen) {
         Intent intent = new Intent("com.android.server.DAConnectionManagerService.AppInfoReceive");
         intent.putExtra("package_name", getComponentName().getPackageName());
         intent.putExtra("class_name", getComponentName().getClassName());
         intent.putExtra("pullingback_key", new String[]{"KEY_USB_CONNECT"});
-        sendBroadcast(intent);
+        intent.putExtra("resume_key", reopen
+                ? new String[]{"KEY_POWER_SLIDE_PON", "KEY_RELEASE_APO", "KEY_PLAY_APO",
+                        "KEY_MEDIA_INOUT_APO", "KEY_LENS_APO", "KEY_ACCESSORY_APO", "KEY_DEDICATED_APO",
+                        "KEY_POWER_APO", "KEY_PLAY_PON"}
+                : new String[0]);
+        return intent;
     }
 }
