@@ -1,0 +1,11 @@
+{
+  "id": "zz-test-manual",
+  "order": 992,
+  "name": { "en": "Test: manual f/4 1/200", "vi": "Thử: thủ công f/4 1/200" },
+  "description": { "en": "Pushed by tools/camera-test.sh; removed when it ends.", "vi": "Do tools/camera-test.sh đẩy lên; tự xoá khi xong." },
+  "exposure_mode": "manual",
+  "aperture": { "strategy": "fixed", "value": 4 },
+  "shutter": { "strategy": "fixed", "value": "1/200" },
+  "iso": "auto",
+  "af": { "mode": "single" }
+}

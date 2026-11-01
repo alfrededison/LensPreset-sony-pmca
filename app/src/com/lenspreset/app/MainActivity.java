@@ -1,5 +1,9 @@
 package com.lenspreset.app;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -79,6 +83,9 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private boolean resumed;
     /** Delivers the loading thread's result; unlike {@link #handler}, onPause does not clear it. */
     private final Handler loadHandler = new Handler();
+    /** Commands from tools/camera-test.sh; registered only with the DEBUG.TXT switch adb-control. */
+    private static final String ADB_CONTROL = "com.lenspreset.debug";
+    private BroadcastReceiver adbControl;
     /** The APK's profiles, kept for MENU > Reload so it rereads only the card. */
     private List<ProfileSet.Entry> bundledProfiles = Collections.emptyList();
     /** LENSPRST/DEBUG.TXT switches; see CardStore.debugSwitches. */
@@ -248,6 +255,16 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     protected void onResume() {
         super.onResume();
         resumed = true;
+        if (debug.contains("adb-control")) {
+            adbControl = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    onAdbCommand(intent.getStringExtra("cmd"), intent.getStringExtra("arg"));
+                }
+            };
+            registerReceiver(adbControl, new IntentFilter(ADB_CONTROL));
+            trace("adb control on");
+        }
         if (failed) return;
         try {
             resume();
@@ -319,6 +336,10 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     protected void onPause() {
         super.onPause();
         resumed = false;
+        if (adbControl != null) {
+            unregisterReceiver(adbControl);
+            adbControl = null;
+        }
         trace("pause");
         handler.removeCallbacksAndMessages(null);
         surface.getHolder().removeCallback(this);
@@ -460,6 +481,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         final Recommendation applying = rec;
         // The report can arrive seconds later, after a lens change or a reload: log what was applied.
         final String what = "apply " + preset.id + " camera=" + camera.id + " lens=" + lens.id;
+        final String presetId = preset.id;
         appliedFocal = applying.focalMm;
         overlay.setStatus(i18n.t("apply.applying"));
         sony.apply(applying, new SonyCamera.ApplyCallback() {
@@ -470,22 +492,26 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 List<ApplyReport.Item> failures = report.failures();
                 List<ApplyReport.Item> unsupported = report.unsupported();
                 Map<String, String> args = new HashMap<String, String>();
+                String status;
                 if (failures.isEmpty()) {
                     if (unsupported.isEmpty()) {
-                        overlay.setStatus(i18n.t("apply.done"));
+                        status = i18n.t("apply.done");
                     } else {
                         args.put("items", itemNames(unsupported));
-                        overlay.setStatus(i18n.t("apply.done_unsupported", args));
+                        status = i18n.t("apply.done_unsupported", args);
                     }
                 } else {
                     args.put("ok", Integer.toString(report.okCount()));
                     args.put("total", Integer.toString(report.items().size() - unsupported.size()));
                     args.put("items", itemNames(failures));
-                    overlay.setStatus(i18n.t("apply.partial", args), true);
+                    status = i18n.t("apply.partial", args);
                 }
+                overlay.setStatus(status, !failures.isEmpty());
                 List<String> log = new ArrayList<String>();
                 log.add(what + " focal=" + Math.round(applying.focalMm));
                 for (String l : report.logLines()) log.add("  " + l);
+                log.add("  status: " + status);
+                log.add("apply-end " + presetId);
                 card.log(log);
             }
         });
@@ -831,12 +857,52 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             Map<String, String> args = new HashMap<String, String>();
             args.put("path", card.writeProbe(report.text()));
             overlay.setStatus(i18n.t("probe.saved", args));
+            trace("probe saved " + args.get("path"));
         } catch (IOException e) {
             Map<String, String> args = new HashMap<String, String>();
             args.put("reason", ApplyReport.describe(e));
             overlay.setStatus(i18n.t("probe.failed", args), true);
+            trace("probe failed " + args.get("reason"));
         }
         showLive();
+    }
+
+    /** A command from tools/camera-test.sh (see ADB_CONTROL); every one is logged, then acknowledged. */
+    private void onAdbCommand(String cmd, String arg) {
+        trace("adb command " + cmd + (arg == null ? "" : " " + arg));
+        if (!loaded || failed) {
+            trace("adb command ignored: not ready");
+            return;
+        }
+        if ("apply".equals(cmd)) {
+            Preset p = profiles.preset(arg);
+            if (p == null) trace("adb command: no preset " + arg);
+            else if (sony == null) trace("adb command: no camera");
+            else choosePreset(p);
+        } else if ("probe".equals(cmd)) {
+            runProbe();
+        } else if ("shoot".equals(cmd)) {
+            if (sony == null) {
+                trace("adb command: no camera");
+            } else {
+                final SonyCamera body = sony;
+                body.takePicture(new SonyCamera.ShotCallback() {
+                    @Override
+                    public void onShot(int status, String detail) {
+                        trace("shot " + status + " (" + body.focusResult() + ")" + (detail.length() > 0 ? " " + detail : ""));
+                    }
+                });
+            }
+        } else if ("save-log".equals(cmd)) {
+            saveLog();
+        } else if ("awake".equals(cmd)) {
+            setKeepAwake("on".equals(arg));
+        } else if ("exit".equals(cmd)) {
+            finish();
+        } else {
+            trace("adb command: unknown");
+        }
+        trace("adb command done " + cmd);
     }
 
     private void saveLog() {

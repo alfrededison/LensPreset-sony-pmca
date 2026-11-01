@@ -22,6 +22,7 @@ import com.sony.scalar.sysutil.didep.Gpelibrary;
  */
 abstract class BaseActivity extends Activity {
     private DisplayManager displayManager;
+    private boolean keptAwake;
 
     @Override
     protected void onResume() {
@@ -44,6 +45,7 @@ abstract class BaseActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (keptAwake) setKeepAwake(false);
         setLowColorDepth();
         if (displayManager != null) {
             try {
@@ -54,6 +56,18 @@ abstract class BaseActivity extends Activity {
             }
             displayManager = null;
         }
+    }
+
+    /**
+     * Holds off the camera's auto power-off while this activity is in front, as BetterManual does
+     * during a timelapse; onPause always gives it back. Used by the adb test run (tools/camera-test.sh):
+     * key presses sent over adb do not count as activity, so the camera would sleep mid-run.
+     */
+    protected void setKeepAwake(boolean awake) {
+        Intent intent = new Intent("com.android.server.DAConnectionManagerService.apo");
+        intent.putExtra("apo_info", awake ? "APO/NO" : "APO/NORMAL");
+        sendBroadcast(intent);
+        keptAwake = awake;
     }
 
     /** The output switched (LCD, viewfinder, HDMI): the live view may sit elsewhere now. */

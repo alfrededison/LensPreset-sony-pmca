@@ -1,0 +1,10 @@
+{
+  "id": "zz-test-shutter-60",
+  "order": 991,
+  "name": { "en": "Test: shutter priority 1/60", "vi": "Thử: ưu tiên tốc 1/60" },
+  "description": { "en": "Pushed by tools/camera-test.sh; removed when it ends.", "vi": "Do tools/camera-test.sh đẩy lên; tự xoá khi xong." },
+  "exposure_mode": "shutter_priority",
+  "shutter": { "strategy": "fixed", "value": "1/60" },
+  "iso": "auto",
+  "af": { "mode": "single" }
+}

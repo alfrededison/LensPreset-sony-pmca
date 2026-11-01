@@ -46,6 +46,10 @@ class SonyValuesTest {
         assertEquals("zone", SonyValues.pick(null, "zone", "wide"), "no list: try the first");
         assertNull(SonyValues.pick(supported));
         assertEquals("10", SonyValues.pick(Arrays.asList(0, 2, 10), "10"), "numbers compare as text");
+        assertEquals(Arrays.asList("wide", "multi"),
+                SonyValues.supportedCandidates(Arrays.asList("multi", "center", "wide"), SonyValues.focusAreaCandidates("wide")));
+        assertEquals(Arrays.asList("multi"),
+                SonyValues.supportedCandidates(Arrays.asList("multi", "center"), SonyValues.focusAreaCandidates("wide")));
     }
 
     @Test
@@ -97,6 +101,22 @@ class SonyValuesTest {
         assertEquals("soft_skin", r.unsupported().get(0).key);
         assertEquals("[OK iso auto, UNSUPPORTED soft_skin low not in [off], FAILED aperture NoSuchMethodError: incrementAperture]",
                 r.logLines().toString());
+    }
+
+    @Test
+    void readingBackConfirmsOrFlagsASetting() {
+        ApplyReport r = new ApplyReport();
+        r.addWritten("metering", "center-spot", "center-spot");
+        r.addWritten("creative_style", "portrait", "portrait");
+        r.addWritten("iso", "auto", "0");
+        r.add("aperture", ApplyReport.Status.OK, "got f/1.8");
+        r.readBack("metering", "center-spot");
+        r.readBack("creative_style", "standard");
+        r.readBack("aperture", "anything");
+        assertEquals("[OK metering center-spot, read back, MISMATCH creative_style portrait, camera reads back standard,"
+                + " OK iso auto, OK aperture got f/1.8]", r.logLines().toString());
+        assertEquals("creative_style", r.failures().get(0).key);
+        assertEquals(1, r.failures().size());
     }
 
     @Test

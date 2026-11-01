@@ -138,6 +138,7 @@ where it is.
 | `no-camera` | opening the camera (no live view, nothing applied) |
 | `no-preview` | starting the live view |
 | `card-log` | adds, rather than leaves out: every log line is also appended to `LENSPRST/LOG.TXT` as it happens, for a body where the app never gets as far as its menu |
+| `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `exit`). `tools/camera-test.sh` writes and removes it |
 
 USB always closes the app, and the app never asks to be reopened after power-off (see
 `BaseActivity`), so a misbehaving build can be left and replaced.
@@ -169,6 +170,36 @@ What Sony's own apps on ILCE-5100 3.10 do (read from the firmware's odex files w
   (`STILL`), and per-state `pullingback_key` / `resume_key` lists. BetterManual sends neither
   category; adding them is a candidate once the app runs, not before.
 - The Application List's `Mode.BLACK` is its own exit transition (MENU), unrelated to the above.
+
+## Testing on a body in one pass
+
+With OpenMemories-Tweak's adb on (Wi-Fi or USB) and `out/LensPreset.apk` built:
+
+```bash
+tools/camera-test.sh 192.168.1.68:5555            # or set CAMERA; about two minutes
+tools/camera-test.sh --photos 192.168.1.68:5555   # about three minutes; needs exiftool
+```
+
+How a setting is known to have taken:
+
+1. **Read back, on every apply.** After writing, the app reads each setting back from the camera
+   (`getMeteringMode`, `getAutoFocusMode`, `getColorMode`, …). The log says `read back` when the
+   camera holds the value and `MISMATCH … camera reads back X` when it took the call but kept
+   something else. "OK" without "read back" only means the call did not throw.
+2. **The photo (`--photos`).** One picture per preset; its EXIF and Sony MakerNotes (exposure
+   program, f-number, shutter, exposure compensation, metering, focus mode, Creative Style, Soft Skin)
+   are compared with the report by `tools/camera-test/exif_check.py`: `photo ok` or
+   `PHOTO MISMATCH`. This is what the camera really shot with. The pictures stay on the card; delete
+   them on the camera.
+3. **Your eyes**, for what a photo does not record (face frames on the live view).
+
+It installs the APK, puts `DEBUG.TXT` (`adb-control`) and the test presets in `tools/camera-test/`
+on the card, starts the app, keeps the camera from sleeping (key presses sent over adb do not count
+as activity, so it would power off mid-run), applies every preset by id — shutter stepped both ways,
+manual mode setting both — waits for each apply report, runs the probe, then puts everything back.
+Results: `out/camera-test/<time>/summary.txt`, `logcat.txt`, `PROBE.TXT`. Every line the app logs
+also goes to logcat under the tag `LensPreset`. Against an emulator (`CARD=/sdcard`) it checks the
+plumbing only: there is no camera to apply to.
 
 ## Running on a desktop emulator
 

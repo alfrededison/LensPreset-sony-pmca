@@ -33,7 +33,8 @@ public final class SonyValues {
     }
 
     public static String[] focusAreaCandidates(String area) {
-        if ("wide".equals(area)) return new String[]{"wide"};
+        // The A5100 lists "wide" but reads back "center" after it; "multi" is tried next.
+        if ("wide".equals(area)) return new String[]{"wide", "multi"};
         if ("zone".equals(area)) return new String[]{"zone", "semi-multi", "wide"};
         if ("center".equals(area)) return new String[]{"center"};
         if ("flexible_spot".equals(area)) return new String[]{"flex-spot", "spot", "center"};
@@ -63,6 +64,24 @@ public final class SonyValues {
      * The first candidate the camera lists as supported. When the camera gives no list (null), the
      * first candidate is tried as is; when it gives a list without any candidate, null.
      */
+    /** Every candidate the camera lists as supported, in order; all of them when it gives no list. */
+    public static List<String> supportedCandidates(List<?> supported, String... candidates) {
+        List<String> out = new java.util.ArrayList<String>();
+        for (String c : candidates) {
+            if (supported == null) {
+                out.add(c);
+                continue;
+            }
+            for (Object s : supported) {
+                if (c.equals(String.valueOf(s))) {
+                    out.add(c);
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
     public static String pick(List<?> supported, String... candidates) {
         if (candidates.length == 0) return null;
         if (supported == null) return candidates[0];

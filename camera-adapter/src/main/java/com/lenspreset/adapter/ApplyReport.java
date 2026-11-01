@@ -18,6 +18,8 @@ public final class ApplyReport {
         UNSUPPORTED,
         /** The call threw: missing method on this firmware, or a refused value. */
         FAILED,
+        /** The camera took the call but reads back another value: it did not really change. */
+        MISMATCH,
     }
 
     public static final class Item {
@@ -26,18 +28,43 @@ public final class ApplyReport {
         public final Status status;
         /** What was asked for and, on failure, why; English, for the log. */
         public final String detail;
+        /** The value reading the setting back should give; null when it is not read back. */
+        final String expected;
 
-        Item(String key, Status status, String detail) {
+        Item(String key, Status status, String detail, String expected) {
             this.key = key;
             this.status = status;
             this.detail = detail;
+            this.expected = expected;
         }
     }
 
     private final List<Item> items = new ArrayList<Item>();
 
     public void add(String key, Status status, String detail) {
-        items.add(new Item(key, status, detail));
+        items.add(new Item(key, status, detail, null));
+    }
+
+    /** An accepted setting, to be checked with {@link #readBack} once everything is written. */
+    public void addWritten(String key, String detail, String expected) {
+        items.add(new Item(key, Status.OK, detail, expected));
+    }
+
+    /**
+     * What the camera reports for {@code key} after the writes. "OK" alone only says the call did not
+     * throw; this says whether the camera really holds the value. A setting that reads back otherwise
+     * becomes {@link Status#MISMATCH}.
+     */
+    public void readBack(String key, String actual) {
+        for (int n = 0; n < items.size(); n++) {
+            Item i = items.get(n);
+            if (!i.key.equals(key) || i.status != Status.OK || i.expected == null) continue;
+            if (i.expected.equalsIgnoreCase(String.valueOf(actual))) {
+                items.set(n, new Item(key, Status.OK, i.detail + ", read back", null));
+            } else {
+                items.set(n, new Item(key, Status.MISMATCH, i.detail + ", camera reads back " + actual, null));
+            }
+        }
     }
 
     public List<Item> items() {
@@ -59,7 +86,9 @@ public final class ApplyReport {
     /** What went wrong: refused calls, and steps that stopped short. Not what the body simply lacks. */
     public List<Item> failures() {
         List<Item> out = new ArrayList<Item>();
-        for (Item i : items) if (i.status == Status.FAILED || i.status == Status.PARTIAL) out.add(i);
+        for (Item i : items) {
+            if (i.status == Status.FAILED || i.status == Status.PARTIAL || i.status == Status.MISMATCH) out.add(i);
+        }
         return out;
     }
 

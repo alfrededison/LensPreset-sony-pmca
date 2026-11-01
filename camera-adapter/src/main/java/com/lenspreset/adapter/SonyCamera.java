@@ -33,6 +33,11 @@ public final class SonyCamera {
         void onApplied(ApplyReport report);
     }
 
+    public interface ShotCallback {
+        /** {@code status}: 0 taken, 1 cancelled, 2 error; -1 when the call itself failed. */
+        void onShot(int status, String detail);
+    }
+
     /** What the lens says about itself; null fields when the body does not tell. */
     public static final class LensReading {
         public final String name;
@@ -74,6 +79,9 @@ public final class SonyCamera {
     private int focalRaw;
     private Seek seek;
     private String lensProblem;
+    private ShotCallback shot;
+    private String focusResult = "";
+    private static final int FOCUS_TIMEOUT_MS = 3000;
     /** The settle delay of the apply in progress, removed when a newer apply starts. */
     private Runnable pendingSettle;
     /** Bumped by every apply; an older apply's steps and callback are dropped. */
@@ -95,6 +103,77 @@ public final class SonyCamera {
         c.listener = listener;
         c.registerListeners();
         return c;
+    }
+
+    /**
+     * Takes one picture with the current settings, as BetterManual does for its timelapse; used by the
+     * adb test run to check, from the photo's EXIF, what the camera really shot with.
+     */
+    public void takePicture(ShotCallback done) {
+        try {
+            shot = done;
+            cam.setShutterListener(new CameraEx.ShutterListener() {
+                @Override
+                public void onShutter(final int status, CameraEx c) {
+                    try {
+                        // BetterManual ends every capture this way before the next one can start.
+                        cam.cancelTakePicture();
+                    } catch (Throwable ignored) {
+                        // Nothing to cancel.
+                    }
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            ShotCallback s = shot;
+                            shot = null;
+                            if (s != null && !closed) s.onShot(status, "");
+                        }
+                    });
+                }
+            });
+            // AF-S cancels a shot that has not focused (status 1 on an A5100), so focus first; the
+            // shot goes ahead whatever the result, which the log then shows.
+            final Runnable fire = new Runnable() {
+                private boolean fired;
+
+                @Override
+                public void run() {
+                    // Once: the focus report and the timeout can both arrive.
+                    if (fired || closed) return;
+                    fired = true;
+                    handler.removeCallbacks(this);
+                    try {
+                        cam.burstableTakePicture();
+                    } catch (Throwable t) {
+                        ShotCallback s = shot;
+                        shot = null;
+                        if (s != null) s.onShot(-1, ApplyReport.describe(t));
+                    }
+                }
+            };
+            focusResult = "no focus report";
+            try {
+                cam.getNormalCamera().autoFocus(new Camera.AutoFocusCallback() {
+                    @Override
+                    public void onAutoFocus(boolean success, Camera c) {
+                        focusResult = success ? "focused" : "focus failed";
+                        handler.post(fire);
+                    }
+                });
+                handler.postDelayed(fire, FOCUS_TIMEOUT_MS);
+            } catch (Throwable t) {
+                focusResult = "autoFocus: " + ApplyReport.describe(t);
+                fire.run();
+            }
+        } catch (Throwable t) {
+            shot = null;
+            done.onShot(-1, ApplyReport.describe(t));
+        }
+    }
+
+    /** What the focus step before {@link #takePicture} reported, for the log. */
+    public String focusResult() {
+        return focusResult;
     }
 
     /** Lets the shutter button shoot while the app is in front. */
@@ -278,7 +357,7 @@ public final class SonyCamera {
                     write.to(p, m, value);
                 }
             });
-            report.add(key, ApplyReport.Status.OK, value);
+            report.addWritten(key, value, value);
         } catch (NoSuchMethodError e) {
             report.add(key, ApplyReport.Status.UNSUPPORTED, value + " not on this firmware");
         } catch (Throwable t) {
@@ -291,9 +370,14 @@ public final class SonyCamera {
     }
 
     private void setPlain(ApplyReport report, String key, String detail, Write w) {
+        setPlain(report, key, detail, null, w);
+    }
+
+    /** {@code expected}: what reading the setting back should give, or null not to check. */
+    private void setPlain(ApplyReport report, String key, String detail, String expected, Write w) {
         try {
             write(w);
-            report.add(key, ApplyReport.Status.OK, detail);
+            report.addWritten(key, detail, expected);
         } catch (NoSuchMethodError e) {
             // Optional on some firmware, e.g. setISOAutoMin/Max on ILCE-5100 3.10 (stubs/optional.txt).
             report.add(key, ApplyReport.Status.UNSUPPORTED, detail + " not on this firmware");
@@ -331,7 +415,7 @@ public final class SonyCamera {
             public void to(Camera.Parameters p, CameraEx.ParametersModifier m, String v) { p.setSceneMode(v); }
         });
 
-        setPlain(report, "iso", r.isoAuto ? "auto" : Integer.toString(r.iso), new Write() {
+        setPlain(report, "iso", r.isoAuto ? "auto" : Integer.toString(r.iso), Integer.toString(r.isoAuto ? 0 : r.iso), new Write() {
             public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setISOSensitivity(r.isoAuto ? 0 : r.iso); }
         });
         if (r.isoAuto && r.isoAutoRangeSettable) {
@@ -343,12 +427,20 @@ public final class SonyCamera {
             });
         }
 
-        if (r.minShutter != null) applyMinShutter(report, cur, r.minShutter);
+        if (r.minShutter != null) {
+            applyMinShutter(report, cur, r.minShutter);
+        } else if (r.exposureMode == Preset.ExposureMode.SHUTTER_PRIORITY || r.exposureMode == Preset.ExposureMode.MANUAL) {
+            // The Auto ISO low limit also caps the shutter in S and M on an A5100: a 1/100 left by an
+            // earlier preset stopped 1/60 at 1/100. BetterManual clears it the same way.
+            setPlain(report, "min_shutter", "cleared", "-1", new Write() {
+                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setAutoShutterSpeedLowLimit(-1); }
+            });
+        }
 
         try {
             final int idx = SonyValues.evIndex(r.ev, now.getExposureCompensationStep(),
                     now.getMinExposureCompensation(), now.getMaxExposureCompensation());
-            setPlain(report, "ev", Scales.formatEv(r.ev), new Write() {
+            setPlain(report, "ev", Scales.formatEv(r.ev), Integer.toString(idx), new Write() {
                 public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { p.setExposureCompensation(idx); }
             });
         } catch (Throwable t) {
@@ -398,6 +490,8 @@ public final class SonyCamera {
             });
         }
 
+        readBack(report, af(r));
+
         final boolean seekAperture = r.aperture != null && r.apertureSettable
                 && (r.exposureMode == Preset.ExposureMode.APERTURE_PRIORITY || r.exposureMode == Preset.ExposureMode.MANUAL);
         final boolean seekShutter = r.shutter != null
@@ -432,6 +526,77 @@ public final class SonyCamera {
         handler.postDelayed(pendingSettle, MODE_SETTLE_MS);
     }
 
+    private static boolean af(Recommendation r) {
+        return SonyValues.autoFocusMode(r.focusMode) != null;
+    }
+
+    /** Reads every written setting back (see ApplyReport.readBack); a getter that throws is skipped. */
+    private void readBack(final ApplyReport report, final boolean autoFocus) {
+        final Camera.Parameters p;
+        final CameraEx.ParametersModifier m;
+        try {
+            p = cam.getNormalCamera().getParameters();
+            m = cam.createParametersModifier(p);
+        } catch (Throwable t) {
+            return;
+        }
+        check(report, "exposure_mode", new ProbeReport.Read() { public Object get() { return p.getSceneMode(); } });
+        check(report, "iso", new ProbeReport.Read() { public Object get() { return m.getISOSensitivity(); } });
+        check(report, "ev", new ProbeReport.Read() { public Object get() { return p.getExposureCompensation(); } });
+        check(report, "min_shutter", new ProbeReport.Read() { public Object get() { return m.getAutoShutterSpeedLowLimit(); } });
+        check(report, "metering", new ProbeReport.Read() { public Object get() { return m.getMeteringMode(); } });
+        check(report, "focus_mode", new ProbeReport.Read() {
+            public Object get() { return autoFocus ? m.getAutoFocusMode() : p.getFocusMode(); }
+        });
+        check(report, "focus_area", new ProbeReport.Read() { public Object get() { return m.getFocusAreaMode(); } });
+        check(report, "face", new ProbeReport.Read() { public Object get() { return m.getFaceDetectionMode(); } });
+        check(report, "drive", new ProbeReport.Read() { public Object get() { return m.getDriveMode(); } });
+        check(report, "self_timer", new ProbeReport.Read() { public Object get() { return m.getSelfTimer(); } });
+        check(report, "creative_style", new ProbeReport.Read() { public Object get() { return m.getColorMode(); } });
+        check(report, "soft_skin", new ProbeReport.Read() { public Object get() { return m.getSoftSkinEffect(); } });
+    }
+
+    private static void check(ApplyReport report, String key, ProbeReport.Read read) {
+        try {
+            report.readBack(key, String.valueOf(read.get()));
+        } catch (Throwable ignored) {
+            // No getter on this firmware: the setting stays "OK" without a read-back.
+        }
+    }
+
+    /**
+     * Focus area: each supported name in turn, kept only if the camera reads it back. The A5100 lists
+     * "wide" yet keeps "center" after it, so the next candidate gets its chance.
+     */
+    private void applyFocusArea(ApplyReport report, final CameraEx.ParametersModifier cur, String area) {
+        List<String> tries = SonyValues.supportedCandidates(supported(new SupportedList() {
+            public List<?> get() { return cur.getSupportedFocusAreaModes(); }
+        }), SonyValues.focusAreaCandidates(area));
+        if (tries.isEmpty()) {
+            report.add("focus_area", ApplyReport.Status.UNSUPPORTED, area + " not supported");
+            return;
+        }
+        StringBuilder tried = new StringBuilder();
+        for (final String v : tries) {
+            String actual;
+            try {
+                write(new Write() {
+                    public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setFocusAreaMode(v); }
+                });
+                actual = current().getFocusAreaMode();
+            } catch (Throwable t) {
+                actual = ApplyReport.describe(t);
+            }
+            if (v.equals(actual)) {
+                report.add("focus_area", ApplyReport.Status.OK, v + (tried.length() > 0 ? " (after " + tried + ")" : "") + ", read back");
+                return;
+            }
+            if (tried.length() > 0) tried.append(", ");
+            tried.append(v).append(" read back ").append(actual);
+        }
+        report.add("focus_area", ApplyReport.Status.MISMATCH, area + ": " + tried);
+    }
+
     private void applyMinShutter(ApplyReport report, CameraEx.ParametersModifier cur, final Shutter min) {
         final int code = SonyValues.minShutterCode(min);
         if (code < 0) {
@@ -447,7 +612,7 @@ public final class SonyCamera {
             report.add("min_shutter", ApplyReport.Status.FAILED, min.format() + " " + ApplyReport.describe(t));
             return;
         }
-        setPlain(report, "min_shutter", min.format() + " (code " + code + ")", new Write() {
+        setPlain(report, "min_shutter", min.format() + " (code " + code + ")", Integer.toString(code), new Write() {
             public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setAutoShutterSpeedLowLimit(code); }
         });
     }
@@ -456,7 +621,7 @@ public final class SonyCamera {
                             final Recommendation r) {
         final String af = SonyValues.autoFocusMode(r.focusMode);
         if (af == null) {
-            setPlain(report, "focus_mode", "manual", new Write() {
+            setPlain(report, "focus_mode", "manual", CameraEx.ParametersModifier.FOCUS_MODE_MANUAL, new Write() {
                 public void to(Camera.Parameters p, CameraEx.ParametersModifier m) {
                     p.setFocusMode(CameraEx.ParametersModifier.FOCUS_MODE_MANUAL);
                 }
@@ -473,13 +638,7 @@ public final class SonyCamera {
                 m.setAutoFocusMode(v);
             }
         });
-        if (r.focusArea != null) {
-            set(report, "focus_area", r.focusArea, supported(new SupportedList() {
-                public List<?> get() { return cur.getSupportedFocusAreaModes(); }
-            }), SonyValues.focusAreaCandidates(r.focusArea), new ValueWrite() {
-                public void to(Camera.Parameters p, CameraEx.ParametersModifier m, String v) { m.setFocusAreaMode(v); }
-            });
-        }
+        if (r.focusArea != null) applyFocusArea(report, cur, r.focusArea);
         final String face = r.faceDetection ? CameraEx.ParametersModifier.FACE_DETECTION_MODE_AUTO
                 : CameraEx.ParametersModifier.FACE_DETECTION_MODE_OFF;
         set(report, "face", face, supported(new SupportedList() {
@@ -670,6 +829,7 @@ public final class SonyCamera {
         out.probe("focusAreaMode", new ProbeReport.Read() { public Object get() { return m.getFocusAreaMode(); } });
         out.probe("faceDetectionMode", new ProbeReport.Read() { public Object get() { return m.getFaceDetectionMode(); } });
         out.probe("meteringMode", new ProbeReport.Read() { public Object get() { return m.getMeteringMode(); } });
+        out.probe("autoExposureLock", new ProbeReport.Read() { public Object get() { return m.getAutoExposureLock(); } });
         out.probe("isoSensitivity", new ProbeReport.Read() { public Object get() { return m.getISOSensitivity(); } });
         out.probe("autoShutterSpeedLowLimit", new ProbeReport.Read() { public Object get() { return m.getAutoShutterSpeedLowLimit(); } });
         out.probe("driveMode", new ProbeReport.Read() { public Object get() { return m.getDriveMode(); } });
@@ -690,6 +850,7 @@ public final class SonyCamera {
         out.probe("isoAutoMaxMin", new ProbeReport.Read() { public Object get() { return m.getSupportedISOAutoMaxMin(); } });
         out.probe("autoShutterSpeedLowLimit", new ProbeReport.Read() { public Object get() { return m.isSupportedAutoShutterSpeedLowLimit(); } });
         out.probe("meteringModes", new ProbeReport.Read() { public Object get() { return m.getSupportedMeteringModes(); } });
+        out.probe("autoExposureLocks", new ProbeReport.Read() { public Object get() { return m.getSupportedAutoExposureLocks(); } });
         out.probe("autoFocusModes", new ProbeReport.Read() { public Object get() { return m.getSupportedAutoFocusModes(); } });
         out.probe("focusAreaModes", new ProbeReport.Read() { public Object get() { return m.getSupportedFocusAreaModes(); } });
         out.probe("faceDetectionModes", new ProbeReport.Read() { public Object get() { return m.getSupportedFaceDetectionModes(); } });

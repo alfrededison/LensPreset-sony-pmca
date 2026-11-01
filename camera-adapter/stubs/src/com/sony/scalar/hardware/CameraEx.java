@@ -20,6 +20,9 @@ public class CameraEx {
     public ParametersModifier createParametersModifier(Camera.Parameters p) { throw new RuntimeException("Stub!"); }
     public void release() { throw new RuntimeException("Stub!"); }
     public void startDirectShutter() { throw new RuntimeException("Stub!"); }
+    public void burstableTakePicture() { throw new RuntimeException("Stub!"); }
+    public void cancelTakePicture() { throw new RuntimeException("Stub!"); }
+    public void setShutterListener(ShutterListener l) { throw new RuntimeException("Stub!"); }
     public void incrementAperture() { throw new RuntimeException("Stub!"); }
     public void decrementAperture() { throw new RuntimeException("Stub!"); }
     public void incrementShutterSpeed() { throw new RuntimeException("Stub!"); }
@@ -39,6 +42,11 @@ public class CameraEx {
         public int currentAperture;
         public int currentAvailableMax;
         public int currentAvailableMin;
+    }
+
+    public interface ShutterListener {
+        /** {@code status}: 0 taken, 1 cancelled, 2 error (BetterManual's reading). */
+        void onShutter(int status, CameraEx camera);
     }
 
     public interface ApertureChangeListener {
@@ -129,6 +137,8 @@ public class CameraEx {
         public int getAperture() { throw new RuntimeException("Stub!"); }
         public Pair getShutterSpeed() { throw new RuntimeException("Stub!"); }
 
+        public String getAutoExposureLock() { throw new RuntimeException("Stub!"); }
+        public List getSupportedAutoExposureLocks() { throw new RuntimeException("Stub!"); }
         public String getMeteringMode() { throw new RuntimeException("Stub!"); }
         public void setMeteringMode(String mode) { throw new RuntimeException("Stub!"); }
         public List getSupportedMeteringModes() { throw new RuntimeException("Stub!"); }
