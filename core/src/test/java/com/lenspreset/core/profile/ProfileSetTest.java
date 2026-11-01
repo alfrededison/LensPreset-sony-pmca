@@ -57,7 +57,7 @@ class ProfileSetTest {
         ProfileSet set = ProfileSet.load(entries);
         assertEquals(1, set.problems().size());
         assertTrue(set.problems().get(0).startsWith("card:BAD.JSN: name:"), set.problems().get(0));
-        assertEquals(7, set.presets().size());
+        assertEquals(entries.size() - 1, set.presets().size());
     }
 
     @Test

@@ -1,0 +1,22 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "pool-kids",
+  "order": 61,
+  "name": { "en": "Kids splashing in the pool", "vi": "Trẻ nghịch bể bơi" },
+  "description": {
+    "en": "1/1000 s targets jumps and splashes in a bright pool; continuous AF, fast burst and Auto ISO. -1/3 EV gives highlights some margin; dim pools may need the 1/500 s Kids on the move preset.",
+    "vi": "Tốc 1/1000 s ưu tiên bắt dính trẻ nhảy và nước bắn ở bể sáng; AF liên tục, chụp liên tiếp nhanh, ISO tự động. Bù -1/3 EV chừa sáng; bể tối nên dùng Trẻ con chạy nhảy ở 1/500 s."
+  },
+  "goal": "freeze_motion",
+  "exposure_mode": "shutter_priority",
+  "shutter": { "strategy": "fixed", "value": "1/1000" },
+  "iso": "auto",
+  "ev": -0.33,
+  "metering": "multi",
+  "af": { "mode": "continuous", "area": "wide", "face": true, "eye": "off" },
+  "drive": { "mode": "burst_hi" },
+  "style": { "creative_style": "standard", "fallback": "standard", "soft_skin": "off" },
+  "subject": { "framing": "full_body" },
+  "hints": ["half_press_to_track", "shoot_at_their_level", "pool_short_bursts", "pool_dim_light", "watch_highlights"],
+  "overlays": ["thirds"]
+}

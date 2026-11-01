@@ -1,0 +1,22 @@
+{
+  "$schema": "../schema/preset.schema.json",
+  "id": "forest-landscape",
+  "order": 34,
+  "name": { "en": "Forest, garden and mountains", "vi": "Cảnh rừng / vườn / núi" },
+  "description": {
+    "en": "The narrower end of the lens's sweet spot, at least f/5.6, with a 1/125 s Auto ISO minimum for handheld trails and mountain views. -1/3 EV is a starting point for sunlit leaves.",
+    "vi": "Khẩu ở đầu khép của vùng nét nhất, từ f/5.6, tốc tối thiểu cho ISO tự động 1/125 s để chụp lối mòn và núi cầm tay. Bù -1/3 EV làm điểm bắt đầu cho lá có nắng chiếu."
+  },
+  "goal": "deep_dof",
+  "exposure_mode": "aperture_priority",
+  "aperture": { "strategy": "sweet_spot", "position": "high", "min_f": 5.6, "max_f": 8 },
+  "shutter": { "strategy": "handheld_min", "min": "1/125", "stabilization_stops": 0 },
+  "iso": "auto",
+  "ev": -0.33,
+  "metering": "multi",
+  "af": { "mode": "single", "area": "center", "face": false, "eye": "off" },
+  "drive": { "mode": "single" },
+  "style": { "creative_style": "landscape", "fallback": "standard", "soft_skin": "off" },
+  "hints": ["landscape_focus", "forest_bright_leaves", "forest_leading_lines"],
+  "overlays": ["thirds", "horizon"]
+}

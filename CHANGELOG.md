@@ -6,7 +6,9 @@ Initial MVP planned for version 1.0.0.
 
 ### Shooting
 
-- Seven shooting situations with body- and lens-aware exposure, focus, and drive settings.
+- Twelve shooting situations with body- and lens-aware exposure, focus, and drive settings.
+- Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
+  with English and Vietnamese light, framing, and highlight hints.
 - Live view with composition guides, estimated framing distance, and depth-of-field hints.
 - English and Vietnamese, button and touch navigation, and profiles loaded from the memory card.
 - Settings read-back with unsupported values and mismatches recorded in the app log.

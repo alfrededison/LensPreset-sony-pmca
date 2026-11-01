@@ -25,9 +25,14 @@ preset works on a 16–50 kit zoom and on a Sigma 30 mm f/1.4.
 | Group photo | Aperture priority, aperture from the depth of field the rows need (adjustable 1–4 rows), ≥1/125, face detection; burst without a timer, single shots with a 2 s / 10 s timer |
 | Portrait, blurred background | Widest aperture two-thirds of a stop closed (Sigma 30 f/1.4 → target f/1.8), face AF, guidance for the camera's Eye AF button; optional Portrait style and Soft Skin Low |
 | Portrait with scenery | The lens's sharpest apertures, face AF, rule-of-thirds and horizon guides |
+| Beach scenery | Lens sweet spot, f/5.6–f/8 target, Auto ISO minimum 1/250, +1/3 EV for bright sand; check sand and cloud highlights |
+| Portrait by the sea | Lens sweet spot, f/4–f/5.6 target, Auto ISO minimum 1/250, face AF, +1/3 EV; soft-light and horizon hints |
+| Portrait in a garden | Wide aperture targeting f/2–f/4 within the lens's limits, Auto ISO minimum 1/250, face AF; even shade and distant foliage |
+| Forest, garden and mountains | Lens sweet spot, f/5.6–f/8 target, Auto ISO minimum 1/125, −1/3 EV; focus and sunlit-leaf hints |
 | Backlight / silhouette | Spot metering, −1.7 EV |
 | High-key | +1.3 EV; optional Light style, falling back to Standard when unavailable |
 | Kids on the move | Shutter priority 1/500, continuous AF, fast burst, Auto ISO |
+| Kids splashing in the pool | Shutter priority 1/1000, continuous AF, fast burst, Auto ISO, −1/3 EV; use Kids on the move for dimmer pools |
 | Indoors, low light | Widest aperture, the slowest hand-holdable speed (stabilisation-aware), Auto ISO |
 
 Creative Style and Soft Skin are applied only when **Keep current look** is off. Presets with
