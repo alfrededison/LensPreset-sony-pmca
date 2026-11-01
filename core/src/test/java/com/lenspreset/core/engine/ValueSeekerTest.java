@@ -26,6 +26,8 @@ class ValueSeekerTest {
         }
     }
 
+    static ValueSeeker.Outcome lastOutcome;
+
     static int seek(FakeDial dial, double target) {
         ValueSeeker s = new ValueSeeker(target, 0.17, 40);
         int cmd;
@@ -34,6 +36,7 @@ class ValueSeekerTest {
             dial.apply(cmd);
             n++;
         }
+        lastOutcome = s.outcome();
         return n;
     }
 
@@ -42,6 +45,7 @@ class ValueSeekerTest {
         FakeDial d = new FakeDial(1.0, 0, 8, 1);
         assertEquals(6, seek(d, 3.0));
         assertEquals(3.0, d.value, 1e-9);
+        assertEquals(ValueSeeker.Outcome.REACHED, lastOutcome);
     }
 
     @Test
@@ -56,6 +60,7 @@ class ValueSeekerTest {
         FakeDial d = new FakeDial(1.0, 0, 2, 1);
         seek(d, 5.0);
         assertEquals(2.0, d.value, 1e-9);
+        assertEquals(ValueSeeker.Outcome.LIMIT, lastOutcome);
     }
 
     @Test
@@ -81,6 +86,26 @@ class ValueSeekerTest {
         assertEquals(ValueSeeker.DECREMENT, s.next(1.0));
         assertEquals(ValueSeeker.DONE, s.next(0.5));
         assertTrue(s.isFinished());
+        assertEquals(ValueSeeker.Outcome.NEAREST, s.outcome());
+    }
+
+    @Test
+    void settlesOnTheCloserOfTwoNeighboursAsTheA5100Does() {
+        // Sigma 30 on an A5100 reports 2.8 2.5 2.2 2.0 1.7 (f-numbers): no 1.8 to stop on.
+        double[] fNumbers = {2.8, 2.5, 2.2, 2.0, 1.7, 1.4};
+        ValueSeeker s = new ValueSeeker(stops(1.8), 0.12, 40);
+        int i = 0;
+        int cmd;
+        while ((cmd = s.next(stops(fNumbers[i]))) != ValueSeeker.DONE) {
+            i += cmd == ValueSeeker.INCREMENT ? 1 : -1;
+        }
+        assertEquals(1.7, fNumbers[i]);
+        assertEquals(ValueSeeker.Outcome.NEAREST, s.outcome());
+    }
+
+    private static double stops(double fNumber) {
+        // Opening the aperture is INCREMENT here; the seeker learns that from the first step.
+        return -2 * Math.log(fNumber) / Math.log(2);
     }
 
     @Test
@@ -93,5 +118,6 @@ class ValueSeekerTest {
             n++;
         }
         assertEquals(3, n);
+        assertEquals(ValueSeeker.Outcome.BUDGET, s.outcome());
     }
 }

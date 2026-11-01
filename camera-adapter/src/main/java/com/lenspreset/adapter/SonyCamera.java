@@ -588,11 +588,15 @@ public final class SonyCamera {
 
         void finish(double currentStops) {
             release();
-            boolean ok = Math.abs(currentStops - target) <= TOLERANCE_STOPS;
-            String got = aperture ? Scales.formatAperture(Scales.fromApertureStops(currentStops))
+            // The nearest value the camera offers counts: it cannot stop between its own steps.
+            ValueSeeker.Outcome why = seeker.outcome();
+            boolean ok = why == ValueSeeker.Outcome.REACHED || why == ValueSeeker.Outcome.NEAREST;
+            // As the camera displays it: the API reports f/1.8 as 1.70 on an A5100 with a Sigma 30.
+            String got = aperture ? Scales.formatAperture(Scales.nearestAperture(Scales.fromApertureStops(currentStops)))
                     : Scales.nearestShutter(Math.pow(2, currentStops)).format();
             report.add(aperture ? "aperture" : "shutter", ok ? ApplyReport.Status.OK : ApplyReport.Status.PARTIAL,
-                    "got " + got + " in " + seeker.steps() + " steps (" + trail + ")");
+                    "got " + got + " in " + seeker.steps() + " steps, " + why.name().toLowerCase(java.util.Locale.US)
+                            + " (" + trail + ")");
             next.run();
         }
 
