@@ -13,7 +13,7 @@
   "features": {
     "face_detection": "yes",
     "eye_af": "unknown",
-    "soft_skin": "unknown",
+    "soft_skin": "yes",
     "creative_style": "yes",
     "silent_shutter": "no",
     "read_lens_info": "yes",
@@ -29,5 +29,5 @@
   "status": "community-tested",
   "tested_firmware": ["3.10"],
   "tested_by": ["@hieu"],
-  "notes": "First target body. Tested on firmware 3.10 with a Sigma 30mm F1.4 DC DN (tools/camera-test.sh --photos): the settings behind each yes were read back from the camera after the app set them and show in the EXIF of a photo shot with them; the lens name and focal length (tenths of a mm) were read from the body. soft_skin is accepted and read back, but the test photos had no face, and the body records Off then. self_timer is only confirmed off. auto_iso_range is no: setISOAutoMin/Max do not exist on firmware 3.10 (firmware report) and fail on the body."
+  "notes": "First target body. Tested on firmware 3.10 with a Sigma 30mm F1.4 DC DN (tools/camera-test.sh --photos): the settings behind each yes were read back from the camera after the app set them and show in the EXIF of a photo shot with them; the lens name and focal length (tenths of a mm) were read from the body. soft_skin was checked with tools/camera-test.sh --face: the low 16 bits of SoftSkinEffect matched Low on two photos; the body also set 0x10000 on the one photo with a detected face, and not on photos without one. self_timer is only confirmed off. auto_iso_range is no: setISOAutoMin/Max do not exist on firmware 3.10 (firmware report) and fail on the body."
 }

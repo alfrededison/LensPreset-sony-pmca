@@ -98,8 +98,9 @@ jpegs() {
 }
 
 # Shoots, finds the new picture, copies the part holding its EXIF and compares it with preset $1's report.
+# The picture and its EXIF are saved as $2 (default $1).
 shoot_and_check() {
-  local p=$1 before after new
+  local p=$1 name=${2:-$1} before after new
   before=$(jpegs)
   a logcat -c
   cmd shoot
@@ -113,23 +114,22 @@ shoot_and_check() {
   done
   if [ -z "$new" ]; then say "  PHOTO FAIL: no new JPEG on the card (RAW only?)"; return; fi
   a shell dd if="$new" of=/data/local/tmp/lenspreset-exif.jpg bs=65536 count=4 >/dev/null 2>&1
-  a pull /data/local/tmp/lenspreset-exif.jpg "$OUT/$p.jpg" >/dev/null 2>&1
+  a pull /data/local/tmp/lenspreset-exif.jpg "$OUT/$name.jpg" >/dev/null 2>&1
   a shell rm /data/local/tmp/lenspreset-exif.jpg >/dev/null 2>&1
   say "  photo $new"
   exiftool -j -q -q -ExposureTime# -FNumber# -ExposureCompensation# -ISO -ExposureProgram -MeteringMode \
-    -FocusMode -AFAreaMode -CreativeStyle -SoftSkinEffect -FacesDetected# -ReleaseMode "$OUT/$p.jpg" > "$OUT/$p.exif.json" 2>/dev/null || true
-  python3 tools/camera-test/exif_check.py "$OUT/$p.exif.json" "$OUT/$p.report.txt" | tee -a "$OUT/summary.txt" || true
+    -FocusMode -AFAreaMode -CreativeStyle -SoftSkinEffect# -FacesDetected# -ReleaseMode "$OUT/$name.jpg" > "$OUT/$name.exif.json" 2>/dev/null || true
+  python3 tools/camera-test/exif_check.py "$OUT/$name.exif.json" "$OUT/$p.report.txt" | tee -a "$OUT/summary.txt" || true
 }
 
 # Soft Skin needs a face: asks for one before each shot, and shoots again while the photo has none.
 face_shots() {
   local p=$1 try faces
   for try in 1 2 3; do
-    rm -f "$OUT/$p.exif.json"
     read -r -p "  Hold a face in the frame until the camera shows a face box, then press Enter (try $try/3) " _
-    shoot_and_check "$p"
+    shoot_and_check "$p" "$p-try$try"
     faces=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0].get("FacesDetected", 0))' \
-      "$OUT/$p.exif.json" 2>/dev/null || echo 0)
+      "$OUT/$p-try$try.exif.json" 2>/dev/null || echo 0)
     if [ "${faces:-0}" -gt 0 ]; then return; fi
     say "  no face in the photo"
   done

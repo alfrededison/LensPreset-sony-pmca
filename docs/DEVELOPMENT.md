@@ -70,8 +70,8 @@ the apply report and in the app's log, never a crash.
 | ISO, Auto ISO | `setISOSensitivity(0 = auto)`, `setISOAutoMin/Max` | ISO used by BetterManual; the range calls do not exist on ILCE-5100 3.10 (firmware report) |
 | Auto ISO minimum speed | `setAutoShutterSpeedLowLimit(code)`, BetterManual's experimental code table | used by BetterManual; checked on ILCE-5100 3.10 |
 | EV | `Camera.Parameters.setExposureCompensation(index)` | used by BetterManual; checked on ILCE-5100 3.10 |
-| metering, AF mode / area, face detection, drive, Creative Style | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | checked on ILCE-5100 3.10; the A5100 lists AF area `wide` but keeps `center`, so `multi` is used |
-| self-timer, Soft Skin | as above | read back on ILCE-5100 3.10; the self-timer only tested off, Soft Skin not seen in a photo yet (the body applies it to detected faces only) |
+| metering, AF mode / area, face detection, drive, Creative Style, Soft Skin | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | checked on ILCE-5100 3.10; the A5100 lists AF area `wide` but keeps `center`, so `multi` is used |
+| self-timer | as above | read back on ILCE-5100 3.10, only tested off |
 | lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (tenths of a mm on ILCE-5100 3.10; `Matcher.focalMm` still infers ×1/×10/×100 from the lens range for other bodies); `ApertureInfo.currentAvailableMin` as the widest aperture now | name and focal length checked on ILCE-5100 3.10 with a prime; tracking a zoom unverified |
 | eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
 
@@ -193,9 +193,11 @@ How a setting is known to have taken:
    program, f-number, shutter, exposure compensation, metering, focus mode, Creative Style, Soft Skin)
    are compared with the report by `tools/camera-test/exif_check.py`: `photo ok`, `PHOTO MISMATCH`,
    `photo has no …` when the picture does not record a setting, or `photo can't tell` for Soft Skin
-   in a picture without a face (the body records Off then; `--face` asks for one and shoots
-   portrait-bokeh only). This is what the camera really shot with. The pictures stay on the card;
-   delete them on the camera.
+   in a picture without a face (the body may record Off then; `--face` asks for one and shoots
+   portrait-bokeh only; each try is kept as `portrait-bokeh-try<n>.*`). SoftSkinEffect is
+   compared by its low 16 bits: the A5100 also set 0x10000 (65537 for Low) on the one test photo
+   with a detected face, and not on photos without one. This is what the camera really shot with.
+   The pictures stay on the card; delete them on the camera.
 3. **Your eyes**, for what a photo does not record (face frames on the live view).
 
 It installs the APK, puts `DEBUG.TXT` (`adb-control`) and the test presets in `tools/camera-test/`

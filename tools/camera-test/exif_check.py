@@ -22,7 +22,12 @@ EXPOSURE_PROGRAM = {
 METERING = {"multi": "Multi-segment", "center-weighted": "Center-weighted average", "center-spot": "Spot"}
 FOCUS = {"af-s": "AF-S", "af-c": "AF-C", "af-a": "AF-A", "manual": "Manual"}
 STYLE = {"red-leaves": "Autumn", "mono": "B&W", "night": "Night"}
-SOFT_SKIN = {"off": "Off", "low": "Low", "middle": "Mid", "high": "High"}
+# SoftSkinEffect is read as a number: the low 16 bits are the level. 0xFFFFFFFF is "n/a". The A5100
+# set 0x10000 as well (65537 for Low, which exiftool 13 does not decode) on the one test photo with a
+# detected face, and not on photos without one; what the flag means exactly is not known.
+SOFT_SKIN = {"off": 0, "low": 1, "middle": 2, "high": 3}
+SOFT_SKIN_NA = 0xFFFFFFFF
+SOFT_SKIN_FLAG = 0x10000
 
 
 def applied(report_text):
@@ -70,11 +75,17 @@ def main(exif_path, report_path):
         compare("creative style", "creative_style", v, "CreativeStyle", lambda h: text_match(STYLE.get(v, v), h))
     if "soft_skin" in set_:
         v = value("soft_skin")
-        if v != "off" and exif.get("FacesDetected") == 0 and exif.get("SoftSkinEffect") == "Off":
-            # The body applies soft skin to faces only and records Off when it found none.
+        raw = exif.get("SoftSkinEffect")
+        if raw == SOFT_SKIN_NA:
+            lines.append("  photo can't tell soft_skin %s: the photo records n/a" % v)
+        elif v != "off" and exif.get("FacesDetected") == 0 and raw == 0:
+            # Without face detection engaged the body may record Off.
             lines.append("  photo can't tell soft_skin %s: no face in the picture" % v)
         else:
-            compare("soft skin", "soft_skin", v, "SoftSkinEffect", lambda h: text_match(SOFT_SKIN.get(v, v), h))
+            compare("soft skin", "soft_skin", v, "SoftSkinEffect",
+                    lambda h: isinstance(h, int) and h & 0xFFFF == SOFT_SKIN.get(v))
+            if isinstance(raw, int) and raw >> 16 == SOFT_SKIN_FLAG >> 16:
+                lines.append("  photo says  SoftSkinEffect flag 0x10000 set (seen with a detected face)")
     if "ev" in set_:
         v = value("ev")
         compare("exposure compensation", "ev", v, "ExposureCompensation",
