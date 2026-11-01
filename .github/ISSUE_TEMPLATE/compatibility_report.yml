@@ -34,6 +34,16 @@ body:
       label: Lenses used
       description: And whether the app recognised each one by itself.
   - type: textarea
+    id: settings
+    attributes:
+      label: App settings used
+      description: MENU > Settings. Keep current look must be off to test Creative Style and Soft Skin; use a detected face for Soft Skin.
+      value: |
+        Keep current look: on / off
+        Reopen after power-on: on / off
+    validations:
+      required: true
+  - type: textarea
     id: probe
     attributes:
       label: PROBE.TXT
@@ -59,11 +69,17 @@ body:
         | face detection | | |
         | eye AF | | |
         | burst Lo / Hi | | |
-        | self-timer | | |
-        | Creative Style | | |
-        | Soft Skin | | |
+        | self-timer: 2 s / 10 s / off | | |
+        | half-press autofocus with the timer enabled | | |
+        | Creative Style (Keep current look off) | | |
+        | Soft Skin with a detected face (Keep current look off) | | |
+        | Keep current look: style/skin unchanged between presets | | |
         | lens recognised automatically | | |
         | zoom tracked (kit zoom) | | |
+        | saved preset and adjustments restored after relaunch | | |
+        | power-on reopening when enabled | | |
+        | reopening disabled; explicit exit while enabled | | |
+        | live view after manual relaunch | | |
         | settings still set after leaving the app | | |
     validations:
       required: true

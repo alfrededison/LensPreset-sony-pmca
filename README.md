@@ -9,9 +9,11 @@ Presets are rules, not fixed numbers: "widest aperture, a little stopped down", 
 field for three rows of people", "the slowest speed you can hand-hold with this lens". The same
 preset works on a 16–50 kit zoom and on a Sigma 30 mm f/1.4.
 
-> **Status: early, and not yet tested on a camera.** The engine, profiles and build are covered by
-> tests; everything that talks to the camera still needs a real body. The first target is the
-> **A5100**. If you try it, please send a [camera test report](../../issues/new?template=compatibility_report.yml).
+> **Status: MVP, community-tested on a Sony A5100 (ILCE-5100), firmware 3.10, with a Sigma 30mm
+> F1.4 DC DN.** Tested by [@alfrededison](https://github.com/alfrededison). Other bodies and lens
+> combinations still need real-camera tests. Please send a
+> [camera test report](../../issues/new?template=compatibility_report.yml) before claiming support
+> for another combination.
 
 > **Disclaimer.** Unofficial software, not made or endorsed by Sony. Installing apps through
 > Sony-PMCA-RE and running them is at your own risk.
@@ -20,16 +22,18 @@ preset works on a 16–50 kit zoom and on a Sigma 30 mm f/1.4.
 
 | Situation | What it does |
 |---|---|
-| Group photo | Aperture priority, aperture from the depth of field the rows need (adjustable 1–4 rows), ≥1/125, face detection, burst, optional self-timer |
-| Portrait, blurred background | Widest aperture two-thirds of a stop closed (Sigma 30 f/1.4 → f/1.8), eye AF when the body has it, Portrait style |
+| Group photo | Aperture priority, aperture from the depth of field the rows need (adjustable 1–4 rows), ≥1/125, face detection; burst without a timer, single shots with a 2 s / 10 s timer |
+| Portrait, blurred background | Widest aperture two-thirds of a stop closed (Sigma 30 f/1.4 → target f/1.8), face AF, guidance for the camera's Eye AF button; optional Portrait style and Soft Skin Low |
 | Portrait with scenery | The lens's sharpest apertures, face AF, rule-of-thirds and horizon guides |
 | Backlight / silhouette | Spot metering, −1.7 EV |
-| High-key | +1.3 EV, Light style |
+| High-key | +1.3 EV; optional Light style, falling back to Standard when unavailable |
 | Kids on the move | Shutter priority 1/500, continuous AF, fast burst, Auto ISO |
-| Indoors, low light | Widest aperture, the slowest hand-holdable speed (stabilisation-aware), Auto ISO to the body's ceiling |
+| Indoors, low light | Widest aperture, the slowest hand-holdable speed (stabilisation-aware), Auto ISO |
 
-Each preset also tells you where to stand ("about 2.0 m for a half-body shot") and what will be
-sharp ("1.8 m to 2.1 m"). Add your own presets on the memory card — see [docs/PROFILES.md](docs/PROFILES.md).
+Creative Style and Soft Skin are applied only when **Keep current look** is off. Presets with
+subject framing also estimate where to stand ("about 2.0 m for a half-body shot") and depth of
+field ("1.8 m to 2.1 m"); these are guides, not measured subject distances. Add your own presets
+on the memory card — see [docs/PROFILES.md](docs/PROFILES.md).
 
 ## Compatibility
 
@@ -40,13 +44,40 @@ sharp ("1.8 m to 2.1 m"). Add your own presets on the memory card — see [docs/
 | any other PMCA body | `generic` (APS-C assumed) | untested |
 
 Bodies newer than the A6500 / A99 II have no PlayMemories app support and cannot run this app.
-Lenses: Sony E PZ 16-50mm F3.5-5.6 OSS, Sigma 30mm F1.4 DC DN, and any manual lens (the app
-tells you where to turn the aperture and focus rings).
+Bundled lens profiles: Sony E PZ 16-50mm F3.5-5.6 OSS, Sigma 30mm F1.4 DC DN, and a manual
+50mm F1.8 example. The Sigma 30mm is tested on the A5100; the kit zoom, zoom tracking, and manual
+lens workflow remain untested on hardware. Other manual lenses need their own profile values.
+
+Adding JSON is enough when the existing adapter supports the body's API and the preset's
+settings. A different API or camera behavior can require adapter changes as well as a profile.
+The generic fallback assumes APS-C; provide a matching camera profile for other sensor formats.
+
+### Confirmed on the A5100
+
+Live view, lens identification, preset application, P/A/S/M settings, aperture and shutter
+stepping, EV, metering, AF-S/AF-C settings, drive mode, and Creative Style were checked through
+camera read-back and photo EXIF where recorded. Soft Skin Low was checked in a separate face
+test. Physical 2 s / 10 s timed shooting, half-press autofocus with the timer, saved preset
+restoration, optional power-on reopening, and explicit exit followed by manual relaunch were
+also exercised on the body.
+
+### Current limits
+
+- The A5100 API used here cannot set an Auto ISO minimum/maximum ISO range; it uses the body's
+  own range. The minimum shutter-speed setting is supported.
+- The app cannot trigger Eye AF on the A5100; use the camera's assigned Eye AF button.
+- Other bodies, lens combinations, autofocus performance on moving subjects, and long-session
+  reliability still need community testing. A firmware contract report proves API signatures,
+  not working camera behavior.
+- **Keep current look** skips Creative Style and Soft Skin writes. EV still changes with the
+  preset, so this is not a guarantee that a complete Recipe Lab recipe stays unchanged or is
+  restored after exit. Interoperability with Recipe Lab has not been verified on the body.
 
 ## Install
 
-1. Download `LensPreset-<version>.apk` from [Releases](../../releases) (the `dev` prerelease is
-   built from every change).
+1. Download the APK and matching `.sha256` from a published [Release](../../releases).
+   Successful `ci` builds also provide a `LensPreset-apk` artifact in Actions. The `dev-build`
+   workflow targets a `dev` prerelease; an unpublished draft is visible only to maintainers.
 2. Camera: *Setup → USB Connection → Mass Storage*, connect USB.
 3. Install with [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE):
    `pmca-console install -d native -f LensPreset-<version>.apk`, or PMCA-GUI → *Install app*.
@@ -69,11 +100,14 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 | Up / Down, wheel | previous / next situation (applied at once) | move |
 | Left / Right | change the situation's first setting (e.g. rows) | change a value |
 | Centre | list of situations | select |
-| MENU | app menu: lens, language, camera probe, save log, reload, about, exit | back |
+| MENU | app menu: lens, language, settings, camera probe, save log, reload, about, exit | back |
 | Trash | hide / show hints | back |
 
 On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
 as usual; settings apply while the app is open.
+On opening or resuming, the app reapplies the last selected preset and its saved adjustments
+after live view and lens identification are ready. Wait for the apply status before shooting.
+On a fresh install, choose and apply a situation first.
 
 **MENU → Settings** has two saved switches:
 
@@ -94,6 +128,8 @@ Languages: English, Tiếng Việt. Translations are welcome.
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). In short: `./tools/test.sh` (JDK 17+ only) and
 `./build.sh` (Android SDK with `platforms;android-10` and `build-tools;35.0.0`). No Gradle.
+Maintainers: see [docs/RELEASING.md](docs/RELEASING.md) for signing, release validation, and
+publishing. Changes planned for the first release are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

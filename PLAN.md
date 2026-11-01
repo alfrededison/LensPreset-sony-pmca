@@ -39,7 +39,7 @@ Mô tả khả năng thân máy; engine dùng để tính và để ẩn/hiện 
     "creative_style": "unknown", "silent_shutter": "no", "read_lens_info": "unknown"
   },
   "tested_firmware": ["3.10"],
-  "tested_by": ["@hieu"]
+  "tested_by": ["@alfrededison"]
 }
 ```
 

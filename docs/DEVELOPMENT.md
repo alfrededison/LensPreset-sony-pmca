@@ -38,6 +38,9 @@ build. The d8 in build-tools 34.0.0 crashes on this code; use 35.0.0 or later.
 
 Versions: `app/AndroidManifest.xml` `versionName` is the only one in the tree; `tools/version.sh`
 derives the dev suffix and versionCode (`X·10⁷ + Y·10⁵ + Z·10³ + N`, `N = 999` for a release).
+For a public build, use a stable project signing key; local debug signing is a development
+fallback. See [Releasing](RELEASING.md) for the secret names, certificate check, release workflow,
+and publication steps.
 
 ## Tests
 
@@ -60,8 +63,9 @@ needs a real body — say so in a PR rather than implying a green build means it
 ## The camera API, and what is still unverified
 
 The adapter uses Sony's `CameraEx` as BetterManual does, applying settings while the app is open
-(roadmap option (a)). Every call is wrapped; a missing method or refused value becomes a line in
-the apply report and in the app's log, never a crash.
+(roadmap option (a)). Camera calls are guarded so missing methods and refused values can be
+reported in the apply report and app log. These guards do not establish compatibility with a
+body that has not been tested.
 
 | setting | call | confidence |
 |---|---|---|
@@ -189,7 +193,8 @@ silently pass that test.
 on the A5100: the layout is inflated from `res/layout/main.xml`; `onResume` sets the framebuffer to
 16-bit (RGBA4444), announces the app, opens a `DisplayManager` kept until `onPause`, then opens the
 camera, registers the surface callback and starts direct shutter; the preview starts in
-`surfaceCreated`; `onPause` removes the callback, stops the preview and releases the camera. The
+`surfaceCreated`, or on resume when its surface already exists; `onPause` removes the callback,
+stops the preview and releases the camera. The
 first builds did all of this differently (32-bit colour, a `DisplayManager` opened and closed at
 once, views built in code) and showed only a black screen on an A5100. Change this order only with
 a test on a body.

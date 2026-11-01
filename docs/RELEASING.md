@@ -1,0 +1,99 @@
+# Releasing LensPreset
+
+The first public release is intended as version 0.1.0: an MVP tested on ILCE-5100 firmware 3.10
+with a Sigma 30mm F1.4 DC DN by [@alfrededison](https://github.com/alfrededison). Do not describe
+the release as verified on all PMCA bodies. The [README](../README.md) and
+[changelog](../CHANGELOG.md) state the tested scope and current limits.
+
+## Keep one signing identity
+
+Public dev builds and releases should use the same project keystore and key alias. Keep a secure
+backup of the keystore and its credentials outside the repository. Configure all four repository
+Actions secrets consumed by the build:
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_B64` | Base64-encoded project keystore |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Signing key alias |
+| `ANDROID_KEY_PASSWORD` | Signing key password |
+
+The current scripts fall back to `out/debug.keystore` when `ANDROID_KEYSTORE_B64` is absent;
+the workflows do not enforce a project key. On a fresh CI runner, that fallback generates a new
+key. Do not publish a build relying on that fallback as an upgrade-compatible public release.
+
+Before publication, inspect the certificate SHA-256 digest of the actual APK using the Android
+SDK's `apksigner` and compare it with the established signing identity. With the SDK build-tools
+on `PATH`:
+
+```bash
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v0.1.0.apk
+```
+
+Different signing certificates prevent an in-place update. A transition from an earlier local
+debug key requires an uninstall/reinstall, which removes the app's preferences; tell testers if
+such a transition is necessary. Do not commit a keystore, encoded keystore, or credentials.
+
+## Prepare the candidate
+
+1. Make sure `app/AndroidManifest.xml` has the intended `versionName` (currently `0.1.0`). A
+   release tag must be exactly `v` plus that version.
+2. Commit the intended changes and confirm CI passes for that commit. CI runs core/adapter
+   tests, profile schemas, committed firmware-report coverage, firmware-tool tests, and the APK
+   build. For local commands, see [Development](DEVELOPMENT.md#tests).
+3. Check that README compatibility claims, the camera profile's test provenance, and the
+   changelog match the evidence. Keep pending changes under `Unreleased` until publication;
+   replace that heading with the version and publication date when the release is published.
+4. Verify the signing secrets and certificate identity. Never treat a green build alone as
+   evidence that the expected project key was used.
+
+## Build the draft
+
+Pushing the intended `vX.Y.Z` tag triggers `.github/workflows/release.yml`. The workflow checks
+the tag against the manifest, runs unit tests, builds a v1-signed APK with `RELEASE=1`, and creates
+a **draft** release with these assets (for `v0.1.0`):
+
+- `LensPreset-v0.1.0.apk`
+- `LensPreset-v0.1.0.apk.sha256`
+
+The workflow's draft is intentional; a successful job does not mean users can download it from a
+public release. Download the draft assets as a maintainer, verify the checksum from the asset's
+directory, and inspect the signing certificate:
+
+```bash
+shasum -a 256 -c LensPreset-v0.1.0.apk.sha256
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v0.1.0.apk
+```
+
+Use the **actual draft APK** for a short test on the A5100, rather than assuming the local dev
+APK is identical. Check live view, one immediate shot, a timed shot with half-press AF, preset
+restoration, and exit/relaunch. If reopening is enabled, check both power-on reopening and an
+explicit exit without an immediate reopen. Confirm Keep current look is available and report
+its state when checking Creative Style / Soft Skin.
+
+## Publish and verify access
+
+Replace the generated commit summary with release notes based on the changelog. Include:
+
+- The tested body, firmware, lens, and tester account.
+- What works, the two settings and their defaults, and the known limits.
+- Installation/update instructions, including any signing-key transition.
+- Links to the camera test report form and profile/preset contribution instructions.
+
+Publish the draft from GitHub Releases after its assets and body test have been checked. Verify
+the release page and both download links without maintainer authentication. Record the released
+version/date in the changelog; do not imply that an unpublished draft is a public download.
+
+## Where development APKs appear
+
+- `ci` uploads an Actions artifact named `LensPreset-apk` after its APK build succeeds.
+- `dev-build` attaches a versioned APK and checksum to a `dev` prerelease. It does not upload an
+  Actions artifact. Check the actual release state; a draft cannot serve as a public download.
+- The tag-triggered release workflow creates a draft for a maintainer to publish.
+
+For example, maintainer metadata can be inspected without exposing any signing credentials:
+
+```bash
+gh release view dev --json tagName,isDraft,isPrerelease,assets,url
+gh release view v0.1.0 --json tagName,isDraft,isPrerelease,assets,url
+```
