@@ -115,6 +115,9 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 
 On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
 as usual; settings apply while the app is open.
+Lists use the full screen, with one line per choice and the selected item's description below.
+The main menu fits all nine entries at 640×480; longer lists show a position counter and scrollbar.
+About and profile errors wrap their text; Up / Down or the wheel scrolls them.
 The key guide names the setting Left / Right changes and omits those keys for presets without
 adjustments. Group photo shows the selected row count and self-timer beside the exposure settings;
 these values remain visible when hints and the key guide are hidden.

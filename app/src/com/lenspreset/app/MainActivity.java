@@ -502,9 +502,9 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private String subtitle() {
-        StringBuilder sb = new StringBuilder(camera == null ? "" : camera.name);
+        StringBuilder sb = new StringBuilder();
         if (lens != null) {
-            sb.append(" · ").append(lens.name);
+            sb.append(lens.name);
             if (lensChosenByUser) sb.append(' ').append(i18n.t("ui.lens_chosen"));
             if (rec != null && lens.zoom) sb.append(" · ").append(Math.round(rec.focalMm)).append("mm");
         }
@@ -645,7 +645,11 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             case SETTINGS: handleSettings(action); break;
             case LENSES: handleLenses(action); break;
             case LANGUAGES: handleLanguages(action); break;
-            default: if (action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH) openMenu(); break;
+            default:
+                if (action == Keys.UP || action == Keys.PREV) panel.move(-1);
+                else if (action == Keys.DOWN || action == Keys.NEXT) panel.move(1);
+                else if (action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH) openMenu();
+                break;
         }
     }
 
@@ -761,18 +765,18 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         screen = Screen.MENU;
         List<ListPanel.Row> rows = new ArrayList<ListPanel.Row>();
         String lensName = lens == null ? i18n.t("lens.none") : lens.name;
-        rows.add(new ListPanel.Row(i18n.t("menu.lens"), null,
-                Prefs.AUTO.equals(prefs.lens()) ? i18n.t("lens.auto") + ": " + lensName : lensName, false));
-        rows.add(new ListPanel.Row(i18n.t("menu.language"), null,
-                Prefs.AUTO.equals(prefs.language()) ? i18n.t("menu.auto") : i18n.languageName(i18n.language()), false));
-        rows.add(new ListPanel.Row(i18n.t("menu.settings"), null, null, false));
+        rows.add(ListPanel.Row.submenu(i18n.t("menu.lens"), lensName,
+                Prefs.AUTO.equals(prefs.lens()) ? i18n.t("lens.auto") : null));
+        rows.add(ListPanel.Row.submenu(i18n.t("menu.language"), i18n.languageName(i18n.language()),
+                Prefs.AUTO.equals(prefs.language()) ? i18n.t("menu.auto") : null));
+        rows.add(ListPanel.Row.submenu(i18n.t("menu.settings"), null, null));
         rows.add(new ListPanel.Row(i18n.t("menu.probe"), null, i18n.t("menu.probe_detail"), false));
         rows.add(new ListPanel.Row(i18n.t("menu.save_log"), null, i18n.t("menu.save_log_detail"), false));
         rows.add(new ListPanel.Row(i18n.t("menu.reload"), null, null, false));
         Map<String, String> n = new HashMap<String, String>();
         n.put("n", Integer.toString(profiles.problems().size()));
-        rows.add(new ListPanel.Row(i18n.t("menu.problems", n), null, null, false));
-        rows.add(new ListPanel.Row(i18n.t("menu.about"), null, null, false));
+        rows.add(ListPanel.Row.submenu(i18n.t("menu.problems", n), null, null));
+        rows.add(ListPanel.Row.submenu(i18n.t("menu.about"), null, null));
         rows.add(new ListPanel.Row(i18n.t("menu.exit"), null, null, false));
         panel.show(i18n.t("menu.title"), rows, 0, i18n.t("ui.legend.menu"));
     }
@@ -901,9 +905,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private void openText(String title, List<String> lines) {
         overlay.setUnderPanel(true);
         screen = Screen.TEXT;
-        List<ListPanel.Row> rows = new ArrayList<ListPanel.Row>();
-        for (String l : lines) rows.add(new ListPanel.Row(l, null, null, false));
-        panel.show(title, rows, 0, i18n.t("ui.legend.text"));
+        panel.showText(title, lines, i18n.t("ui.legend.text"));
     }
 
     private List<String> problemLines() {

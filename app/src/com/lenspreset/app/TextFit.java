@@ -19,6 +19,22 @@ final class TextFit {
         return s.substring(0, n) + e;
     }
 
+    /** Wrap whole setting labels, so values such as ISO AUTO 100–6400 stay together. */
+    static List<String> chips(Paint paint, List<String> items, float max) {
+        List<String> out = new ArrayList<String>();
+        String line = "";
+        for (String item : items) {
+            String label = ellipsize(paint, item, max);
+            String candidate = line.length() == 0 ? label : line + "   " + label;
+            if (line.length() > 0 && paint.measureText(candidate) > max) {
+                out.add(line);
+                line = label;
+            } else line = candidate;
+        }
+        if (line.length() > 0) out.add(line);
+        return out;
+    }
+
     /** Word wrap; a single word wider than {@code max} gets a line of its own. */
     static List<String> wrap(Paint paint, String s, float max) {
         List<String> out = new ArrayList<String>();

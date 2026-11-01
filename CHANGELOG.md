@@ -6,6 +6,11 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Shooting
 
+- Compact full-screen menus with one line per choice, the selected description below, and a
+  position counter / scrollbar. All nine main-menu entries fit at 640×480. Shorter English and
+  Vietnamese labels and key guides; live-view settings wrap without splitting individual values.
+  Recipe hints are unchanged. Text pages now wrap and scroll with Up / Down or the wheel.
+- The main menu shows the current lens and language beside their labels.
 - In preset options, the wheel changes the selected value; Up / Down selects the setting.
   Page Up / Page Down simulate wheel turns on an emulator.
 - Live-view Left / Right guidance appears only for configurable presets and names the setting.

@@ -51,7 +51,7 @@ public final class OverlayView extends View {
     /** Runs once, on the first draw: the log records when the screen first showed something. */
     private Runnable onFirstDraw;
     private boolean statusWarn;
-    /** A list is open over the left of the screen: only the guides and the top band are drawn. */
+    /** A full-screen list is open, covering the live-view overlay. */
     private boolean underPanel;
 
     /** Inflated from res/layout/main.xml. */
@@ -116,6 +116,7 @@ public final class OverlayView extends View {
         int w = getWidth();
         int h = getHeight();
         if (w == 0 || h == 0) return;
+        if (underPanel) return;
         if (detailLevel == DetailLevel.HIDDEN) return;
         Rect v = video != null ? video : new Rect(0, 0, w, h);
         drawGuides(c, v);
@@ -124,27 +125,27 @@ public final class OverlayView extends View {
         float pad = size * 0.4f;
 
         // Top band: preset, kit, status.
-        text.setTextSize(size * 1.15f);
-        float top = pad + size * 1.15f;
-        float bandBottom = top + pad + (subtitle.length() > 0 ? size * 0.85f + pad : 0);
+        float top = pad + size * 1.05f;
+        float bandBottom = top + pad + (subtitle.length() > 0 ? size * 0.75f + pad : 0);
         c.drawRect(0, 0, w, bandBottom, band);
+        text.setTextSize(size * 0.75f);
+        String statusText = TextFit.ellipsize(text, status, w * 0.32f);
+        float statusWidth = text.measureText(statusText);
+        text.setTextSize(size * 1.05f);
         text.setColor(Color.WHITE);
         text.setFakeBoldText(true);
-        c.drawText(TextFit.ellipsize(text, title, w * 0.6f), pad, top, text);
+        c.drawText(TextFit.ellipsize(text, title, w - 3 * pad - statusWidth), pad, top, text);
         text.setFakeBoldText(false);
         if (status.length() > 0) {
-            text.setTextSize(size * 0.85f);
+            text.setTextSize(size * 0.75f);
             text.setColor(statusWarn ? Color.rgb(255, 196, 80) : Color.rgb(140, 220, 140));
-            String s = TextFit.ellipsize(text, status, w * 0.38f);
-            c.drawText(s, w - pad - text.measureText(s), top, text);
+            c.drawText(statusText, w - pad - statusWidth, top, text);
         }
         if (subtitle.length() > 0) {
-            text.setTextSize(size * 0.85f);
+            text.setTextSize(size * 0.75f);
             text.setColor(Color.rgb(200, 200, 200));
-            c.drawText(TextFit.ellipsize(text, subtitle, w - 2 * pad), pad, top + pad + size * 0.85f, text);
+            c.drawText(TextFit.ellipsize(text, subtitle, w - 2 * pad), pad, top + pad + size * 0.75f, text);
         }
-
-        if (underPanel) return;
 
         // Bottom: legend, chips, then messages above them.
         float y = h - pad;
@@ -154,19 +155,19 @@ public final class OverlayView extends View {
             lines.addAll(TextFit.wrap(text, legend, w - 2 * pad));
         float legendHeight = lines.size() * size * 0.95f;
 
-        text.setTextSize(size);
-        List<String> chipLines = TextFit.wrap(text, join(chips, "   "), w - 2 * pad);
-        float chipsHeight = chipLines.size() * size * 1.25f;
+        text.setTextSize(size * 0.9f);
+        text.setFakeBoldText(true);
+        List<String> chipLines = TextFit.chips(text, chips, w - 2 * pad);
+        text.setFakeBoldText(false);
+        float chipsHeight = chipLines.size() * size * 1.15f;
 
         List<Line> shown = new ArrayList<Line>();
-        List<Float> sizes = new ArrayList<Float>();
         if (detailLevel == DetailLevel.FULL) {
             text.setTextSize(size * 0.9f);
             for (Line m : messages) {
                 for (String part : TextFit.wrap(text, m.text, w - 2 * pad)) {
                     if (shown.size() >= MAX_MESSAGE_LINES) break;
                     shown.add(new Line(part, m.level));
-                    sizes.add(size * 0.9f);
                 }
             }
         }
@@ -180,12 +181,12 @@ public final class OverlayView extends View {
             c.drawText(lines.get(i), pad, y, text);
             y -= size * 0.95f;
         }
-        text.setTextSize(size);
+        text.setTextSize(size * 0.9f);
         text.setColor(Color.WHITE);
         text.setFakeBoldText(true);
         for (int i = chipLines.size() - 1; i >= 0; i--) {
             c.drawText(chipLines.get(i), pad, y, text);
-            y -= size * 1.25f;
+            y -= size * 1.15f;
         }
         text.setFakeBoldText(false);
         text.setTextSize(size * 0.9f);
@@ -229,12 +230,4 @@ public final class OverlayView extends View {
         }
     }
 
-    private static String join(List<String> items, String sep) {
-        StringBuilder sb = new StringBuilder();
-        for (String s : items) {
-            if (sb.length() > 0) sb.append(sep);
-            sb.append(s);
-        }
-        return sb.toString();
-    }
 }
