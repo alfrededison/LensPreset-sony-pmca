@@ -465,19 +465,22 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         sony.apply(applying, new SonyCamera.ApplyCallback() {
             @Override
             public void onApplied(ApplyReport report) {
-                List<ApplyReport.Item> problems = report.problems();
-                if (problems.isEmpty()) {
-                    overlay.setStatus(i18n.t("apply.done"));
-                } else {
-                    Map<String, String> args = new HashMap<String, String>();
-                    args.put("ok", Integer.toString(report.okCount()));
-                    args.put("total", Integer.toString(report.items().size()));
-                    StringBuilder missing = new StringBuilder();
-                    for (ApplyReport.Item i : problems) {
-                        if (missing.length() > 0) missing.append(", ");
-                        missing.append(i18n.t("apply.item." + i.key));
+                // What the body lacks is said plainly, not counted as a failure: the A5100 has no
+                // Auto ISO range, and "10 of 11" every time read as something broken.
+                List<ApplyReport.Item> failures = report.failures();
+                List<ApplyReport.Item> unsupported = report.unsupported();
+                Map<String, String> args = new HashMap<String, String>();
+                if (failures.isEmpty()) {
+                    if (unsupported.isEmpty()) {
+                        overlay.setStatus(i18n.t("apply.done"));
+                    } else {
+                        args.put("items", itemNames(unsupported));
+                        overlay.setStatus(i18n.t("apply.done_unsupported", args));
                     }
-                    args.put("items", missing.toString());
+                } else {
+                    args.put("ok", Integer.toString(report.okCount()));
+                    args.put("total", Integer.toString(report.items().size() - unsupported.size()));
+                    args.put("items", itemNames(failures));
                     overlay.setStatus(i18n.t("apply.partial", args), true);
                 }
                 List<String> log = new ArrayList<String>();
@@ -486,6 +489,15 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 card.log(log);
             }
         });
+    }
+
+    private String itemNames(List<ApplyReport.Item> items) {
+        StringBuilder sb = new StringBuilder();
+        for (ApplyReport.Item i : items) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(i18n.t("apply.item." + i.key));
+        }
+        return sb.toString();
     }
 
     private void choosePreset(Preset p) {

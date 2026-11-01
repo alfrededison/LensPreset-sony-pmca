@@ -198,6 +198,17 @@ class PresetEngineTest {
     }
 
     @Test
+    void aBodyWithoutAnAutoIsoRangeKeepsItsOwn() {
+        // ILCE-5100 3.10 has no setISOAutoMin/Max: nothing to send, a note only where the preset asks for a ceiling.
+        Recommendation silhouette = run(A5100, SIGMA_30, "silhouette", Conditions.none());
+        assertFalse(silhouette.isoAutoRangeSettable);
+        assertTrue(silhouette.hasMessage("notice.iso_range_unavailable"));
+        Recommendation portrait = run(A5100, SIGMA_30, "portrait-bokeh", Conditions.none());
+        assertFalse(portrait.hasMessage("notice.iso_range_unavailable"), "no ceiling asked for, nothing to say");
+        assertTrue(run(Fixtures.camera("generic"), SIGMA_30, "silhouette", Conditions.none()).isoAutoRangeSettable);
+    }
+
+    @Test
     void isoCeilingIsCappedByTheBody() {
         CameraProfile generic = Fixtures.camera("generic");
         Recommendation r = run(generic, SIGMA_30, "portrait-environment", Conditions.none());

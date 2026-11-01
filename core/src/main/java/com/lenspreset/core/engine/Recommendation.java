@@ -27,6 +27,8 @@ public final class Recommendation {
     public final int iso;
     public final int isoAutoMin;
     public final int isoAutoMax;
+    /** False when the body cannot limit Auto ISO: the range above is then not sent or shown. */
+    public final boolean isoAutoRangeSettable;
     /** Exposure compensation in EV, on third stops. */
     public final double ev;
 
@@ -58,7 +60,7 @@ public final class Recommendation {
 
     public Recommendation(Preset.ExposureMode exposureMode, Double aperture, boolean apertureSettable,
                           Shutter shutter, Shutter minShutter, boolean isoAuto, int iso, int isoAutoMin,
-                          int isoAutoMax, double ev, String metering, String focusMode, String focusArea,
+                          int isoAutoMax, boolean isoAutoRangeSettable, double ev, String metering, String focusMode, String focusArea,
                           boolean faceDetection, boolean eyeAf, String drive, int selfTimer,
                           String creativeStyle, String creativeStyleFallback, String softSkin,
                           List<String> overlays, List<Message> messages, double focalMm,
@@ -73,6 +75,7 @@ public final class Recommendation {
         this.iso = iso;
         this.isoAutoMin = isoAutoMin;
         this.isoAutoMax = isoAutoMax;
+        this.isoAutoRangeSettable = isoAutoRangeSettable;
         this.ev = ev;
         this.metering = metering;
         this.focusMode = focusMode;

@@ -25,7 +25,8 @@ public final class Hud {
         }
         if (r.shutter != null) out.add(r.shutter.format());
         if (r.minShutter != null) out.add("≥" + r.minShutter.format());
-        if (r.isoAuto) out.add("ISO AUTO " + r.isoAutoMin + "–" + r.isoAutoMax);
+        if (r.isoAuto && r.isoAutoRangeSettable) out.add("ISO AUTO " + r.isoAutoMin + "–" + r.isoAutoMax);
+        else if (r.isoAuto) out.add("ISO AUTO");
         else out.add("ISO " + r.iso);
         out.add("EV " + Scales.formatEv(r.ev));
         if (r.metering != null && !"multi".equals(r.metering)) out.add(i18n.t("hud.metering." + r.metering));

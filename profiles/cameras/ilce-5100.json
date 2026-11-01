@@ -20,6 +20,7 @@
     "read_focal_length": "unknown",
     "set_exposure_mode": "unknown",
     "auto_iso_min_shutter": "unknown",
+    "auto_iso_range": "no",
     "continuous_af": "unknown",
     "burst": "unknown",
     "self_timer": "unknown",
@@ -28,5 +29,5 @@
   "status": "untested",
   "tested_firmware": ["3.10"],
   "tested_by": ["@hieu"],
-  "notes": "First target body. Feature values stay unknown until the in-app probe (PROBE.TXT) and a shooting test confirm them."
+  "notes": "First target body. Feature values stay unknown until the in-app probe (PROBE.TXT) and a shooting test confirm them. auto_iso_range is no: setISOAutoMin/Max do not exist on firmware 3.10 (firmware report) and fail on the body."
 }

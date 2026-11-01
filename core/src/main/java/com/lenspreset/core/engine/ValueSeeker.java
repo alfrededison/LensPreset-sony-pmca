@@ -48,9 +48,18 @@ public final class ValueSeeker {
     private int lastCommand = DONE;
 
     public ValueSeeker(double targetStops, double toleranceStops, int maxSteps) {
+        this(targetStops, toleranceStops, maxSteps, INCREMENT);
+    }
+
+    /**
+     * {@code raisingCommand} is the command expected to raise the value (INCREMENT or DECREMENT),
+     * as observed on a body; the first step that moves still corrects it if a body differs.
+     */
+    public ValueSeeker(double targetStops, double toleranceStops, int maxSteps, int raisingCommand) {
         this.target = targetStops;
         this.tolerance = toleranceStops;
         this.maxSteps = maxSteps;
+        this.raises = raisingCommand == DECREMENT ? DECREMENT : INCREMENT;
     }
 
     /**

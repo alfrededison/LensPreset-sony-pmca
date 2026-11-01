@@ -24,6 +24,8 @@ public enum Feature {
     public static final String READ_FOCAL_LENGTH = "read_focal_length";
     public static final String SET_EXPOSURE_MODE = "set_exposure_mode";
     public static final String AUTO_ISO_MIN_SHUTTER = "auto_iso_min_shutter";
+    /** Limiting Auto ISO's range (setISOAutoMin/Max); absent on ILCE-5100 3.10. */
+    public static final String AUTO_ISO_RANGE = "auto_iso_range";
     public static final String CONTINUOUS_AF = "continuous_af";
     public static final String BURST = "burst";
     public static final String SELF_TIMER = "self_timer";
@@ -31,7 +33,7 @@ public enum Feature {
 
     public static final String[] NAMES = {
             FACE_DETECTION, EYE_AF, SOFT_SKIN, CREATIVE_STYLE, SILENT_SHUTTER, READ_LENS_INFO,
-            READ_FOCAL_LENGTH, SET_EXPOSURE_MODE, AUTO_ISO_MIN_SHUTTER, CONTINUOUS_AF, BURST,
+            READ_FOCAL_LENGTH, SET_EXPOSURE_MODE, AUTO_ISO_MIN_SHUTTER, AUTO_ISO_RANGE, CONTINUOUS_AF, BURST,
             SELF_TIMER, METERING,
     };
 }

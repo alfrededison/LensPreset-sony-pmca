@@ -64,6 +64,7 @@
         "read_focal_length": { "$ref": "#/definitions/feature" },
         "set_exposure_mode": { "$ref": "#/definitions/feature" },
         "auto_iso_min_shutter": { "$ref": "#/definitions/feature" },
+        "auto_iso_range": { "$ref": "#/definitions/feature" },
         "continuous_af": { "$ref": "#/definitions/feature" },
         "burst": { "$ref": "#/definitions/feature" },
         "self_timer": { "$ref": "#/definitions/feature" },

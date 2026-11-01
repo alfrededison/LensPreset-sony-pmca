@@ -164,6 +164,9 @@ public final class PresetEngine {
         } else {
             iso = Math.max(camera.isoMin, Math.min(camera.isoMax, preset.iso.value));
         }
+        boolean isoRangeSettable = camera.feature(Feature.AUTO_ISO_RANGE) != Feature.NO;
+        if (isoAuto && !isoRangeSettable && (preset.iso.max != null || preset.iso.min != null))
+            notices.add(Message.of(Message.Level.INFO, "notice.iso_range_unavailable"));
 
         double ev = Scales.snapEv(Math.max(-camera.evRange, Math.min(camera.evRange, preset.ev)));
 
@@ -246,7 +249,7 @@ public final class PresetEngine {
         messages.addAll(notices);
 
         return new Recommendation(preset.exposureMode, aperture, lens.electronic, shutter, minShutter,
-                isoAuto, iso, isoAuto ? isoMin : 0, isoAuto ? isoMax : 0, ev, metering, focusMode,
+                isoAuto, iso, isoAuto ? isoMin : 0, isoAuto ? isoMax : 0, isoAuto && isoRangeSettable, ev, metering, focusMode,
                 focusArea, face, eye, drive, selfTimer, style, styleFallback, softSkin,
                 preset.overlays, messages, focal, focal * crop, distance, dofNear, dofFar);
     }

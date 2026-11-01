@@ -64,6 +64,23 @@ class ValueSeekerTest {
     }
 
     @Test
+    void aKnownDirectionSavesTheFirstStep() {
+        FakeDial guessed = new FakeDial(1.0, 0, 8, -1);
+        int withGuess = seek(guessed, 3.0);
+        ValueSeeker s = new ValueSeeker(3.0, 0.17, 40, ValueSeeker.DECREMENT);
+        FakeDial known = new FakeDial(1.0, 0, 8, -1);
+        int n = 0;
+        int cmd;
+        while ((cmd = s.next(known.value)) != ValueSeeker.DONE) {
+            known.apply(cmd);
+            n++;
+        }
+        assertEquals(3.0, known.value, 1e-9);
+        assertEquals(6, n);
+        assertTrue(withGuess > n, withGuess + " vs " + n);
+    }
+
+    @Test
     void triesTheOtherWayWhenTheFirstGuessHitsALimit() {
         // At the bottom already and INCREMENT actually lowers: the first guess does nothing.
         FakeDial d = new FakeDial(0, 0, 8, -1);

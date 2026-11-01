@@ -92,6 +92,9 @@ class SonyValuesTest {
         r.add("aperture", ApplyReport.Status.FAILED, ApplyReport.describe(new NoSuchMethodError("incrementAperture")));
         assertEquals(1, r.okCount());
         assertEquals(2, r.problems().size());
+        assertEquals("aperture", r.failures().get(0).key);
+        assertEquals(1, r.failures().size());
+        assertEquals("soft_skin", r.unsupported().get(0).key);
         assertEquals("[OK iso auto, UNSUPPORTED soft_skin low not in [off], FAILED aperture NoSuchMethodError: incrementAperture]",
                 r.logLines().toString());
     }

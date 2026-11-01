@@ -22,7 +22,7 @@ bundled profile replaces it. Files that fail to load are listed under MENU → *
 | `ev_range` | exposure compensation, ± EV (default 3) |
 | `burst_fps` | `lo`, `hi` (informational) |
 | `controls` | `touchscreen` (required), `front_dial`, `rear_wheel`, `top_dial`, `custom_keys` |
-| `features` | each `yes` / `no` / `unknown`: `face_detection`, `eye_af`, `soft_skin`, `creative_style`, `silent_shutter`, `read_lens_info`, `read_focal_length`, `set_exposure_mode`, `auto_iso_min_shutter`, `continuous_af`, `burst`, `self_timer`, `metering` |
+| `features` | each `yes` / `no` / `unknown`: `face_detection`, `eye_af`, `soft_skin`, `creative_style`, `silent_shutter`, `read_lens_info`, `read_focal_length`, `set_exposure_mode`, `auto_iso_min_shutter`, `auto_iso_range`, `continuous_af`, `burst`, `self_timer`, `metering` |
 | `status` | `verified`, `community-tested`, `untested` |
 | `tested_firmware`, `tested_by`, `notes` | provenance |
 

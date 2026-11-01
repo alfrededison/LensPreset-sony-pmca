@@ -334,7 +334,7 @@ public final class SonyCamera {
         setPlain(report, "iso", r.isoAuto ? "auto" : Integer.toString(r.iso), new Write() {
             public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setISOSensitivity(r.isoAuto ? 0 : r.iso); }
         });
-        if (r.isoAuto) {
+        if (r.isoAuto && r.isoAutoRangeSettable) {
             setPlain(report, "iso_range", r.isoAutoMin + ".." + r.isoAutoMax, new Write() {
                 public void to(Camera.Parameters p, CameraEx.ParametersModifier m) {
                     m.setISOAutoMin(r.isoAutoMin);
@@ -525,7 +525,10 @@ public final class SonyCamera {
         Seek(boolean aperture, double target, ApplyReport report, Runnable next) {
             this.aperture = aperture;
             this.target = target;
-            this.seeker = new ValueSeeker(target, TOLERANCE_STOPS, MAX_STEPS);
+            // As observed on an A5100: incrementAperture closes the aperture (raises the f-number),
+            // incrementShutterSpeed makes the shutter faster (lowers the time).
+            this.seeker = new ValueSeeker(target, TOLERANCE_STOPS, MAX_STEPS,
+                    aperture ? ValueSeeker.INCREMENT : ValueSeeker.DECREMENT);
             this.report = report;
             this.next = next;
         }

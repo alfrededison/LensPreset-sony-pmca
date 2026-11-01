@@ -56,6 +56,20 @@ public final class ApplyReport {
         return out;
     }
 
+    /** What went wrong: refused calls, and steps that stopped short. Not what the body simply lacks. */
+    public List<Item> failures() {
+        List<Item> out = new ArrayList<Item>();
+        for (Item i : items) if (i.status == Status.FAILED || i.status == Status.PARTIAL) out.add(i);
+        return out;
+    }
+
+    /** What the body does not offer: a fact about the camera, not a failure. */
+    public List<Item> unsupported() {
+        List<Item> out = new ArrayList<Item>();
+        for (Item i : items) if (i.status == Status.UNSUPPORTED) out.add(i);
+        return out;
+    }
+
     /** One line per item, for LOG.TXT. */
     public List<String> logLines() {
         List<String> out = new ArrayList<String>();
