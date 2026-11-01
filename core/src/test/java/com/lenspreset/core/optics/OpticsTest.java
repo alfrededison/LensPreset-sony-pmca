@@ -71,6 +71,17 @@ class OpticsTest {
     }
 
     @Test
+    void evStepsStayWithinTheBodyRange() {
+        assertEquals(1 / 3.0, Scales.clampEv(0 + 1 / 3.0, 3), 1e-9);
+        assertEquals(-1 / 3.0, Scales.clampEv(0 - 1 / 3.0, 3), 1e-9);
+        assertEquals(3, Scales.clampEv(3 + 1 / 3.0, 3), 1e-9);
+        assertEquals(-3, Scales.clampEv(-3 - 1 / 3.0, 3), 1e-9);
+        assertEquals(7 / 3.0, Scales.clampEv(3, 2.5), 1e-9);
+        assertEquals(-7 / 3.0, Scales.clampEv(-3, 2.5), 1e-9);
+        assertEquals(0, Scales.clampEv(1, 0), 1e-9);
+    }
+
+    @Test
     void formats() {
         assertEquals("f/1.8", Scales.formatAperture(1.8));
         assertEquals("f/11", Scales.formatAperture(11));

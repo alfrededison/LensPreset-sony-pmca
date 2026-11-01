@@ -15,10 +15,15 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
   balanced rows. Recipe hint text and its font size are unchanged.
 - Preset options such as group row count and self-timer have a separate amber area below the
   preset and lens. Computed exposure and focus settings stay in the bottom strip.
+- Live-view Left / Right selects ISO, EV, then the preset's own options (Group rows and self-timer).
+  The selected card has a brighter amber background and border; touchscreen users can select a
+  card by tapping it. Turning the wheel applies the selected value immediately.
+- ISO steps between AUTO and the body's supported manual sensitivities; EV steps by 1/3 stop.
+  Each preset remembers ISO and EV across restarts, including with Keep current look enabled.
+  ISO/EV writes and read-back do not reapply focus or drive. Fixed ISO in A/P modes shows a
+  shutter-speed reminder instead of claiming an enforced Auto ISO shutter threshold.
 - In preset options, the wheel changes the selected value; Up / Down selects the setting.
   Page Up / Page Down simulate wheel turns on an emulator.
-- Live-view Left / Right guidance appears only for configurable presets and names the setting.
-  Group photo shows its selected row count and self-timer beside the exposure settings.
 - The ? / Trash button cycles live-view detail: hide hints, hide the key guide too, hide all
   overlays (including composition guides), then show everything again.
 - Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,

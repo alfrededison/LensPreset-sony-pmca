@@ -14,7 +14,9 @@ import com.lenspreset.core.engine.Hud;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Drawn over the live view: composition guides, the preset and kit in use, the settings as chips,
@@ -53,6 +55,8 @@ public final class OverlayView extends View {
     private List<Line> messages = Collections.emptyList();
     private List<String> guides = Collections.emptyList();
     private DetailLevel detailLevel = DetailLevel.FULL;
+    private String selectedControl = Hud.EV;
+    private final Map<String, RectF> controlBounds = new LinkedHashMap<String, RectF>();
     /** Runs once, on the first draw: the log records when the screen first showed something. */
     private Runnable onFirstDraw;
     private boolean statusWarn;
@@ -105,6 +109,17 @@ public final class OverlayView extends View {
         invalidate();
     }
 
+    void setSelectedControl(String key) {
+        selectedControl = key;
+        invalidate();
+    }
+
+    String controlAt(float x, float y) {
+        for (Map.Entry<String, RectF> entry : controlBounds.entrySet())
+            if (entry.getValue().contains(x, y)) return entry.getKey();
+        return null;
+    }
+
     void setUnderPanel(boolean under) {
         underPanel = under;
         invalidate();
@@ -118,6 +133,7 @@ public final class OverlayView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
+        controlBounds.clear();
         if (onFirstDraw != null) {
             Runnable r = onFirstDraw;
             onFirstDraw = null;
@@ -213,33 +229,39 @@ public final class OverlayView extends View {
         final String label;
         final String value;
         final RectF bounds;
+        final String controlKey;
 
-        ChipBox(String label, String value, RectF bounds) {
+        ChipBox(String label, String value, RectF bounds, String controlKey) {
             this.label = label;
             this.value = value;
             this.bounds = bounds;
+            this.controlKey = controlKey;
         }
     }
 
     private void drawChip(Canvas c, ChipBox box, float x, float y, float size, boolean option) {
+        boolean selected = selectedControl.equals(box.controlKey);
+        boolean highlighted = option || selected;
         cardBounds.set(box.bounds);
         cardBounds.offset(x, y);
+        if (box.controlKey != null) controlBounds.put(box.controlKey, new RectF(cardBounds));
         card.setStyle(Paint.Style.FILL);
-        card.setColor(option ? Color.argb(225, 53, 43, 29) : Color.argb(220, 47, 49, 54));
+        card.setColor(selected ? Color.argb(240, 105, 65, 20)
+                : highlighted ? Color.argb(225, 53, 43, 29) : Color.argb(220, 47, 49, 54));
         c.drawRoundRect(cardBounds, size * 0.22f, size * 0.22f, card);
         card.setStyle(Paint.Style.STROKE);
-        card.setStrokeWidth(1);
-        card.setColor(option ? Color.rgb(245, 177, 92) : Color.argb(75, 255, 255, 255));
+        card.setStrokeWidth(selected ? 2.5f : 1);
+        card.setColor(highlighted ? Color.rgb(245, 177, 92) : Color.argb(75, 255, 255, 255));
         c.drawRoundRect(cardBounds, size * 0.22f, size * 0.22f, card);
 
         text.setFakeBoldText(false);
         text.setTextSize(size * 0.55f);
-        text.setColor(option ? Color.rgb(245, 177, 92) : Color.rgb(185, 189, 198));
+        text.setColor(highlighted ? Color.rgb(245, 177, 92) : Color.rgb(185, 189, 198));
         c.drawText(box.label, cardBounds.centerX() - text.measureText(box.label) / 2,
                 cardBounds.top + size * 0.62f, text);
         text.setFakeBoldText(true);
         text.setTextSize(size * 0.87f);
-        text.setColor(Color.WHITE);
+        text.setColor(selected ? Color.rgb(255, 210, 120) : Color.WHITE);
         c.drawText(box.value, cardBounds.centerX() - text.measureText(box.value) / 2,
                 cardBounds.top + size * 1.65f, text);
         text.setFakeBoldText(false);
@@ -296,7 +318,7 @@ public final class OverlayView extends View {
             String value = TextFit.ellipsize(text, chip.value, width - 2 * inset);
             float chipWidth = Math.max(size * 1.8f, Math.max(labelWidth, text.measureText(value)) + 2 * inset);
             chipWidth = Math.min(width, chipWidth);
-            boxes.add(new ChipBox(label, value, new RectF(0, 0, chipWidth, size * 2)));
+            boxes.add(new ChipBox(label, value, new RectF(0, 0, chipWidth, size * 2), chip.controlKey));
         }
         text.setFakeBoldText(false);
         return boxes;

@@ -188,8 +188,8 @@ exit with reopening enabled, and manual relaunch with live view were checked on 
 **Keep current look** defaults to on in app preferences and is passed through `Conditions` to
 the engine. The engine returns null look fields in that mode, so the adapter skips those writes
 and the HUD does not claim the preset's look was applied. In managed mode, omitted look fields
-resolve to Standard / Soft Skin off. EV remains under the preset's control in both modes; this
-setting alone does not guarantee an entire Recipe Lab recipe remains unchanged.
+resolve to Standard / Soft Skin off. EV uses the preset default or its saved wheel adjustment
+in both modes; this setting alone does not guarantee an entire Recipe Lab recipe remains unchanged.
 The adb test sends `test-look managed` to exercise look writes without editing the user's saved
 preference, and `test-look restore` on cleanup. Pause also clears the temporary override. `--face`
 requires an OK Soft Skin Low apply report before it will shoot, so a missing look write cannot
@@ -277,11 +277,26 @@ adb -s emulator-5554 shell input keyevent KEYCODE_PAGE_DOWN  # clockwise
 adb -s emulator-5554 shell input keyevent KEYCODE_PAGE_UP    # counter-clockwise
 ```
 
-In live view these switch presets; in lists they move the selection. In preset options, Up / Down
-chooses a setting and the wheel (or Left / Right) changes that setting's value. To check the group
-self-timer: Centre → Group photo → Down to Self-timer, then Page Up / Page Down. The selection
-must stay on Self-timer while its value changes among off / 2 s / 10 s; Centre applies it.
-Turning the wheel on the Apply row does nothing. Also check the row count clamps at 1 and 4.
+In live view, Left / Right selects ISO, EV, then the preset's own options; the wheel changes the
+highlighted value and the preset must stay unchanged. Check EV in 1/3-stop increments and ISO
+through AUTO → 100 → 125 → …, including returning to AUTO. The selected card has a brighter
+amber fill and border; on touchscreen bodies, tapping an editable card selects it.
+
+Each preset remembers absolute EV in third stops (`ev.<preset id>`) and ISO (`iso.<preset id>`;
+0 is Auto, absent uses the preset's default). Check bounds against the camera profile, switch
+presets with Up / Down and return, then restart the app to check restoration. Manual ISO uses
+the full body range rather than an Auto ISO ceiling. Fixed ISO in A/P modes removes the Auto ISO
+minimum-shutter card and adds a shutter-speed reminder. Returning to Auto restores its range and
+minimum-shutter policy. Keep current look does not suppress ISO or EV. Wheel ISO/EV changes use
+separate adapter write/read-back paths without restarting focus or drive; full apply/restore
+receives both saved values through `Conditions`. Firmware ISO choices are preferred; when the
+capability list is missing, standard third stops within the profile's range are used.
+
+For Group photo, select rows and self-timer with Left / Right, then Page Up / Page Down to change
+the highlighted value. Verify rows stop at 1 and 4, and timer values are off / 2 s / 10 s. Switch
+to a preset without those options: selection should fall back to EV if its old option is missing.
+In lists the wheel moves the selection. In preset options, Up / Down chooses a setting and the
+wheel (or Left / Right) changes its value. Turning the wheel on the Apply row does nothing.
 This verifies app action handling; actual Sony dial events still need a real-camera check.
 
 ## Installing on the camera

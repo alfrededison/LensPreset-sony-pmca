@@ -8,6 +8,7 @@ import android.view.SurfaceHolder;
 import com.lenspreset.core.engine.Recommendation;
 import com.lenspreset.core.engine.ValueSeeker;
 import com.lenspreset.core.model.Preset;
+import com.lenspreset.core.optics.IsoScale;
 import com.lenspreset.core.optics.Scales;
 import com.lenspreset.core.optics.Shutter;
 import com.sony.scalar.hardware.CameraEx;
@@ -517,37 +518,9 @@ public final class SonyCamera {
             public void to(Camera.Parameters p, CameraEx.ParametersModifier m, String v) { p.setSceneMode(v); }
         });
 
-        setPlain(report, "iso", r.isoAuto ? "auto" : Integer.toString(r.iso), Integer.toString(r.isoAuto ? 0 : r.iso), new Write() {
-            public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setISOSensitivity(r.isoAuto ? 0 : r.iso); }
-        });
-        if (r.isoAuto && r.isoAutoRangeSettable) {
-            setPlain(report, "iso_range", r.isoAutoMin + ".." + r.isoAutoMax, new Write() {
-                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) {
-                    m.setISOAutoMin(r.isoAutoMin);
-                    m.setISOAutoMax(r.isoAutoMax);
-                }
-            });
-        }
+        applyIso(report, r, cur);
 
-        if (r.minShutter != null) {
-            applyMinShutter(report, cur, r.minShutter);
-        } else if (r.exposureMode == Preset.ExposureMode.SHUTTER_PRIORITY || r.exposureMode == Preset.ExposureMode.MANUAL) {
-            // The Auto ISO low limit also caps the shutter in S and M on an A5100: a 1/100 left by an
-            // earlier preset stopped 1/60 at 1/100. BetterManual clears it the same way.
-            setPlain(report, "min_shutter", "cleared", "-1", new Write() {
-                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setAutoShutterSpeedLowLimit(-1); }
-            });
-        }
-
-        try {
-            final int idx = SonyValues.evIndex(r.ev, now.getExposureCompensationStep(),
-                    now.getMinExposureCompensation(), now.getMaxExposureCompensation());
-            setPlain(report, "ev", Scales.formatEv(r.ev), Integer.toString(idx), new Write() {
-                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { p.setExposureCompensation(idx); }
-            });
-        } catch (Throwable t) {
-            report.add("ev", ApplyReport.Status.FAILED, ApplyReport.describe(t));
-        }
+        applyEv(report, r.ev, now);
 
         if (r.metering != null) {
             set(report, "metering", r.metering, supported(new SupportedList() {
@@ -649,6 +622,85 @@ public final class SonyCamera {
 
     private static boolean af(Recommendation r) {
         return SonyValues.autoFocusMode(r.focusMode) != null;
+    }
+
+    /** Prefer the firmware's actual ISO choices to the profile fallback used by an emulator. */
+    public List<Integer> isoValues(int min, int max) {
+        List<?> values;
+        try {
+            values = current().getSupportedISOSensitivities();
+        } catch (Throwable t) {
+            values = null;
+        }
+        return IsoScale.values(values, min, max);
+    }
+
+    /** Update ISO and its Auto ISO constraints without restarting focus or drive. */
+    public ApplyReport applySensitivity(final Recommendation r) {
+        ApplyReport report = new ApplyReport();
+        try {
+            applyIso(report, r, current());
+            check(report, "iso", new ProbeReport.Read() {
+                public Object get() { return current().getISOSensitivity(); }
+            });
+            check(report, "min_shutter", new ProbeReport.Read() {
+                public Object get() { return current().getAutoShutterSpeedLowLimit(); }
+            });
+        } catch (Throwable t) {
+            report.add("iso", ApplyReport.Status.FAILED, ApplyReport.describe(t));
+        }
+        return report;
+    }
+
+    private void applyIso(ApplyReport report, final Recommendation r, CameraEx.ParametersModifier cur) {
+        setPlain(report, "iso", r.isoAuto ? "auto" : Integer.toString(r.iso), Integer.toString(r.isoAuto ? 0 : r.iso), new Write() {
+            public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setISOSensitivity(r.isoAuto ? 0 : r.iso); }
+        });
+        if (r.isoAuto && r.isoAutoRangeSettable) {
+            setPlain(report, "iso_range", r.isoAutoMin + ".." + r.isoAutoMax, new Write() {
+                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) {
+                    m.setISOAutoMin(r.isoAutoMin);
+                    m.setISOAutoMax(r.isoAutoMax);
+                }
+            });
+        }
+
+        if (r.minShutter != null) {
+            applyMinShutter(report, cur, r.minShutter);
+        } else if (!r.isoAuto || r.exposureMode == Preset.ExposureMode.SHUTTER_PRIORITY
+                || r.exposureMode == Preset.ExposureMode.MANUAL) {
+            // The Auto ISO low limit also caps the shutter in S and M on an A5100: a 1/100 left by an
+            // earlier preset stopped 1/60 at 1/100. BetterManual clears it the same way.
+            setPlain(report, "min_shutter", "cleared", "-1", new Write() {
+                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { m.setAutoShutterSpeedLowLimit(-1); }
+            });
+        }
+    }
+
+    /** A wheel turn changes EV without restarting focus, drive, or aperture/shutter seeking. */
+    public ApplyReport applyExposureCompensation(double ev) {
+        ApplyReport report = new ApplyReport();
+        try {
+            applyEv(report, ev, cam.getNormalCamera().getParameters());
+            check(report, "ev", new ProbeReport.Read() {
+                public Object get() { return cam.getNormalCamera().getParameters().getExposureCompensation(); }
+            });
+        } catch (Throwable t) {
+            report.add("ev", ApplyReport.Status.FAILED, ApplyReport.describe(t));
+        }
+        return report;
+    }
+
+    private void applyEv(ApplyReport report, double ev, Camera.Parameters now) {
+        try {
+            final int idx = SonyValues.evIndex(ev, now.getExposureCompensationStep(),
+                    now.getMinExposureCompensation(), now.getMaxExposureCompensation());
+            setPlain(report, "ev", Scales.formatEv(ev), Integer.toString(idx), new Write() {
+                public void to(Camera.Parameters p, CameraEx.ParametersModifier m) { p.setExposureCompensation(idx); }
+            });
+        } catch (Throwable t) {
+            report.add("ev", ApplyReport.Status.FAILED, ApplyReport.describe(t));
+        }
     }
 
     /** Reads every written setting back (see ApplyReport.readBack); a getter that throws is skipped. */

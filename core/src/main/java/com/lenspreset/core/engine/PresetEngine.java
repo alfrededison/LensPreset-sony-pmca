@@ -147,13 +147,11 @@ public final class PresetEngine {
                 shutter = s;
             } else {
                 minShutter = s;
-                if (camera.feature(Feature.AUTO_ISO_MIN_SHUTTER) == Feature.NO)
-                    notices.add(Message.of(Message.Level.WARN, "notice.min_shutter_watch", "shutter", s.format()));
             }
         }
 
         // ISO.
-        boolean isoAuto = preset.iso.auto;
+        boolean isoAuto = now.iso == null ? preset.iso.auto : now.iso == 0;
         int iso = 0;
         int isoMin = camera.isoMin;
         int isoMax = camera.autoIsoCeiling();
@@ -165,13 +163,26 @@ public final class PresetEngine {
                 isoMax = Math.max(isoMin, Math.min(isoMax, preset.iso.max));
             }
         } else {
-            iso = Math.max(camera.isoMin, Math.min(camera.isoMax, preset.iso.value));
+            int requested = now.iso == null ? preset.iso.value : now.iso;
+            iso = Math.max(camera.isoMin, Math.min(camera.isoMax, requested));
         }
         boolean isoRangeSettable = camera.feature(Feature.AUTO_ISO_RANGE) != Feature.NO;
         if (isoAuto && !isoRangeSettable && (preset.iso.max != null || preset.iso.min != null))
             notices.add(Message.of(Message.Level.INFO, "notice.iso_range_unavailable"));
 
-        double ev = Scales.snapEv(Math.max(-camera.evRange, Math.min(camera.evRange, preset.ev)));
+        Message isoReminder = null;
+        if (minShutter != null) {
+            if (!isoAuto) {
+                isoReminder = Message.of(Message.Level.WARN, "notice.fixed_iso_shutter_watch",
+                        "shutter", minShutter.format());
+                minShutter = null;
+            } else if (camera.feature(Feature.AUTO_ISO_MIN_SHUTTER) == Feature.NO) {
+                notices.add(Message.of(Message.Level.WARN, "notice.min_shutter_watch",
+                        "shutter", minShutter.format()));
+            }
+        }
+
+        double ev = Scales.clampEv(now.evThirds == null ? preset.ev : now.evThirds / 3.0, camera.evRange);
 
         String metering = preset.metering;
         if (camera.feature(Feature.METERING) == Feature.NO && !"multi".equals(metering)) {
@@ -242,6 +253,7 @@ public final class PresetEngine {
 
         // What to tell the photographer, most useful first.
         List<Message> messages = new ArrayList<Message>();
+        if (isoReminder != null) messages.add(isoReminder);
         if (distance != null && lens.af) {
             String key = Preset.Subject.GROUP.equals(preset.subject.framing)
                     ? "hint.distance" : "hint.distance." + preset.subject.framing;

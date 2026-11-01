@@ -74,4 +74,23 @@ final class Prefs {
     void setOverride(Preset p, String key, int value) {
         sp.edit().putInt("adjust." + p.id + "." + key, value).commit();
     }
+
+    /** Absolute EV in third stops, saved separately from the preset's optional adjust settings. */
+    Integer evThirds(Preset p) {
+        String key = "ev." + p.id;
+        return sp.contains(key) ? sp.getInt(key, 0) : null;
+    }
+
+    void setEvThirds(Preset p, int value) {
+        sp.edit().putInt("ev." + p.id, value).commit();
+    }
+
+    Integer iso(Preset p) {
+        String key = "iso." + p.id;
+        return sp.contains(key) ? sp.getInt(key, 0) : null;
+    }
+
+    void setIso(Preset p, int value) {
+        sp.edit().putInt("iso." + p.id, value).commit();
+    }
 }

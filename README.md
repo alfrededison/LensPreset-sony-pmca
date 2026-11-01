@@ -107,22 +107,29 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 | Key | Live view | Lists |
 |---|---|---|
 | Up / Down | previous / next situation (applied at once) | move |
-| Wheel | previous / next situation (applied at once) | move; in preset options, change the selected value |
-| Left / Right | change the situation's first setting, when available (e.g. rows) | change a value |
+| Wheel | change the highlighted ISO, EV, or preset option (applied at once) | move; in preset options, change the selected value |
+| Left / Right | select ISO, EV, or a preset option to highlight | change a value |
 | Centre | list of situations | select |
 | MENU | app menu: lens, language, settings, camera probe, save log, reload, about, exit | back |
 | ? / Trash | cycle: hide hints → hide key guide too → hide all overlays → show all | back |
 
-On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
-as usual; settings apply while the app is open.
+On bodies with a touchscreen, tap a configurable card to select it; tapping elsewhere in live view
+opens the list. Shoot with the shutter button as usual; settings apply while the app is open.
 Lists use the full screen, with one line per choice and the selected item's description below.
 The main menu fits all nine entries at 640×480; longer lists show a position counter and scrollbar.
 About and profile errors wrap their text; Up / Down or the wheel scrolls them.
-The key guide names the setting Left / Right changes and omits those keys for presets without
-adjustments. Group photo shows the selected row count and self-timer in an amber options area
-below the preset and lens. These values remain visible when hints and the key guide are hidden.
+Left / Right cycles through ISO, EV, then the preset's own options. The selected card has a brighter
+amber background and border; the key guide names the setting the wheel will change. Group photo
+includes row count and self-timer in the options area below the preset and lens. These values
+remain visible when hints and the key guide are hidden.
 Computed camera settings appear in rounded cards at the bottom, with a small label above each
 value. The cards wrap into balanced rows while recipe hints remain above them.
+With EV selected, the wheel changes compensation by 1/3 stop. With ISO selected, it steps through
+AUTO and the body's supported fixed ISO values (100, 125, 160, …). Turn back below the lowest fixed
+ISO to return to AUTO. Fixed ISO uses the full manual ISO range, independently of the Auto ISO
+ceiling; in A/P modes, watch the resulting shutter speed. Each preset remembers its ISO and EV
+across restarts; until adjusted, it uses the preset's defaults. Keep current look does not suppress
+ISO or EV changes. Selecting an option only highlights it; turning the wheel applies the change.
 On opening or resuming, the app reapplies the last selected preset and its saved adjustments
 after live view and lens identification are ready. Wait for the apply status before shooting.
 On a fresh install, choose and apply a situation first.
@@ -130,8 +137,9 @@ On a fresh install, choose and apply a situation first.
 **MENU → Settings** has two saved switches:
 
 - **Keep current look** (on by default): leave Creative Style and Soft Skin as they are, including
-  when switching presets. Exposure compensation still follows the selected situation. Turning
-  this off lets presets set their look; omitted fields become Standard and Soft Skin off.
+  when switching presets. ISO and exposure compensation follow the selected situation and its
+  saved wheel adjustments. Turning this off lets presets set their look; omitted fields become
+  Standard and Soft Skin off.
 - **Reopen after power-on** (off by default): return to LensPreset after power-on or wake when it
   was running. MENU → Exit cancels reopening for that session. USB still closes the app.
 

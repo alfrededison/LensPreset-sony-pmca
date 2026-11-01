@@ -28,6 +28,8 @@ import com.lenspreset.core.i18n.I18n;
 import com.lenspreset.core.model.CameraProfile;
 import com.lenspreset.core.model.LensProfile;
 import com.lenspreset.core.model.Preset;
+import com.lenspreset.core.optics.IsoScale;
+import com.lenspreset.core.optics.Scales;
 import com.lenspreset.core.profile.Matcher;
 import com.lenspreset.core.profile.ProfileSet;
 import com.sony.scalar.sysutil.ScalarInput;
@@ -69,6 +71,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private SonyCamera.LensReading lensReading;
     private Preset preset;
     private Recommendation rec;
+    private String wheelControl = Hud.EV;
     private double appliedFocal = -1;
 
     private SonyCamera sony;
@@ -321,7 +324,11 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         overlay.setOnTouchListener(camera != null && camera.controls.touchscreen ? new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent e) {
-                if (e.getAction() == MotionEvent.ACTION_UP && screen == Screen.LIVE) openPresets();
+                if (e.getAction() == MotionEvent.ACTION_UP && screen == Screen.LIVE) {
+                    String control = overlay.controlAt(e.getX(), e.getY());
+                    if (control == null) openPresets();
+                    else selectControl(control);
+                }
                 return true;
             }
         } : null);
@@ -477,12 +484,15 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private Conditions conditions(Preset p) {
         Double focal = lens != null && lens.zoom ? focalNow() : null;
         Double widest = sony == null ? null : sony.widestAperture();
-        return new Conditions(focal, widest, prefs.overrides(p), prefs.preserveLook() && !debugManagedLook);
+        return new Conditions(focal, widest, prefs.overrides(p), prefs.preserveLook() && !debugManagedLook,
+                prefs.evThirds(p), prefs.iso(p));
     }
 
     /** Recomputes the recommendation and redraws the overlay. */
     private void refresh() {
-        overlay.setLegend(Hud.liveLegend(preset, camera != null && camera.controls.touchscreen, i18n));
+        if (!Hud.controlKeys(preset).contains(wheelControl)) wheelControl = Hud.EV;
+        overlay.setSelectedControl(wheelControl);
+        overlay.setLegend(Hud.liveLegend(preset, wheelControl, camera != null && camera.controls.touchscreen, i18n));
         Map<String, Integer> overrides = preset == null
                 ? Collections.<String, Integer>emptyMap() : prefs.overrides(preset);
         if (camera == null || preset == null || lens == null) {
@@ -657,23 +667,25 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         List<Preset> all = profiles.presets();
         switch (action) {
             case Keys.UP:
-            case Keys.PREV:
-            case Keys.DOWN:
-            case Keys.NEXT: {
+            case Keys.DOWN: {
                 if (all.isEmpty()) return;
-                int step = action == Keys.UP || action == Keys.PREV ? -1 : 1;
+                int step = action == Keys.UP ? -1 : 1;
                 int idx = preset == null ? 0 : all.indexOf(preset);
                 choosePreset(all.get(((idx + step) % all.size() + all.size()) % all.size()));
                 break;
             }
-            case Keys.LEFT:
-            case Keys.RIGHT:
-                if (preset != null && !preset.adjust.isEmpty()) {
-                    String key = preset.adjust.keySet().iterator().next();
-                    stepAdjust(preset, key, action == Keys.RIGHT ? 1 : -1);
-                    apply();
-                }
+            case Keys.PREV:
+            case Keys.NEXT:
+                stepControl(action == Keys.NEXT ? 1 : -1);
                 break;
+            case Keys.LEFT:
+            case Keys.RIGHT: {
+                List<String> controls = Hud.controlKeys(preset);
+                int index = controls.indexOf(wheelControl);
+                int direction = action == Keys.RIGHT ? 1 : -1;
+                selectControl(controls.get((index + direction + controls.size()) % controls.size()));
+                break;
+            }
             case Keys.ENTER: openPresets(); break;
             case Keys.MENU: openMenu(); break;
             case Keys.TRASH: overlay.cycleDetails(); break;
@@ -685,6 +697,56 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         Preset.Adjust a = p.adjust.get(key);
         Integer cur = prefs.overrides(p).get(key);
         prefs.setOverride(p, key, a.step(cur == null ? a.defaultValue : cur, steps));
+    }
+
+    private void selectControl(String control) {
+        if (!Hud.controlKeys(preset).contains(control)) return;
+        wheelControl = control;
+        refresh();
+    }
+
+    private void stepControl(int steps) {
+        if (Hud.EV.equals(wheelControl)) stepEv(steps);
+        else if (Hud.ISO.equals(wheelControl)) stepIso(steps);
+        else if (preset != null && preset.adjust.containsKey(wheelControl)) {
+            stepAdjust(preset, wheelControl, steps);
+            apply();
+        }
+    }
+
+    private void stepIso(int steps) {
+        if (preset == null || camera == null || rec == null) return;
+        int current = rec.isoAuto ? 0 : rec.iso;
+        List<Integer> choices = sony == null ? IsoScale.values(null, camera.isoMin, camera.isoMax)
+                : sony.isoValues(camera.isoMin, camera.isoMax);
+        int iso = IsoScale.step(current, steps, choices);
+        if (iso == current) return;
+        prefs.setIso(preset, iso);
+        refresh();
+        if (sony == null) return;
+        ApplyReport report = sony.applySensitivity(rec);
+        boolean failed = !report.problems().isEmpty();
+        overlay.setStatus(i18n.t(failed ? "apply.iso_failed" : "apply.iso_done"), failed);
+        List<String> log = new ArrayList<String>();
+        log.add("wheel ISO " + (iso == 0 ? "AUTO" : Integer.toString(iso)) + " preset=" + preset.id);
+        log.addAll(report.logLines());
+        card.log(log);
+    }
+
+    private void stepEv(int steps) {
+        if (preset == null || camera == null || rec == null) return;
+        double ev = Scales.clampEv(rec.ev + steps / 3.0, camera.evRange);
+        if (Math.abs(ev - rec.ev) < 1e-9) return;
+        prefs.setEvThirds(preset, (int) Math.round(ev * 3));
+        refresh();
+        if (sony == null) return;
+        ApplyReport report = sony.applyExposureCompensation(ev);
+        boolean failed = !report.problems().isEmpty();
+        overlay.setStatus(i18n.t(failed ? "apply.ev_failed" : "apply.ev_done"), failed);
+        List<String> log = new ArrayList<String>();
+        log.add("wheel EV " + Scales.formatEv(ev) + " preset=" + preset.id);
+        log.addAll(report.logLines());
+        card.log(log);
     }
 
     // ---- lists ----

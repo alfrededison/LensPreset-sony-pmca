@@ -18,18 +18,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HudTest {
     @Test
-    void onlyConfigurablePresetsAdvertiseLeftAndRight() {
+    void guideNamesEverySelectableControlAndEachControlHasOneCard() {
         for (String language : Arrays.asList("en", "vi")) {
             I18n i18n = Fixtures.i18n(language);
-            String keyLabel = language.equals("vi") ? "Trái/Phải" : "Left/Right";
             for (Preset preset : Fixtures.bundled().presets()) {
-                String legend = Hud.liveLegend(preset, false, i18n);
-                assertEquals(!preset.adjust.isEmpty(), legend.contains(keyLabel), preset.id);
-                assertFalse(legend.contains("{"), legend);
-                if (!preset.adjust.isEmpty())
-                    assertTrue(legend.contains(Hud.adjustmentLabel(preset, preset.adjust.keySet().iterator().next(), i18n)));
+                List<String> controls = Hud.controlKeys(preset);
+                assertTrue(controls.containsAll(Arrays.asList(Hud.ISO, Hud.EV)));
+                assertTrue(controls.containsAll(preset.adjust.keySet()));
+                Recommendation rec = PresetEngine.compute(Fixtures.camera("ilce-5100"),
+                        Fixtures.lens("sigma-30-f14-dc-dn"), preset, Conditions.none());
+                List<Hud.Chip> chips = Hud.chips(rec, preset, Collections.<String, Integer>emptyMap(), i18n);
+                for (String control : controls) {
+                    String legend = Hud.liveLegend(preset, control, false, i18n);
+                    assertTrue(legend.contains(Hud.controlLabel(preset, control, i18n)), preset.id);
+                    assertTrue(legend.contains(language.equals("vi") ? "Trái/Phải: chọn" : "Left/Right: select"));
+                    assertFalse(legend.contains("{"), legend);
+                    assertEquals(1, chips.stream().filter(c -> control.equals(c.controlKey)).count(), control);
+                }
             }
-            assertFalse(Hud.liveLegend(null, false, i18n).contains(keyLabel));
+            assertEquals(Arrays.asList(Hud.ISO, Hud.EV), Hud.controlKeys(null));
         }
     }
 
@@ -37,8 +44,8 @@ class HudTest {
     void touchGuideIsOnlyShownForTouchscreenBodies() {
         I18n i18n = Fixtures.i18n("vi");
         Preset preset = Fixtures.preset("group");
-        assertTrue(Hud.liveLegend(preset, true, i18n).contains(i18n.t("ui.legend.touch")));
-        assertFalse(Hud.liveLegend(preset, false, i18n).contains(i18n.t("ui.legend.touch")));
+        assertTrue(Hud.liveLegend(preset, Hud.EV, true, i18n).contains(i18n.t("ui.legend.touch")));
+        assertFalse(Hud.liveLegend(preset, Hud.EV, false, i18n).contains(i18n.t("ui.legend.touch")));
     }
 
     @Test

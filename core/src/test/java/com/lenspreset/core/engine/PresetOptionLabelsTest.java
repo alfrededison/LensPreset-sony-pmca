@@ -33,7 +33,7 @@ class PresetOptionLabelsTest {
             assertFalse(i18n.has("ui.adjust.rows"));
             assertEquals(expected, Hud.adjustmentLabel(preset, "rows", i18n));
             assertEquals(expected, Hud.adjustments(preset, Collections.<String, Integer>emptyMap(), i18n).get(0).label);
-            assertTrue(Hud.liveLegend(preset, false, i18n).contains(expected));
+            assertTrue(Hud.liveLegend(preset, "rows", false, i18n).contains(expected));
             assertEquals(i18n.t("ui.adjust.self_timer"), Hud.adjustmentLabel(preset, "self_timer", i18n));
             assertTrue(preset.adjust.get("self_timer").label.isEmpty());
         }

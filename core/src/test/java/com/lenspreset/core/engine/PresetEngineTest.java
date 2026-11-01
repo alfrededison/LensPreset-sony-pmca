@@ -246,6 +246,39 @@ class PresetEngineTest {
     }
 
     @Test
+    void savedEvIsAbsoluteAndZeroOverridesANonzeroPresetDefault() {
+        assertEquals(4 / 3.0, run(A5100, SIGMA_30, "high-key", Conditions.none()).ev, 1e-9);
+        assertEquals(0, run(A5100, SIGMA_30, "high-key",
+                new Conditions(null, null, null, false, 0)).ev, 1e-9);
+        assertEquals(-1 / 3.0, run(A5100, SIGMA_30, "beach-landscape",
+                new Conditions(null, null, null, false, -1)).ev, 1e-9);
+    }
+
+    @Test
+    void savedEvIsClampedWhenTheBodyHasALowerRange() {
+        assertEquals(2, run(Fixtures.camera("generic"), SIGMA_30, "portrait-bokeh",
+                new Conditions(null, null, null, false, 9)).ev, 1e-9);
+        assertEquals(-2, run(Fixtures.camera("generic"), SIGMA_30, "portrait-bokeh",
+                new Conditions(null, null, null, false, -9)).ev, 1e-9);
+    }
+
+    @Test
+    void wheelEvWorksWithPreserveLookWithoutChangingOtherShootingRules() {
+        Conditions original = new Conditions(null, null, null, true);
+        Recommendation before = run(A5100, SIGMA_30, "group", original);
+        Recommendation after = run(A5100, SIGMA_30, "group", new Conditions(null, null, null, true, 2));
+        assertEquals(2 / 3.0, after.ev, 1e-9);
+        assertNull(after.creativeStyle);
+        assertNull(after.softSkin);
+        assertEquals(before.aperture, after.aperture);
+        assertEquals(before.minShutter, after.minShutter);
+        assertEquals(before.focusMode, after.focusMode);
+        assertEquals(before.drive, after.drive);
+        assertEquals(before.selfTimer, after.selfTimer);
+        assertEquals(0, run(A5100, SIGMA_30, "group", original).ev, 1e-9);
+    }
+
+    @Test
     void evIsClampedToTheBodyRange() {
         CameraProfile generic = Fixtures.camera("generic");
         Recommendation r = run(generic, SIGMA_30, "silhouette", Conditions.none());
@@ -263,6 +296,69 @@ class PresetEngineTest {
         Recommendation portrait = run(A5100, SIGMA_30, "portrait-bokeh", Conditions.none());
         assertFalse(portrait.hasMessage("notice.iso_range_unavailable"), "no ceiling asked for, nothing to say");
         assertTrue(run(Fixtures.camera("generic"), SIGMA_30, "silhouette", Conditions.none()).isoAutoRangeSettable);
+    }
+
+    @Test
+    void manualIsoBypassesTheAutoCeilingAndKeepsTheOtherUserAdjustments() throws Exception {
+        CameraProfile capped = ProfileParser.camera(Fixtures.read(new java.io.File(Fixtures.root(),
+                "profiles/cameras/ilce-5100.json")).replace("\"max\": 25600", "\"max\": 25600, \"auto_max\": 6400"));
+        Map<String, Integer> selected = new HashMap<String, Integer>();
+        selected.put("rows", 4);
+        selected.put("self_timer", 10);
+        Recommendation manual = run(capped, SIGMA_30, "group",
+                new Conditions(null, null, selected, true, 2, 12800));
+        assertFalse(manual.isoAuto);
+        assertEquals(12800, manual.iso);
+        assertEquals(2 / 3.0, manual.ev, 1e-9);
+        assertEquals(10, manual.selfTimer);
+        assertNull(manual.creativeStyle);
+        assertNull(manual.softSkin);
+        assertNull(manual.minShutter, "fixed ISO cannot enforce an Auto ISO shutter threshold");
+        assertTrue(manual.hasMessage("notice.fixed_iso_shutter_watch"));
+        assertEquals("notice.fixed_iso_shutter_watch", manual.messages.get(0).key,
+                "the manual ISO reminder must fit before long recipe hints in the five-line overlay");
+        assertFalse(manual.hasMessage("notice.iso_range_unavailable"));
+        Recommendation auto = run(capped, SIGMA_30, "group",
+                new Conditions(null, null, selected, true, 2, 0));
+        assertTrue(auto.isoAuto);
+        assertEquals(6400, auto.isoAutoMax);
+        assertEquals("1/125", auto.minShutter.format());
+        assertFalse(auto.hasMessage("notice.fixed_iso_shutter_watch"));
+        assertEquals(manual.aperture, auto.aperture);
+        assertEquals(manual.ev, auto.ev);
+        assertEquals(manual.selfTimer, auto.selfTimer);
+    }
+
+    @Test
+    void savedManualIsoIsClampedToTheBodyAndCanRestoreAutoPresetLimits() {
+        assertEquals(25600, run(A5100, SIGMA_30, "portrait-environment",
+                new Conditions(null, null, null, false, null, 51200)).iso);
+        assertEquals(100, run(A5100, SIGMA_30, "portrait-environment",
+                new Conditions(null, null, null, false, null, 50)).iso);
+        Recommendation auto = run(A5100, SIGMA_30, "portrait-environment",
+                new Conditions(null, null, null, false, null, 0));
+        assertTrue(auto.isoAuto);
+        assertEquals(3200, auto.isoAutoMax);
+        assertTrue(auto.hasMessage("notice.iso_range_unavailable"));
+        Recommendation fixedShutter = run(A5100, SIGMA_30, "kids-action",
+                new Conditions(null, null, null, false, null, 800));
+        assertEquals("1/500", fixedShutter.shutter.format());
+        assertFalse(fixedShutter.hasMessage("notice.fixed_iso_shutter_watch"));
+    }
+
+    @Test
+    void explicitAutoDoesNotFallBackToACustomPresetsFixedIso() throws Exception {
+        Preset fixed = ProfileParser.preset(Fixtures.read(new java.io.File(Fixtures.root(),
+                "profiles/presets/group.json")).replace("\"iso\": \"auto\"",
+                "\"iso\": {\"mode\": \"fixed\", \"value\": 800}"));
+        Recommendation original = PresetEngine.compute(A5100, SIGMA_30, fixed, Conditions.none());
+        assertFalse(original.isoAuto);
+        assertEquals(800, original.iso);
+        Recommendation auto = PresetEngine.compute(A5100, SIGMA_30, fixed,
+                new Conditions(null, null, null, false, null, 0));
+        assertTrue(auto.isoAuto);
+        assertEquals(0, auto.iso);
+        assertEquals("1/125", auto.minShutter.format());
     }
 
     @Test

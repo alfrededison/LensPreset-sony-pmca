@@ -102,6 +102,12 @@ public final class Scales {
         return Math.round(ev * 3) / 3.0;
     }
 
+    /** The nearest third stop inside the body's compensation range. */
+    public static double clampEv(double ev, double range) {
+        long limit = (long) Math.floor(range * 3 + 1e-9);
+        return Math.max(-limit, Math.min(limit, Math.round(ev * 3))) / 3.0;
+    }
+
     /** {@code +1.3}, {@code -0.7}, {@code 0.0}. */
     public static String formatEv(double ev) {
         double snapped = snapEv(ev);
