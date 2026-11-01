@@ -23,11 +23,11 @@
     "auto_iso_range": "no",
     "continuous_af": "yes",
     "burst": "yes",
-    "self_timer": "unknown",
+    "self_timer": "yes",
     "metering": "yes"
   },
   "status": "community-tested",
   "tested_firmware": ["3.10"],
   "tested_by": ["@hieu"],
-  "notes": "First target body. Tested on firmware 3.10 with a Sigma 30mm F1.4 DC DN (tools/camera-test.sh --photos): the settings behind each yes were read back from the camera after the app set them and show in the EXIF of a photo shot with them; the lens name and focal length (tenths of a mm) were read from the body. soft_skin was checked with tools/camera-test.sh --face: the low 16 bits of SoftSkinEffect matched Low on two photos; the body also set 0x10000 on the one photo with a detected face, and not on photos without one. self_timer is only confirmed off. auto_iso_range is no: setISOAutoMin/Max do not exist on firmware 3.10 (firmware report) and fail on the body."
+  "notes": "First target body. Tested on firmware 3.10 with a Sigma 30mm F1.4 DC DN (tools/camera-test.sh --photos): the settings behind each yes were read back from the camera after the app set them and show in the EXIF of a photo shot with them; the lens name and focal length (tenths of a mm) were read from the body. soft_skin was checked with tools/camera-test.sh --face: the low 16 bits of SoftSkinEffect matched Low on two photos; the body also set 0x10000 on the one photo with a detected face, and not on photos without one. self_timer was checked with the physical shutter button at 2 s and 10 s using single drive; turning it off restored immediate shooting and burst drive. auto_iso_range is no: setISOAutoMin/Max do not exist on firmware 3.10 (firmware report) and fail on the body."
 }

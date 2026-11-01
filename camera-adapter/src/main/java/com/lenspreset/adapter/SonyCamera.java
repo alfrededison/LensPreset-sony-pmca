@@ -80,6 +80,11 @@ public final class SonyCamera {
     private Seek seek;
     private String lensProblem;
     private ShotCallback shot;
+    private Runnable pendingCapture;
+    private Runnable shotTimeout;
+    private Runnable shotRestore;
+    private int selfTimer;
+    private boolean timerReady;
     /** Give direct shutter a moment to stop before a shot from code (BetterManual counts down 1 s+). */
     private static final int SHUTTER_STOP_MS = 1000;
     private static final int SHOT_TIMEOUT_MS = 10000;
@@ -113,6 +118,13 @@ public final class SonyCamera {
      * so both are stopped first and started again once the camera reports the shot.
      */
     public void takePicture(ShotCallback done) {
+        if (closed || shot != null) {
+            done.onShot(-1, closed ? "camera closed" : "capture already in progress");
+            return;
+        }
+        final int timer = selfTimer;
+        final int stopDelay = timer > 0 ? 0 : SHUTTER_STOP_MS;
+        final ShotCallback capture = done;
         shot = done;
         final Runnable restore = new Runnable() {
             private boolean restored;
@@ -122,62 +134,64 @@ public final class SonyCamera {
                 if (restored || closed) return;
                 restored = true;
                 try {
-                    cam.startDirectShutter();
+                    startDirectShutter();
                     cam.getNormalCamera().startPreview();
                 } catch (Throwable ignored) {
                     // The next resume opens the camera afresh.
                 }
             }
         };
+        shotRestore = restore;
         final Runnable timeout = new Runnable() {
             @Override
             public void run() {
-                restore.run();
-                deliverShot(-1, "no shutter report in " + SHOT_TIMEOUT_MS / 1000 + " s");
+                cancelNativeShot();
+                deliverShot(-1, "no shutter report after timer and " + SHOT_TIMEOUT_MS / 1000 + " s");
             }
         };
+        shotTimeout = timeout;
         try {
+            if (timer > 0 && !timerReady)
+                throw new IllegalStateException("direct shutter is still stopping");
+            if (timer > 0 && current().getSelfTimer() != timer)
+                throw new IllegalStateException("self timer was not accepted by the camera");
             cam.setShutterListener(new CameraEx.ShutterListener() {
                 @Override
                 public void onShutter(final int status, CameraEx c) {
-                    try {
-                        // BetterManual ends every capture this way before the next one can start.
-                        cam.cancelTakePicture();
-                    } catch (Throwable ignored) {
-                        // Nothing to cancel.
-                    }
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            handler.removeCallbacks(timeout);
-                            restore.run();
+                            if (shot != capture) return;
+                            cancelNativeShot();
                             deliverShot(status, "");
                         }
                     });
                 }
             });
-            cam.stopDirectShutter(new CameraEx.DirectShutterStoppedCallback() {
-                @Override
-                public void onShutterStopped(CameraEx c) {
-                }
-            });
+            if (timer == 0) {
+                cam.stopDirectShutter(new CameraEx.DirectShutterStoppedCallback() {
+                    @Override
+                    public void onShutterStopped(CameraEx c) { }
+                });
+            }
             cam.getNormalCamera().stopPreview();
-            handler.postDelayed(new Runnable() {
+            pendingCapture = new Runnable() {
                 @Override
                 public void run() {
-                    if (closed) return;
+                    if (closed || shot != capture) return;
                     try {
-                        cam.burstableTakePicture();
+                        if (timer > 0) cam.startSelfTimerShutter();
+                        else cam.burstableTakePicture();
                     } catch (Throwable t) {
-                        handler.removeCallbacks(timeout);
-                        restore.run();
+                        cancelNativeShot();
                         deliverShot(-1, ApplyReport.describe(t));
                     }
                 }
-            }, SHUTTER_STOP_MS);
-            handler.postDelayed(timeout, SHUTTER_STOP_MS + SHOT_TIMEOUT_MS);
+            };
+            handler.postDelayed(pendingCapture, stopDelay);
+            handler.postDelayed(timeout, stopDelay + timer * 1000 + SHOT_TIMEOUT_MS);
         } catch (Throwable t) {
-            restore.run();
+            cancelNativeShot();
             deliverShot(-1, ApplyReport.describe(t));
         }
     }
@@ -185,11 +199,43 @@ public final class SonyCamera {
     private void deliverShot(int status, String detail) {
         ShotCallback s = shot;
         shot = null;
+        if (pendingCapture != null) handler.removeCallbacks(pendingCapture);
+        if (shotTimeout != null) handler.removeCallbacks(shotTimeout);
+        pendingCapture = null;
+        shotTimeout = null;
+        Runnable restore = shotRestore;
+        shotRestore = null;
+        if (restore != null) restore.run();
         if (s != null && !closed) s.onShot(status, detail);
+    }
+
+    private void cancelNativeShot() {
+        try {
+            if (selfTimer > 0) cam.cancelSelfTimerShutter();
+        } catch (Throwable ignored) {
+            // Still attempt to end the capture if timer cancellation is unavailable.
+        }
+        try {
+            cam.cancelTakePicture();
+        } catch (Throwable ignored) {
+            // Closing the camera below is the final cleanup if cancellation is unavailable.
+        }
+    }
+
+    public boolean hasSelfTimer() { return selfTimer > 0; }
+
+    public boolean isTakingPicture() { return shot != null; }
+
+    /** MENU, a new preset, or pause cancels both a countdown and a queued capture. */
+    public void cancelPicture() {
+        if (shot == null) return;
+        cancelNativeShot();
+        deliverShot(1, "cancelled");
     }
 
     /** Lets the shutter button shoot while the app is in front. */
     public void startDirectShutter() {
+        if (selfTimer > 0) return;
         try {
             cam.startDirectShutter();
         } catch (Throwable ignored) {
@@ -264,6 +310,7 @@ public final class SonyCamera {
 
     public void close() {
         closed = true;
+        cancelPicture();
         if (seek != null) seek.cancel();
         handler.removeCallbacksAndMessages(null);
         try {
@@ -403,6 +450,7 @@ public final class SonyCamera {
      * stepped toward their targets, and {@code done} runs with the full report when they settle.
      */
     public void apply(final Recommendation r, final ApplyCallback done) {
+        cancelPicture();
         if (seek != null) seek.cancel();
         seek = null;
         if (pendingSettle != null) handler.removeCallbacks(pendingSettle);
@@ -503,6 +551,25 @@ public final class SonyCamera {
         }
 
         readBack(report, af(r));
+
+        // Direct shutter owns the physical button and bypasses the timed capture entry point.
+        // Stop it before the next full press; MainActivity handles that press in timer mode.
+        selfTimer = r.selfTimer;
+        timerReady = false;
+        try {
+            if (selfTimer > 0) {
+                cam.stopDirectShutter(new CameraEx.DirectShutterStoppedCallback() {
+                    @Override
+                    public void onShutterStopped(CameraEx c) {
+                        if (!closed && generation == applyGeneration) timerReady = true;
+                    }
+                });
+            } else {
+                cam.startDirectShutter();
+            }
+        } catch (Throwable t) {
+            report.add("self_timer", ApplyReport.Status.FAILED, ApplyReport.describe(t));
+        }
 
         final boolean seekAperture = r.aperture != null && r.apertureSettable
                 && (r.exposureMode == Preset.ExposureMode.APERTURE_PRIORITY || r.exposureMode == Preset.ExposureMode.MANUAL);

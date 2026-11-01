@@ -138,7 +138,22 @@ class PresetEngineTest {
     @Test
     void selfTimerFollowsTheOverride() {
         assertEquals(0, run(A5100, SIGMA_30, "group", Conditions.none()).selfTimer);
+        assertEquals(2, run(A5100, SIGMA_30, "group", override("self_timer", 2)).selfTimer);
         assertEquals(10, run(A5100, SIGMA_30, "group", override("self_timer", 10)).selfTimer);
+    }
+
+    @Test
+    void timedGroupsUseSingleShotsAndUntimedGroupsKeepBurst() {
+        for (int seconds : new int[]{2, 10}) {
+            Recommendation timed = run(A5100, SIGMA_30, "group", override("self_timer", seconds));
+            assertEquals(seconds, timed.selfTimer);
+            assertEquals("single", timed.drive);
+        }
+        assertEquals("burst_lo", run(A5100, SIGMA_30, "group", override("self_timer", 0)).drive);
+        CameraProfile noTimer = Fixtures.cameraWithFeatures("ilce-5100", "self_timer", "no");
+        Recommendation fallback = run(noTimer, SIGMA_30, "group", override("self_timer", 2));
+        assertEquals(0, fallback.selfTimer);
+        assertEquals("burst_lo", fallback.drive);
     }
 
     @Test

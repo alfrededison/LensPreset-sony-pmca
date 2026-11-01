@@ -142,5 +142,10 @@
   "notice.burst_unavailable": "Burst shooting is not available; using single shots.",
   "notice.self_timer_unavailable": "The self-timer cannot be set from the app.",
   "notice.style_unavailable": "Creative Style cannot be set on this body.",
-  "notice.soft_skin_unavailable": "Soft Skin is not available on this body."
+  "notice.soft_skin_unavailable": "Soft Skin is not available on this body.",
+  "apply.choose_preset": "Choose a preset to apply settings",
+  "shot.waiting": "Waiting for timed shot…",
+  "shot.taken": "Photo taken",
+  "shot.cancelled": "Shot cancelled",
+  "shot.failed": "Shot failed; save log for details"
 }

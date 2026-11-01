@@ -214,6 +214,8 @@ public final class PresetEngine {
             selfTimer = 0;
             notices.add(Message.of(Message.Level.WARN, "notice.self_timer_unavailable"));
         }
+        // Timed continuous shooting is a separate Sony mode, not burst plus a delay.
+        if (selfTimer > 0) drive = "single";
 
         // Look.
         String style = null;

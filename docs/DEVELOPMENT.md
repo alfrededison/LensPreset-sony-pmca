@@ -71,7 +71,7 @@ the apply report and in the app's log, never a crash.
 | Auto ISO minimum speed | `setAutoShutterSpeedLowLimit(code)`, BetterManual's experimental code table | used by BetterManual; checked on ILCE-5100 3.10 |
 | EV | `Camera.Parameters.setExposureCompensation(index)` | used by BetterManual; checked on ILCE-5100 3.10 |
 | metering, AF mode / area, face detection, drive, Creative Style, Soft Skin | `ParametersModifier` setters, value checked against the matching `getSupported…()` list first | checked on ILCE-5100 3.10; the A5100 lists AF area `wide` but keeps `center`, so `multi` is used |
-| self-timer | as above | read back on ILCE-5100 3.10, only tested off |
+| self-timer | `setSelfTimer`, `startSelfTimerShutter`, `cancelSelfTimerShutter`; direct shutter stopped while enabled, physical S2 handled by the app | 2 s / 10 s and return to immediate shooting checked on ILCE-5100 3.10 with the physical shutter button |
 | lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (tenths of a mm on ILCE-5100 3.10; `Matcher.focalMm` still infers ×1/×10/×100 from the lens range for other bodies); `ApertureInfo.currentAvailableMin` as the widest aperture now | name and focal length checked on ILCE-5100 3.10 with a prime; tracking a zoom unverified |
 | eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
 
@@ -84,6 +84,17 @@ unit.
 Open questions carried from the plan: whether the scene mode can be set while a physical mode dial
 points elsewhere (A6000), whether settings persist after leaving the app, and option (b) — writing
 to the settings store like Recipe Lab — which needs its native backup library.
+
+With a nonzero self-timer, group photos use single drive. The app stops direct shutter before the
+button is pressed and starts the native self-timer capture on S2, using the same stop-preview and
+capture cleanup as shots from code. MENU or Trash cancels a pending shot; a new preset or pause
+also cancels it. The watchdog allows the selected delay plus ten seconds for the shot to finish.
+Turning the timer off restores direct shutter and the group's burst mode. On ILCE-5100 3.10 with
+a Sigma 30mm F1.4, the user confirmed the 2 s / 10 s delay and immediate shooting when disabled;
+the log records successful timed shots about 2.8 s / 10.8 s after full press and reads back single
+drive with the timer, burst without it. Autofocus performance and cancellation still need testing
+on the body. On opening, the app displays the saved recommendation and asks the user to select a
+preset to apply it; settings are not automatically applied at startup.
 
 ## Firmware contract pipeline
 

@@ -30,6 +30,7 @@ import com.lenspreset.core.model.LensProfile;
 import com.lenspreset.core.model.Preset;
 import com.lenspreset.core.profile.Matcher;
 import com.lenspreset.core.profile.ProfileSet;
+import com.sony.scalar.sysutil.ScalarInput;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -329,6 +330,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         // Nothing is applied on opening: settings change only when the user picks a situation.
         showLive();
         if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
+        else overlay.setStatus(i18n.t("apply.choose_preset"));
         trace("ready");
     }
 
@@ -537,7 +539,26 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (sony != null && sony.hasSelfTimer() && event.getScanCode() == ScalarInput.ISV_KEY_S2) {
+            if (screen == Screen.LIVE && event.getRepeatCount() == 0 && !sony.isTakingPicture()) {
+                trace("timed shutter pressed");
+                overlay.setStatus(i18n.t("shot.waiting"));
+                sony.takePicture(new SonyCamera.ShotCallback() {
+                    @Override
+                    public void onShot(int status, String detail) {
+                        trace("timed shot " + status + (detail.length() > 0 ? " " + detail : ""));
+                        overlay.setStatus(i18n.t(status == 0 ? "shot.taken"
+                                : status == 1 ? "shot.cancelled" : "shot.failed"), status != 0 && status != 1);
+                    }
+                });
+            }
+            return true;
+        }
         int action = Keys.action(event);
+        if (sony != null && sony.hasSelfTimer() && sony.isTakingPicture() && action != Keys.NONE) {
+            if (action == Keys.MENU || action == Keys.TRASH) sony.cancelPicture();
+            return true;
+        }
         if (keysLogged < KEYS_TO_LOG) {
             keysLogged++;
             trace("key scan=" + event.getScanCode() + " code=" + keyCode + " action=" + action
@@ -551,6 +572,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (sony != null && sony.hasSelfTimer() && event.getScanCode() == ScalarInput.ISV_KEY_S2) return true;
         return Keys.action(event) != Keys.NONE || super.onKeyUp(keyCode, event);
     }
 

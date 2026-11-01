@@ -14,6 +14,7 @@ public class ScalarInput {
     public static final int ISV_KEY_DELETE = 595;
     public static final int ISV_KEY_SK2 = 513;
     public static final int ISV_KEY_FN = 520;
+    public static final int ISV_KEY_S2 = 518;
     public static final int ISV_KEY_PLAY = 207;
     public static final int ISV_KEY_LENS_ATTACH = 530;
     public static final int ISV_DIAL_KURU_CLOCKWISE = 522;

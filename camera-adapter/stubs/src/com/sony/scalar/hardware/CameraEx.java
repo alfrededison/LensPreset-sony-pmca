@@ -22,6 +22,8 @@ public class CameraEx {
     public void startDirectShutter() { throw new RuntimeException("Stub!"); }
     public void stopDirectShutter(DirectShutterStoppedCallback c) { throw new RuntimeException("Stub!"); }
     public void burstableTakePicture() { throw new RuntimeException("Stub!"); }
+    public void startSelfTimerShutter() { throw new RuntimeException("Stub!"); }
+    public boolean cancelSelfTimerShutter() { throw new RuntimeException("Stub!"); }
     public void cancelTakePicture() { throw new RuntimeException("Stub!"); }
     public void setShutterListener(ShutterListener l) { throw new RuntimeException("Stub!"); }
     public void incrementAperture() { throw new RuntimeException("Stub!"); }

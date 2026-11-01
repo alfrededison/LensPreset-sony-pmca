@@ -142,5 +142,10 @@
   "notice.burst_unavailable": "Không chụp liên tiếp được; chụp từng tấm.",
   "notice.self_timer_unavailable": "Không đặt được hẹn giờ từ app.",
   "notice.style_unavailable": "Máy này không đặt được Creative Style.",
-  "notice.soft_skin_unavailable": "Máy này không có làm mịn da."
+  "notice.soft_skin_unavailable": "Máy này không có làm mịn da.",
+  "apply.choose_preset": "Chọn preset để áp dụng thông số",
+  "shot.waiting": "Đang chờ chụp hẹn giờ…",
+  "shot.taken": "Đã chụp ảnh",
+  "shot.cancelled": "Đã hủy chụp",
+  "shot.failed": "Chụp thất bại; lưu log để xem chi tiết"
 }
