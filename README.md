@@ -110,7 +110,7 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 | Left / Right | change the situation's first setting (e.g. rows) | change a value |
 | Centre | list of situations | select |
 | MENU | app menu: lens, language, settings, camera probe, save log, reload, about, exit | back |
-| Trash | hide / show hints | back |
+| ? / Trash | cycle: hide hints → hide key guide too → hide all overlays → show all | back |
 
 On bodies with a touchscreen, tapping the live view opens the list. Shoot with the shutter button
 as usual; settings apply while the app is open.

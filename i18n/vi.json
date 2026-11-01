@@ -20,7 +20,7 @@
   "ui.lens_changed": "Đã đổi ống kính",
   "ui.preview_failed": "Không mở được live view",
   "ui.reloaded": "Đã nạp lại profile",
-  "ui.legend.live": "Lên/Xuống: tình huống kế · Trái/Phải: tinh chỉnh · Giữa: mọi tình huống · MENU: menu · Thùng rác: ẩn gợi ý",
+  "ui.legend.live": "Lên/Xuống: tình huống kế · Trái/Phải: tinh chỉnh · Giữa: mọi tình huống · MENU: menu · ?/Thùng rác: đổi mức hiển thị",
   "ui.legend.touch": "Chạm: tình huống",
   "ui.legend.list": "Lên/Xuống: chọn · Giữa: chọn mục · MENU: quay lại",
   "ui.legend.options": "Lên/Xuống: chọn · Trái/Phải: đổi · Giữa: áp dụng · MENU: quay lại",

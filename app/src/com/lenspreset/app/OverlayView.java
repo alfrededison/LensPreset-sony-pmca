@@ -32,6 +32,9 @@ public final class OverlayView extends View {
 
     private static final int MAX_MESSAGE_LINES = 5;
 
+    /** Each press removes another layer of the live-view overlay, then restores all layers. */
+    private enum DetailLevel { FULL, NO_HINTS, NO_HINTS_OR_KEYS, HIDDEN }
+
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint band = new Paint();
     private final Paint guide = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -44,7 +47,7 @@ public final class OverlayView extends View {
     private List<String> chips = Collections.emptyList();
     private List<Line> messages = Collections.emptyList();
     private List<String> guides = Collections.emptyList();
-    private boolean showHints = true;
+    private DetailLevel detailLevel = DetailLevel.FULL;
     /** Runs once, on the first draw: the log records when the screen first showed something. */
     private Runnable onFirstDraw;
     private boolean statusWarn;
@@ -97,10 +100,10 @@ public final class OverlayView extends View {
         invalidate();
     }
 
-    boolean toggleHints() {
-        showHints = !showHints;
+    void cycleDetails() {
+        DetailLevel[] levels = DetailLevel.values();
+        detailLevel = levels[(detailLevel.ordinal() + 1) % levels.length];
         invalidate();
-        return showHints;
     }
 
     @Override
@@ -113,6 +116,7 @@ public final class OverlayView extends View {
         int w = getWidth();
         int h = getHeight();
         if (w == 0 || h == 0) return;
+        if (detailLevel == DetailLevel.HIDDEN) return;
         Rect v = video != null ? video : new Rect(0, 0, w, h);
         drawGuides(c, v);
 
@@ -146,7 +150,8 @@ public final class OverlayView extends View {
         float y = h - pad;
         List<String> lines = new ArrayList<String>();
         text.setTextSize(size * 0.75f);
-        if (legend.length() > 0) lines.addAll(TextFit.wrap(text, legend, w - 2 * pad));
+        if (detailLevel != DetailLevel.NO_HINTS_OR_KEYS && legend.length() > 0)
+            lines.addAll(TextFit.wrap(text, legend, w - 2 * pad));
         float legendHeight = lines.size() * size * 0.95f;
 
         text.setTextSize(size);
@@ -155,7 +160,7 @@ public final class OverlayView extends View {
 
         List<Line> shown = new ArrayList<Line>();
         List<Float> sizes = new ArrayList<Float>();
-        if (showHints) {
+        if (detailLevel == DetailLevel.FULL) {
             text.setTextSize(size * 0.9f);
             for (Line m : messages) {
                 for (String part : TextFit.wrap(text, m.text, w - 2 * pad)) {

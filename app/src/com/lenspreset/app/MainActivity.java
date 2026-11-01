@@ -668,7 +668,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 break;
             case Keys.ENTER: openPresets(); break;
             case Keys.MENU: openMenu(); break;
-            case Keys.TRASH: overlay.toggleHints(); break;
+            case Keys.TRASH: overlay.cycleDetails(); break;
             default: break;
         }
     }

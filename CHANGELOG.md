@@ -6,6 +6,8 @@ Prepared on 2026-11-01; not yet published as a GitHub release.
 
 ### Shooting
 
+- The ? / Trash button cycles live-view detail: hide hints, hide the key guide too, hide all
+  overlays (including composition guides), then show everything again.
 - Beach scenery and portraits, pool action, garden portraits, and forest/mountain scenery,
   with English and Vietnamese light, framing, and highlight hints.
 - Preset-owned hint translations in `hint_text` for all twelve bundled presets, so adding
