@@ -5,7 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
+import android.view.Display;
 
+import com.lenspreset.adapter.PlaybackGeometry;
 import com.sony.scalar.hardware.avio.DisplayManager;
 import com.sony.scalar.sysutil.didep.Gpelibrary;
 
@@ -17,7 +19,8 @@ import com.sony.scalar.sysutil.didep.Gpelibrary;
  *   <li>the framebuffer stays 16-bit, on resume and on pause, as BetterManual's live view activity
  *       and Sony's own Smart Remote keep it. The setting is screen-wide: earlier builds switched to
  *       32-bit, showed a black screen, and left the Application List black after an abnormal exit
- *       (see docs/DEVELOPMENT.md);</li>
+ *       (see docs/DEVELOPMENT.md). The one exception is the playback screen, with the camera
+ *       closed, as Sony's own picture grid does: {@link #setPlaybackColorDepth};</li>
  *   <li>power-on resume is requested only when the user enables it, and cleared on explicit exit;</li>
  *   <li>every Sony call is guarded, so the app also runs (without a camera) in an emulator.</li>
  * </ul>
@@ -89,7 +92,43 @@ abstract class BaseActivity extends Activity {
         }
     }
 
-    private static void setLowColorDepth() {
+    /**
+     * Width / height of one UI pixel on the active screen (1.125 for 640x480 on the A5100's 3:2
+     * panel), so pictures keep their proportions; 1 when the platform does not say.
+     */
+    protected double pixelAspect() {
+        if (displayManager == null) return 1;
+        try {
+            Display d = getWindowManager().getDefaultDisplay();
+            String device = displayManager.getActiveDevice();
+            if (device == null || DisplayManager.DEVICE_ID_NONE.equals(device)) return 1;
+            DisplayManager.DeviceInfo info = displayManager.getDeviceInfo(device);
+            if (info == null) return 1;
+            return PlaybackGeometry.pixelAspect(PlaybackGeometry.screenAspect(info.aspect), d.getWidth(), d.getHeight());
+        } catch (Throwable t) {
+            return 1;
+        }
+    }
+
+    /**
+     * 32-bit colour while the playback screen is open, as Sony's own picture grid
+     * (IndexLayoutGridViewBase, Smart Remote) does; 16-bit again before the live view comes back.
+     * Only with the camera closed: 32-bit with the live view left the A5100's screen black. Pause
+     * and a crash set 16-bit as well, so an abnormal exit does not leave the Application List black.
+     */
+    protected static void setPlaybackColorDepth(boolean high) {
+        if (!high) {
+            setLowColorDepth();
+            return;
+        }
+        try {
+            Gpelibrary.changeFrameBufferPixel(Gpelibrary.GS_FRAMEBUFFER_TYPE.ABGR8888);
+        } catch (Throwable ignored) {
+            // Not a Sony body.
+        }
+    }
+
+    protected static void setLowColorDepth() {
         try {
             Gpelibrary.changeFrameBufferPixel(Gpelibrary.GS_FRAMEBUFFER_TYPE.RGBA4444);
         } catch (Throwable ignored) {

@@ -52,7 +52,7 @@ import java.util.Set;
  * apply while the app is open (roadmap option (a)); shoot from inside the app.
  */
 public final class MainActivity extends BaseActivity implements SurfaceHolder.Callback, SonyCamera.Listener {
-    private enum Screen { LIVE, PRESETS, OPTIONS, MENU, SETTINGS, LENSES, LANGUAGES, TEXT }
+    private enum Screen { LIVE, PRESETS, OPTIONS, MENU, SETTINGS, LENSES, LANGUAGES, TEXT, PLAYBACK }
 
     /** Re-apply this long after the zoom stops moving. */
     private static final int ZOOM_SETTLE_MS = 800;
@@ -78,6 +78,17 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     private SurfaceView surface;
     private OverlayView overlay;
     private ListPanel panel;
+    private PlaybackView playbackView;
+    private Playback playback;
+    /** Playback was closed with the shutter button: its release belongs to that press, not to the live view. */
+    private boolean shutterReleasePending;
+    /**
+     * A picture may have been taken since playback last brought the camera's index up to date: at
+     * start, after a pause (the camera's own shooting), on every full press, and when playback closed
+     * before its refresh ended. Playback then refreshes the index before showing anything, so it
+     * opens on the picture just taken.
+     */
+    private boolean indexMayBeStale = true;
     private Screen screen = Screen.LIVE;
     private Preset optionsPreset;
     /** Start-up failed: the screen shows why and any key exits. */
@@ -125,6 +136,13 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         surface.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         overlay = (OverlayView) findViewById(R.id.overlay);
         panel = (ListPanel) findViewById(R.id.panel);
+        playbackView = (PlaybackView) findViewById(R.id.playback);
+        playback = new Playback(playbackView, getContentResolver(), new Playback.Host() {
+            @Override
+            public void log(String line) {
+                card.log(Collections.singletonList(line));
+            }
+        });
 
         trace("create " + appVersion() + (debug.isEmpty() ? "" : " debug switches " + debug));
         overlay.setOnFirstDraw(new Runnable() {
@@ -376,6 +394,17 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             adbControl = null;
         }
         trace("pause");
+        // A half-press that left playback may never see its release: don't swallow the next one.
+        shutterReleasePending = false;
+        indexMayBeStale = true;
+        if (screen == Screen.PLAYBACK) {
+            // Power off, USB or another app: resume opens the camera and the live view again.
+            playback.close();
+            playbackView.setVisibility(View.GONE);
+            surface.setVisibility(View.VISIBLE);
+            overlay.setVisibility(View.VISIBLE);
+            screen = Screen.LIVE;
+        }
         handler.removeCallbacksAndMessages(null);
         surface.getHolder().removeCallback(this);
         if (sony != null) {
@@ -387,6 +416,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     @Override
     protected void onDisplayChanged() {
         overlay.setVideoRect(liveViewRect());
+        // LCD, viewfinder and HDMI differ in shape: pictures keep their proportions on the new one.
+        if (screen == Screen.PLAYBACK) playbackView.setPixelAspect(pixelAspect());
     }
 
     @Override
@@ -434,6 +465,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        trace("surface destroyed");
         previewStarted = false;
     }
 
@@ -584,6 +616,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (screen == Screen.PLAYBACK) return playbackKeyDown(keyCode, event);
+        if (event.getScanCode() == ScalarInput.ISV_KEY_S2) indexMayBeStale = true;
         if (sony != null && sony.hasSelfTimer()) {
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_2) return true;
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_1) {
@@ -617,13 +651,54 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                     + " repeat=" + event.getRepeatCount() + " screen=" + screen);
         }
         if (action == Keys.NONE) return super.onKeyDown(keyCode, event);
+        if (action == Keys.PLAY) {
+            if (event.getRepeatCount() == 0 && loaded && !failed) openPlayback();
+            return true;
+        }
         boolean single = action == Keys.ENTER || action == Keys.MENU || action == Keys.TRASH;
         if (!(single && event.getRepeatCount() > 0)) handle(action);
         return true;
     }
 
+    /**
+     * As on the camera: Left / Right and the wheel browse, Up and ? / Trash change what is shown,
+     * and the Playback button, MENU or the shutter button go back to shooting.
+     */
+    private boolean playbackKeyDown(int keyCode, KeyEvent event) {
+        int scan = event.getScanCode();
+        boolean repeat = event.getRepeatCount() > 0;
+        if (scan == ScalarInput.ISV_KEY_S1_1 || scan == ScalarInput.ISV_KEY_S1_2 || scan == ScalarInput.ISV_KEY_S2) {
+            if (!repeat) {
+                shutterReleasePending = true;
+                closePlayback();
+            }
+            return true;
+        }
+        int action = Keys.action(event);
+        if (keysLogged < KEYS_TO_LOG) {
+            keysLogged++;
+            trace("key scan=" + scan + " code=" + keyCode + " action=" + action
+                    + " repeat=" + event.getRepeatCount() + " screen=" + screen);
+        }
+        if (action == Keys.NONE) return super.onKeyDown(keyCode, event);
+        if (action == Keys.PLAY || action == Keys.MENU) {
+            if (!repeat) closePlayback();
+            return true;
+        }
+        boolean single = action == Keys.TRASH || action == Keys.UP;
+        if (!(single && repeat)) playback.handle(action);
+        return true;
+    }
+
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        int scan = event.getScanCode();
+        if (shutterReleasePending
+                && (scan == ScalarInput.ISV_KEY_S1_1 || scan == ScalarInput.ISV_KEY_S1_2 || scan == ScalarInput.ISV_KEY_S2)) {
+            if (scan == ScalarInput.ISV_KEY_S1_1) shutterReleasePending = false;
+            return true;
+        }
+        if (screen == Screen.PLAYBACK) return Keys.action(event) != Keys.NONE || super.onKeyUp(keyCode, event);
         if (sony != null && sony.hasSelfTimer()) {
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_2) return true;
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_1) {
@@ -655,6 +730,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             case SETTINGS: handleSettings(action); break;
             case LENSES: handleLenses(action); break;
             case LANGUAGES: handleLanguages(action); break;
+            case PLAYBACK: playback.handle(action); break;
             default:
                 if (action == Keys.UP || action == Keys.PREV) panel.move(-1);
                 else if (action == Keys.DOWN || action == Keys.NEXT) panel.move(1);
@@ -747,6 +823,62 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         log.add("wheel EV " + Scales.formatEv(ev) + " preset=" + preset.id);
         log.addAll(report.logLines());
         card.log(log);
+    }
+
+    // ---- playback ----
+
+    /**
+     * The Playback button. As on the camera, shooting and playback do not run together: the camera
+     * is closed (live view, direct shutter, any countdown) before the card is read, and opened again
+     * by {@link #closePlayback}, which applies the preset again as resume does.
+     */
+    private void openPlayback() {
+        if (screen == Screen.PLAYBACK || !resumed || isExiting()) return;
+        trace("playback: closing camera");
+        handler.removeCallbacksAndMessages(null);
+        restorePending = false;
+        if (sony != null) {
+            sony.close();
+            sony = null;
+        }
+        previewStarted = false;
+        // The live view's surface does not survive the camera closing: on return the preview found it
+        // invalid and the screen stayed black. Hidden now, it is created again on return and the
+        // preview starts in surfaceCreated, as it does on resume.
+        surface.setVisibility(View.GONE);
+        panel.hide();
+        overlay.setVisibility(View.GONE);
+        screen = Screen.PLAYBACK;
+        if (!debug.contains("playback-16bit")) setPlaybackColorDepth(true);
+        playbackView.setVisibility(View.VISIBLE);
+        playback.open(i18n, pixelAspect(), indexMayBeStale);
+    }
+
+    private void closePlayback() {
+        if (screen != Screen.PLAYBACK) return;
+        indexMayBeStale = !playback.refreshed();
+        playback.close();
+        playbackView.setVisibility(View.GONE);
+        setPlaybackColorDepth(false);
+        overlay.setVisibility(View.VISIBLE);
+        trace("playback closed, camera open");
+        if (!debug.contains("no-camera") && !isExiting()) {
+            try {
+                sony = SonyCamera.open(this);
+            } catch (Throwable t) {
+                card.log(Collections.singletonList("camera open failed: " + ApplyReport.describe(t)));
+            }
+        }
+        if (sony != null) sony.startDirectShutter();
+        detectLens();
+        restorePending = preset != null;
+        showLive();
+        if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
+        boolean valid = surface.getHolder().getSurface().isValid();
+        trace("playback return: surface " + (valid ? "valid, preview" : "recreated, preview in surfaceCreated"));
+        if (valid) startPreview();
+        surface.setVisibility(View.VISIBLE);
+        overlay.setVideoRect(liveViewRect());
     }
 
     // ---- lists ----
@@ -1048,6 +1180,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             trace("adb command ignored: not ready");
             return;
         }
+        // Every other command expects the live screen and an open camera, as a key press would.
+        if (screen == Screen.PLAYBACK && !"playback".equals(cmd)) closePlayback();
         if ("apply".equals(cmd)) {
             Preset p = profiles.preset(arg);
             if (p == null) trace("adb command: no preset " + arg);
@@ -1067,6 +1201,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             if (sony == null) {
                 trace("adb command: no camera");
             } else {
+                indexMayBeStale = true;
                 sony.takePicture(new SonyCamera.ShotCallback() {
                     @Override
                     public void onShot(int status, String detail) {
@@ -1074,6 +1209,14 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                     }
                 });
             }
+        } else if ("playback".equals(cmd)) {
+            if ("open".equals(arg)) openPlayback();
+            else if ("close".equals(arg)) closePlayback();
+            else if (screen == Screen.PLAYBACK) {
+                if ("next".equals(arg)) playback.handle(Keys.RIGHT);
+                else if ("prev".equals(arg)) playback.handle(Keys.LEFT);
+            }
+            trace("playback " + (screen == Screen.PLAYBACK ? playback.describe() : "closed"));
         } else if ("save-log".equals(cmd)) {
             saveLog();
         } else if ("awake".equals(cmd)) {
@@ -1128,6 +1271,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             lines.add("crash in " + t.getName());
             for (String l : sw.toString().split("\n")) lines.add("  " + l.trim());
             card.log(lines);
+            // A crash in playback must not leave the screen-wide framebuffer at 32-bit.
+            setLowColorDepth();
             if (previous != null) previous.uncaughtException(t, e);
         }
     }

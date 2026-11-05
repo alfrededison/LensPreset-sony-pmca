@@ -46,6 +46,8 @@ def compile_stubs(out_dir):
     for path, body in {
         "android/hardware/Camera.java": "package android.hardware; public class Camera { public static class Parameters {} }",
         "android/util/Pair.java": "package android.util; public class Pair<F, S> { public F first; public S second; }",
+        "android/content/ContentResolver.java": "package android.content; public class ContentResolver {}",
+        "android/net/Uri.java": "package android.net; public class Uri {}",
     }.items():
         p = os.path.join(shims, path)
         os.makedirs(os.path.dirname(p), exist_ok=True)

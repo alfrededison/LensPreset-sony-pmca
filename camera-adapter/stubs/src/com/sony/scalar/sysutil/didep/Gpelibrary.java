@@ -1,6 +1,9 @@
 package com.sony.scalar.sysutil.didep;
 
-/** Compile-time stub (see CameraEx). Switches the UI framebuffer to 32-bit colour while the app is open. */
+/**
+ * Compile-time stub (see CameraEx). The UI framebuffer's colour depth: RGBA4444 with the live view,
+ * ABGR8888 only while playback shows pictures and the camera is closed (see BaseActivity).
+ */
 public class Gpelibrary {
     private Gpelibrary() {}
 

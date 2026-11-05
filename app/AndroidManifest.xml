@@ -5,7 +5,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lenspreset"
     android:versionCode="1"
-    android:versionName="1.1.0">
+    android:versionName="1.2.0">
     <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="10" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- LENSPRST on the memory card: profiles to load, PROBE.TXT and LOG.TXT to write. -->

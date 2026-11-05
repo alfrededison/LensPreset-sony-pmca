@@ -8,7 +8,7 @@ import com.sony.scalar.sysutil.ScalarInput;
  * Camera keys to app actions. Every function sits on keys every body has (four-way, centre, MENU,
  * trash, a wheel or dial); bodies number their wheels differently, so every rotary code is a turn.
  * Standard Android key codes map too, for running the app in an emulator; Page Up / Page Down
- * stand in for a counter-clockwise / clockwise wheel turn.
+ * stand in for a counter-clockwise / clockwise wheel turn, Media Play/Pause for the Playback button.
  */
 final class Keys {
     private Keys() {
@@ -25,6 +25,8 @@ final class Keys {
     /** A wheel or dial turned clockwise / counter-clockwise. */
     static final int NEXT = 8;
     static final int PREV = 9;
+    /** The Playback button: opens and closes the playback screen. */
+    static final int PLAY = 10;
 
     static int action(KeyEvent event) {
         switch (event.getScanCode()) {
@@ -37,6 +39,7 @@ final class Keys {
             case ScalarInput.ISV_KEY_SK1: return MENU;
             case ScalarInput.ISV_KEY_DELETE:
             case ScalarInput.ISV_KEY_SK2: return TRASH;
+            case ScalarInput.ISV_KEY_PLAY: return PLAY;
             case ScalarInput.ISV_DIAL_KURU_CLOCKWISE:
             case ScalarInput.ISV_DIAL_1_CLOCKWISE:
             case ScalarInput.ISV_DIAL_2_CLOCKWISE:
@@ -59,6 +62,7 @@ final class Keys {
             case KeyEvent.KEYCODE_DEL: return TRASH;
             case KeyEvent.KEYCODE_PAGE_UP: return PREV;
             case KeyEvent.KEYCODE_PAGE_DOWN: return NEXT;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: return PLAY;
             default: return NONE;
         }
     }

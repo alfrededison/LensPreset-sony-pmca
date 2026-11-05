@@ -34,7 +34,8 @@ fi
 # Adapter classes with no Android or Sony imports; logic that needs no camera belongs in one of
 # these, with a test. Compiling them without android.jar keeps them that way.
 ADAPTER=camera-adapter/src/main/java/com/lenspreset/adapter
-ADAPTER_PURE=("$ADAPTER/SonyValues.java" "$ADAPTER/ApplyReport.java" "$ADAPTER/ProbeReport.java")
+ADAPTER_PURE=("$ADAPTER/SonyValues.java" "$ADAPTER/ApplyReport.java" "$ADAPTER/ProbeReport.java"
+  "$ADAPTER/PlaybackText.java" "$ADAPTER/PlaybackGeometry.java")
 
 rm -rf "$OUT/main" "$OUT/classes"
 mkdir -p "$OUT/main" "$OUT/classes"

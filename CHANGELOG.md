@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.2.0 — unreleased
+
+### Playback
+
+- The Playback button opens an in-app playback screen, newest picture first, like the camera's
+  own: Left / Right and the wheel browse (wrapping past the newest), Up or ? / Trash cycles the
+  information (full → file name → picture only), and Playback, MENU or the shutter button return
+  to shooting. It is for checking pictures just taken: no movies, zoom or delete.
+- Pictures come from the camera's own picture index (AvindexStore), as ma1co/PMCADemo reads it:
+  the 160x120 thumbnail and the Exif line (aperture, shutter, ISO, EV, focal length, date, size)
+  appear at once, then the screen-sized JPEG. Portrait pictures are turned upright, and pictures
+  keep their proportions on the A5100's non-square UI pixels (640x480 on a 3:2 panel).
+- After a shot, playback brings the camera's picture index up to date before showing anything, so
+  it opens on the picture just taken rather than the one before it.
+- The camera is closed while playback is open and opened again on return, which applies the
+  preset again. The UI framebuffer is 32-bit only while playback is open, with the camera closed,
+  as Sony's own picture grid does; pause and crashes set 16-bit again.
+- `LENSPRST/DEBUG.TXT` switch `playback-16bit` keeps 16-bit colour in playback; adb control adds
+  `playback open|close|next|prev`.
+
+### Validation and compatibility
+
+- Every new Sony API member is in the ILCE-5100 3.10 firmware report: all present, constants
+  matching.
+  The formatting and layout geometry have unit tests. Nothing of the playback
+  screen has been tried on a body yet.
+
 ## 1.1.0 — 2026-11-02
 
 ### Shooting

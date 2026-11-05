@@ -19,4 +19,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
+
+    <!-- The Playback button's screen, over everything; the camera is closed while it shows. -->
+    <com.lenspreset.app.PlaybackView
+        android:id="@+id/playback"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 </RelativeLayout>

@@ -8,10 +8,11 @@ core/               plain Java, no Android: JSON, profile models and parser, opt
 camera-adapter/
   stubs/            compile-time stubs of Sony's API (CameraEx, ScalarInput, ...): exactly what the
                     adapter calls; never packaged; the contract the firmware check verifies
-  src/main/java     SonyCamera (open, preview, listeners, apply, probe), DeviceIdentity;
-                    SonyValues / ApplyReport / ProbeReport are Android-free and tested
-app/                Android 2.3.7 UI: MainActivity (screens, keys), OverlayView, ListPanel, card
-                    storage, preferences
+  src/main/java     SonyCamera (open, preview, listeners, apply, probe), DeviceIdentity, SonyMedia
+                    (picture index); SonyValues / ApplyReport / ProbeReport / PlaybackText /
+                    PlaybackGeometry are Android-free and tested
+app/                Android 2.3.7 UI: MainActivity (screens, keys), OverlayView, ListPanel,
+                    Playback / PlaybackView, card storage, preferences
 profiles/           cameras/, lenses/, presets/ (bundled into the APK) and schema/
 i18n/               en.json, vi.json — UI and generated messages (preset hints live in profiles/)
 firmware/           sources.json (Sony's download pages, file sha256s) and reports/ (capability facts)
@@ -87,6 +88,9 @@ body that has not been tested.
 | self-timer | `setSelfTimer`, `startSelfTimerShutter`, `cancelSelfTimerShutter`; direct shutter stopped while enabled, physical S2 handled by the app | 2 s / 10 s and return to immediate shooting checked on ILCE-5100 3.10 with the physical shutter button |
 | lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (tenths of a mm on ILCE-5100 3.10; `Matcher.focalMm` still infers ×1/×10/×100 from the lens range for other bodies); `ApertureInfo.currentAvailableMin` as the widest aperture now | name and focal length checked on ILCE-5100 3.10 with a prime; tracking a zoom unverified |
 | eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
+| playback: picture list | `AvindexStore.Images.Media.EXTERNAL_CONTENT_URI` queried for `_id`, `_data`, ordered by `content_created_utc_date_time`; `Images.waitAndUpdateDatabase` (5 s cap): before the first picture when one may have just been taken, otherwise after it | as ma1co/PMCADemo and OpenMemories' MediaManager; the refresh as pmca-grain-lab uses it; unverified on a body here |
+| playback: picture | `Images.Media.getImageInfo(_data)` (Exif tags, thumbnail, `recycle`), `AvindexGraphics.getScreenNail(_data)`, falling back to `Images.Media.getScreennail` | as OpenMemories' ImageInfo (PMCADemo) and sony-lut-camera's gallery (A6300); unverified on a body here |
+| playback: screen shape | `DisplayManager.getActiveDevice()` / `getDeviceInfo().aspect` for the pixel aspect; ABGR8888 framebuffer only with the camera closed | as sony-lut-camera's gallery and Sony's IndexLayoutGridViewBase; unverified on a body here |
 
 **Roadmap steps 1–2 (spike and API survey on the A5100)** are what MENU → *Run camera probe*
 is for: it writes every supported list, current value, lens report and the full
@@ -172,7 +176,8 @@ where it is.
 | `no-camera` | opening the camera (no live view, nothing applied) |
 | `no-preview` | starting the live view |
 | `card-log` | adds, rather than leaves out: every log line is also appended to `LENSPRST/LOG.TXT` as it happens, for a body where the app never gets as far as its menu |
-| `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `exit`). `tools/camera-test.sh` writes and removes it |
+| `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `playback open/close/next/prev`, `exit`). `tools/camera-test.sh` writes and removes it |
+| `playback-16bit` | the 32-bit framebuffer in playback: pictures show in 16-bit colour, as the live view does |
 
 USB always closes the app. **Reopen after power-on** is off by default; when enabled,
 `BaseActivity` sends the Sony `resume_key` list and keeps it across pause for power-off/wake.
@@ -224,6 +229,45 @@ What Sony's own apps on ILCE-5100 3.10 do (read from the firmware's odex files w
   (`STILL`), and per-state `pullingback_key` / `resume_key` lists. BetterManual sends neither
   category; adding them is a candidate once the app runs, not before.
 - The Application List's `Mode.BLACK` is its own exit transition (MENU), unrelated to the above.
+
+## Playback
+
+The Playback button opens `Playback` / `PlaybackView` over the live view. Shooting and playback
+never run together, as on the camera itself: `MainActivity.openPlayback` closes the camera
+(`SonyCamera.close`: preview, direct shutter, any timed shot) before reading the card, and
+`closePlayback` opens it again in resume's order (open, direct shutter, preview) and applies the
+preset again. Pause in playback closes it; resume then opens the camera as usual.
+
+The list and pictures are read on one `HandlerThread`. Every navigation bumps a generation and drops
+the previous item's queued reads, so holding Left / Right skips pictures instead of queueing their
+screennails. The index refresh (`waitAndUpdateDatabase`, which can block for seconds) runs on a
+thread of its own and is cancelled when playback closes. Playback is for checking what was just
+shot, so when a picture may have been taken since playback last brought the index up to date (app
+start, a pause, a full press of the shutter button, an adb `shoot`, or playback closed before its
+refresh ended), it refreshes before showing anything and opens on that picture; otherwise it opens
+at once and refreshes behind. Whether the full press reaches
+the app while direct shutter runs is unverified: if it does not, playback first shows the picture
+before and moves to the new one when the refresh ends.
+A picture shows its 160x120 thumbnail and Exif line first, then the screennail decoded at
+`inSampleSize` 2 (about 808x540; the camera's heap is 24 MB). `PlaybackGeometry` fits it in physical
+proportions: the A5100's 640x480 framebuffer is stretched over a 3:2 panel, so a UI pixel is 1.125
+times wider than tall.
+
+The framebuffer is ABGR8888 only while playback is open, with the camera closed, and RGBA4444
+again before the camera reopens, on pause, and in the crash handler. That is what Sony's own
+picture grid does; the black screens recorded above came from 32-bit with the live view. If a body
+misbehaves, the `playback-16bit` switch keeps 16-bit.
+
+Playback is for checking what was just shot, so it shows pictures only. The app does not record
+movies, and the A5100 3.10 firmware has no movie player for apps (`com.sony.scalar.media` has
+`MediaRecorder`, used by Smart Remote, but no `MediaPlayer`), so movies are left to the camera's
+own playback.
+
+What to check on a body: the Play key's scan code reaches the app (the key log); the first picture
+appears and is the newest, including one just shot in the app; proportions (a circle stays round)
+and portrait rotation; browsing speed and memory with holding Left / Right; colour depth in
+playback and on return; the live view, direct shutter and the preset after returning with Play,
+MENU, half-press and full press; power-off and USB while in playback. Log lines start with `playback`.
 
 ## Testing on a body in one pass
 
