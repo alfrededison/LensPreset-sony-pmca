@@ -2,7 +2,7 @@ package com.lenspreset.adapter;
 
 /**
  * Where a picture goes on the camera's screen. The UI framebuffer (640x480 on an A5100) is
- * stretched over a screen of another shape (3:2), so its pixels are not square: a picture drawn
+ * stretched over a screen of another shape (16:9 on the A5100), so its pixels are not square: a picture drawn
  * with equal x and y scales would look squeezed. Sony's own playback draws in physical
  * proportions; so does this, from the screen shape DisplayManager reports. No Android here.
  */
@@ -23,8 +23,8 @@ public final class PlaybackGeometry {
     }
 
     /**
-     * Width / height of one framebuffer pixel on the physical screen: 1.125 for 640x480 on a 3:2
-     * screen. 1 (square) when the screen shape is unknown.
+     * Width / height of one framebuffer pixel on the physical screen: 4/3 for 640x480 on a 16:9
+     * screen (the A5100), 1.125 on a 3:2 one. 1 (square) when the screen shape is unknown.
      */
     public static double pixelAspect(double screenAspect, int framebufferWidth, int framebufferHeight) {
         if (!(screenAspect > 0) || framebufferWidth <= 0 || framebufferHeight <= 0) return 1;

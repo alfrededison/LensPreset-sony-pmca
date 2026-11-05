@@ -250,8 +250,9 @@ the app while direct shutter runs is unverified: if it does not, playback first 
 before and moves to the new one when the refresh ends.
 A picture shows its 160x120 thumbnail and Exif line first, then the screennail decoded at
 `inSampleSize` 2 (about 808x540; the camera's heap is 24 MB). `PlaybackGeometry` fits it in physical
-proportions: the A5100's 640x480 framebuffer is stretched over a 3:2 panel, so a UI pixel is 1.125
-times wider than tall.
+proportions: the A5100's 640x480 framebuffer is stretched over a 16:9 panel (the body reports
+`ASPECT_RATIO_16_9`, logged as `pixel_aspect=1.333` on ILCE-5100 3.10), so a UI pixel is 4/3 times
+wider than tall and a 3:2 picture is drawn 540x480, centred.
 
 The framebuffer is ABGR8888 only while playback is open, with the camera closed, and RGBA4444
 again before the camera reopens, on pause, and in the crash handler. That is what Sony's own

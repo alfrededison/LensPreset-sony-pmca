@@ -41,7 +41,8 @@ class PlaybackTest {
 
     @Test
     void a5100PixelsAreWiderThanTall() {
-        // 640x480 framebuffer on the 3:2 panel.
+        // 640x480 framebuffer on the A5100's 16:9 panel: the body reports ASPECT_RATIO_16_9 (2).
+        assertEquals(4.0 / 3, PlaybackGeometry.pixelAspect(PlaybackGeometry.screenAspect(2), 640, 480), 1e-9);
         assertEquals(1.125, PlaybackGeometry.pixelAspect(PlaybackGeometry.screenAspect(1), 640, 480), 1e-9);
         assertEquals(1.0, PlaybackGeometry.pixelAspect(PlaybackGeometry.screenAspect(0), 640, 480), 1e-9);
         assertEquals(16.0 / 9, PlaybackGeometry.screenAspect(2), 1e-9);
@@ -50,12 +51,22 @@ class PlaybackTest {
 
     @Test
     void a32PictureFillsThe32Screen() {
-        // A 3:2 picture on the A5100's 3:2 panel fills the whole 640x480 framebuffer.
+        // A 3:2 picture on a 3:2 panel fills the whole 640x480 framebuffer.
         float[] f = PlaybackGeometry.fit(1620, 1080, 0, 640, 480, 1.125);
         assertEquals(640, 1620 * f[0], 1.0);
         assertEquals(480, 1080 * f[1], 1.0);
         assertEquals(0, f[2], 0.5);
         assertEquals(0, f[3], 0.5);
+    }
+
+    @Test
+    void a32PictureIsPillarboxedOnThe169Screen() {
+        // On the A5100 a 3:2 picture takes the full height and 540 of the 640 pixels, centred.
+        float[] f = PlaybackGeometry.fit(1620, 1080, 0, 640, 480, 4.0 / 3);
+        assertEquals(540, 1620 * f[0], 1.0);
+        assertEquals(480, 1080 * f[1], 1.0);
+        assertEquals(50, f[2], 0.5);
+        assertEquals(1.5, 1620 * f[0] * 4 / 3 / (1080 * f[1]), 1e-3);
     }
 
     @Test

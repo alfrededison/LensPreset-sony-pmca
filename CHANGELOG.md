@@ -11,7 +11,7 @@
 - Pictures come from the camera's own picture index (AvindexStore), as ma1co/PMCADemo reads it:
   the 160x120 thumbnail and the Exif line (aperture, shutter, ISO, EV, focal length, date, size)
   appear at once, then the screen-sized JPEG. Portrait pictures are turned upright, and pictures
-  keep their proportions on the A5100's non-square UI pixels (640x480 on a 3:2 panel).
+  keep their proportions on the A5100's non-square UI pixels (640x480 on a 16:9 panel).
 - After a shot, playback brings the camera's picture index up to date before showing anything, so
   it opens on the picture just taken rather than the one before it.
 - The camera is closed while playback is open and opened again on return, which applies the

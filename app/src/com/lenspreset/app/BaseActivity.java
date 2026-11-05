@@ -93,7 +93,7 @@ abstract class BaseActivity extends Activity {
     }
 
     /**
-     * Width / height of one UI pixel on the active screen (1.125 for 640x480 on the A5100's 3:2
+     * Width / height of one UI pixel on the active screen (4/3 for 640x480 on the A5100's 16:9
      * panel), so pictures keep their proportions; 1 when the platform does not say.
      */
     protected double pixelAspect() {
