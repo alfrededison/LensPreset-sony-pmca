@@ -1,12 +1,14 @@
 # Releasing LensPreset
 
-This document covers release **1.1.0**: live-view ISO/EV adjustment, wheel selection of preset
-options, and a card-based settings display. The release tag is `v1.1.0`.
+This document covers release **1.2.0**: playback inside the app, for checking the pictures just
+taken, with zoom up to 3x and a minimap. The release tag is `v1.2.0`.
 
 Existing compatibility evidence is for the MVP on ILCE-5100 firmware 3.10 with a Sigma 30mm
 F1.4 DC DN, tested by [@alfrededison](https://github.com/alfrededison). The trip presets and
-preset-owned hints from 1.0.1, plus the new ISO/EV controls for 1.1.0, still need real-camera
-testing. Do not describe the release as verified on all PMCA bodies.
+preset-owned hints from 1.0.1 and the ISO/EV controls from 1.1.0 still need real-camera testing.
+For 1.2.0, playback browsing, opening on the picture just taken, the live view on return and zoom
+up to 3x with the minimap were checked on that body before publishing.
+Do not describe the release as verified on all PMCA bodies.
 The [README](../README.md) and [changelog](../CHANGELOG.md) state the tested scope and current limits.
 
 ## Keep one signing identity
@@ -53,7 +55,7 @@ SDK's `apksigner` and compare it with the established signing identity. With the
 on `PATH`:
 
 ```bash
-apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.1.0.apk
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.2.0.apk
 ```
 
 Different signing certificates prevent an in-place update. A transition from an earlier local
@@ -88,8 +90,8 @@ tools/release.sh minor      # patch | minor | major: bump versionName first, the
 git push --atomic origin main vX.Y.Z
 ```
 
-With an argument the script bumps `versionName` before tagging; from `1.2.0`, `patch` releases
-`1.2.1` (1.2.0 is never released), `minor` `1.3.0` and `major` `2.0.0`, and the unreleased
+With an argument the script bumps `versionName` before tagging; from `1.2.1`, `patch` releases
+`1.2.2` (1.2.1 is never released), `minor` `1.3.0` and `major` `2.0.0`, and the unreleased
 changelog section takes the new number. `tools/release.sh -h` prints this. It dates the changelog
 section and commits "Release X.Y.Z", tags it `vX.Y.Z`, then commits "Start X.Y.(Z+1)
 development", which bumps `versionName` to the next patch and opens a new unreleased section.
@@ -110,18 +112,18 @@ downgrade.
 
 Pushing the `vX.Y.Z` tag triggers `.github/workflows/release.yml`. The workflow checks the tag
 against the manifest, runs the full checks, builds a v1-signed APK with `RELEASE=1`, and creates
-a **draft** release with these assets (for `v1.1.0`):
+a **draft** release with these assets (for `v1.2.0`):
 
-- `LensPreset-v1.1.0.apk`
-- `LensPreset-v1.1.0.apk.sha256`
+- `LensPreset-v1.2.0.apk`
+- `LensPreset-v1.2.0.apk.sha256`
 
 The workflow's draft is intentional; a successful job does not mean users can download it from a
 public release. Download the draft assets as a maintainer, verify the checksum from the asset's
 directory, and inspect the signing certificate:
 
 ```bash
-shasum -a 256 -c LensPreset-v1.1.0.apk.sha256
-apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.1.0.apk
+shasum -a 256 -c LensPreset-v1.2.0.apk.sha256
+apksigner verify --min-sdk-version 10 --print-certs LensPreset-v1.2.0.apk
 ```
 
 Use the **actual draft APK** for a short test on the A5100, rather than assuming the local dev
@@ -158,5 +160,5 @@ For example, maintainer metadata can be inspected without exposing any signing c
 
 ```bash
 gh release view dev --json tagName,isDraft,isPrerelease,assets,url
-gh release view v1.1.0 --json tagName,isDraft,isPrerelease,assets,url
+gh release view v1.2.0 --json tagName,isDraft,isPrerelease,assets,url
 ```

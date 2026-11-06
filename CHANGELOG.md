@@ -29,9 +29,9 @@
 ### Validation and compatibility
 
 - Every new Sony API member is in the ILCE-5100 3.10 firmware report: all present, constants
-  matching.
-  The formatting and layout geometry have unit tests. Nothing of the playback
-  screen has been tried on a body yet.
+  matching. The formatting and layout geometry have unit tests.
+- Checked on ILCE-5100 3.10: browsing, opening on the picture just taken, the live view on return,
+  and zoom up to 3x with the minimap.
 
 ## 1.1.0 — 2026-11-02
 
