@@ -70,6 +70,41 @@ class PlaybackTest {
     }
 
     @Test
+    void zoomStepsStopAtTheLimit() {
+        assertEquals(1.5, PlaybackGeometry.nextZoom(1, 1, 16), 1e-9);
+        assertEquals(3, PlaybackGeometry.nextZoom(2, 1, 16), 1e-9);
+        // A limit between two steps is a step of its own, and in stays there.
+        assertEquals(5.3, PlaybackGeometry.nextZoom(4, 1, 5.3), 1e-9);
+        assertEquals(5.3, PlaybackGeometry.nextZoom(5.3, 1, 5.3), 1e-9);
+        assertEquals(4, PlaybackGeometry.nextZoom(5.3, -1, 5.3), 1e-9);
+        assertEquals(1, PlaybackGeometry.nextZoom(1.5, -1, 16), 1e-9);
+        assertEquals(1, PlaybackGeometry.nextZoom(1, -1, 16), 1e-9);
+        assertEquals(16, PlaybackGeometry.nextZoom(16, 1, 40), 1e-9);
+    }
+
+    @Test
+    void zoomKeepsTheCentreInTheMiddleAndNoEdgeEmpty() {
+        float[] fit = PlaybackGeometry.fit(1620, 1080, 0, 640, 480, 4.0 / 3);
+        // Zoom 1 about the middle is the fit itself.
+        float[] one = PlaybackGeometry.zoom(fit, 1620, 1080, 640, 480, 1, 0.5, 0.5);
+        assertEquals(fit[2], one[2], 0.5);
+        assertEquals(fit[3], one[3], 0.5);
+        // At 2x the picture is 1080x960 view pixels: the centre may go from 640/2160 to 1 - that.
+        assertEquals(0.5, PlaybackGeometry.clampCentre(0.1, 540, 640), 1e-9);
+        assertEquals(320.0 / 1080, PlaybackGeometry.clampCentre(0.1, 1080, 640), 1e-9);
+        assertEquals(1 - 240.0 / 960, PlaybackGeometry.clampCentre(0.95, 960, 480), 1e-9);
+        float[] two = PlaybackGeometry.zoom(fit, 1620, 1080, 640, 480, 2, 320.0 / 1080, 0.25);
+        assertEquals(0, two[2], 0.5);
+        assertEquals(0, two[3], 0.5);
+    }
+
+    @Test
+    void zoomedTextReadsAsTheCameraShowsIt() {
+        assertEquals("2.0x", PlaybackText.zoom(2));
+        assertEquals("1.5x", PlaybackText.zoom(1.5));
+    }
+
+    @Test
     void portraitPicturesKeepTheirShape() {
         float[] f = PlaybackGeometry.fit(1620, 1080, 90, 640, 480, 1.125);
         // Turned: 1080 wide, 1620 high; the full height, centred, physically 2:3.

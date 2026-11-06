@@ -7,7 +7,11 @@
 - The Playback button opens an in-app playback screen, newest picture first, like the camera's
   own: Left / Right and the wheel browse (wrapping past the newest), Up or ? / Trash cycles the
   information (full → file name → picture only), and Playback, MENU or the shutter button return
-  to shooting. It is for checking pictures just taken: no movies, zoom or delete.
+  to shooting. It is for checking pictures just taken: no movies or delete.
+- The zoom lever zooms in and out, one step per push, up to 3x: the four-way moves around, the
+  wheel goes to the next picture at the same zoom and place (to compare focus across a burst),
+  Centre shows the whole picture again. It zooms the 1616x1080 screennail, at once; the camera's
+  own playback zooms further.
 - Pictures come from the camera's own picture index (AvindexStore), as ma1co/PMCADemo reads it:
   the 160x120 thumbnail and the Exif line (aperture, shutter, ISO, EV, focal length, date, size)
   appear at once, then the screen-sized JPEG. Portrait pictures are turned upright, and pictures
@@ -18,7 +22,7 @@
   preset again. The UI framebuffer is 32-bit only while playback is open, with the camera closed,
   as Sony's own picture grid does; pause and crashes set 16-bit again.
 - `LENSPRST/DEBUG.TXT` switch `playback-16bit` keeps 16-bit colour in playback; adb control adds
-  `playback open|close|next|prev`.
+  `playback open|close|next|prev|zoom-in|zoom-out|zoom-off|wheel-next|wheel-prev|fit`.
 
 ### Validation and compatibility
 

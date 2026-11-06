@@ -28,6 +28,29 @@ final class Keys {
     /** The Playback button: opens and closes the playback screen. */
     static final int PLAY = 10;
 
+    /** The zoom lever let go. */
+    static boolean zoomReleased(KeyEvent event) {
+        return event.getScanCode() == ScalarInput.ISV_KEY_ZOOM_OFF;
+    }
+
+    /**
+     * The zoom lever: +1 tele, -1 wide, 0 for any other key. Apart from {@link #action} so that only
+     * playback takes it: in the live view the camera keeps it for power zoom and Clear Image Zoom.
+     * Plus / minus stand in for it in an emulator.
+     */
+    static int zoom(KeyEvent event) {
+        switch (event.getScanCode()) {
+            case ScalarInput.ISV_KEY_ZOOM_TELE: return 1;
+            case ScalarInput.ISV_KEY_ZOOM_WIDE: return -1;
+            default: break;
+        }
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_PLUS: return 1;
+            case KeyEvent.KEYCODE_MINUS: return -1;
+            default: return 0;
+        }
+    }
+
     static int action(KeyEvent event) {
         switch (event.getScanCode()) {
             case ScalarInput.ISV_KEY_UP: return UP;

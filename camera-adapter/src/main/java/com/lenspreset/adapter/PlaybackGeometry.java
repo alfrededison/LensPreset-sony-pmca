@@ -53,6 +53,48 @@ public final class PlaybackGeometry {
         return new float[]{(float) sx, (float) sy, left, top};
     }
 
+    /** The zoom lever's steps; 1 is the whole picture. */
+    private static final double[] ZOOM_STEPS = {1, 1.5, 2, 3, 4, 6, 8, 12, 16};
+
+    /**
+     * The next zoom step in {@code direction} (+1 in, -1 out) from {@code zoom}: in stops at
+     * {@code max} (itself a step when it falls between two), out stops at 1.
+     */
+    public static double nextZoom(double zoom, int direction, double max) {
+        if (direction > 0) {
+            for (double s : ZOOM_STEPS) if (s > zoom + 1e-6) return Math.min(s, Math.max(1, max));
+            return Math.max(zoom, Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], max));
+        }
+        double out = 1;
+        for (double s : ZOOM_STEPS) if (s < zoom - 1e-6) out = s;
+        return out;
+    }
+
+    /**
+     * Where a picture centred on {@code (cx, cy)} (fractions of the turned picture) and zoomed
+     * {@code zoom} times its {@link #fit} is drawn: {@code {scaleX, scaleY, left, top}} as fit
+     * returns them. {@code width x height} is the turned picture; the centre should be
+     * {@link #clampCentre clamped} first.
+     */
+    public static float[] zoom(float[] fit, int width, int height, int viewWidth, int viewHeight,
+                               double zoom, double cx, double cy) {
+        double sx = fit[0] * zoom;
+        double sy = fit[1] * zoom;
+        return new float[]{(float) sx, (float) sy,
+                (float) (viewWidth / 2.0 - cx * width * sx), (float) (viewHeight / 2.0 - cy * height * sy)};
+    }
+
+    /**
+     * A centre (a fraction of the picture along one axis) moved as little as needed so that a
+     * picture {@code size} view pixels long leaves no empty edge in a view {@code view} pixels
+     * long; 0.5 when the whole picture fits.
+     */
+    public static double clampCentre(double c, double size, int view) {
+        if (size <= view) return 0.5;
+        double half = view / (2 * size);
+        return Math.max(half, Math.min(1 - half, c));
+    }
+
     /** The largest power-of-two decode step that still leaves the picture at least {@code min} pixels on its long side. */
     public static int sampleSize(int width, int height, int min) {
         int longSide = Math.max(width, height);

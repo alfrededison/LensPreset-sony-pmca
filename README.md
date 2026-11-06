@@ -78,8 +78,8 @@ also exercised on the body.
 - The A5100 API used here cannot set an Auto ISO minimum/maximum ISO range; it uses the body's
   own range. The minimum shutter-speed setting is supported.
 - The app cannot trigger Eye AF on the A5100; use the camera's assigned Eye AF button.
-- Playback inside the app has not been tested on a body yet. It is for checking pictures just
-  taken: no movies, zoom or delete; use the camera's own playback for those.
+- Playback inside the app is for checking pictures just taken: no movies or delete; use the
+  camera's own playback for those. Its zoom goes to 3x, on the screennail.
 - Other bodies, lens combinations, autofocus performance on moving subjects, and long-session
   reliability still need community testing. A firmware contract report proves API signatures,
   not working camera behavior.
@@ -146,10 +146,12 @@ On a fresh install, choose and apply a situation first.
 does. Left / Right or the wheel move to the previous / next one (past the newest comes the oldest),
 and Up or ? / Trash cycles the information shown (full → file name only → picture only). Each
 picture shows its position, folder and file name, aperture, shutter speed, ISO, exposure
-compensation, focal length, date and size. Playback, MENU or the shutter button returns to shooting:
-the camera is closed while playback is open, as it is on the camera itself, and the preset is
-applied again on return. It is there to check what you just shot, not to replace the camera's own
-playback: it shows no movies and does not delete, protect or rotate pictures.
+compensation, focal length, date and size. The zoom lever zooms in and out, up to 3x; zoomed, the
+four-way moves around, the wheel goes to the next picture at the same zoom and place (to compare
+focus across a burst) and Centre shows the whole picture again. Playback, MENU or the shutter button
+returns to shooting: the camera is closed while playback is open, as it is on the camera itself, and
+the preset is applied again on return. It is there to check what you just shot, not to replace the
+camera's own playback: it shows no movies and does not delete, protect or rotate pictures.
 
 **MENU → Settings** has two saved switches:
 

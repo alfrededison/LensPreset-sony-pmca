@@ -680,12 +680,22 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             trace("key scan=" + scan + " code=" + keyCode + " action=" + action
                     + " repeat=" + event.getRepeatCount() + " screen=" + screen);
         }
+        if (Keys.zoomReleased(event)) {
+            playback.zoomReleased();
+            return true;
+        }
+        int zoom = Keys.zoom(event);
+        if (zoom != 0) {
+            playback.zoom(zoom);
+            return true;
+        }
         if (action == Keys.NONE) return super.onKeyDown(keyCode, event);
         if (action == Keys.PLAY || action == Keys.MENU) {
             if (!repeat) closePlayback();
             return true;
         }
-        boolean single = action == Keys.TRASH || action == Keys.UP;
+        // Up cycles the information unzoomed, but moves the zoomed view, which may be held.
+        boolean single = action == Keys.TRASH || action == Keys.ENTER || (action == Keys.UP && !playback.zoomed());
         if (!(single && repeat)) playback.handle(action);
         return true;
     }
@@ -698,7 +708,10 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             if (scan == ScalarInput.ISV_KEY_S1_1) shutterReleasePending = false;
             return true;
         }
-        if (screen == Screen.PLAYBACK) return Keys.action(event) != Keys.NONE || super.onKeyUp(keyCode, event);
+        if (screen == Screen.PLAYBACK) {
+            return Keys.action(event) != Keys.NONE || Keys.zoom(event) != 0 || Keys.zoomReleased(event)
+                    || super.onKeyUp(keyCode, event);
+        }
         if (sony != null && sony.hasSelfTimer()) {
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_2) return true;
             if (event.getScanCode() == ScalarInput.ISV_KEY_S1_1) {
@@ -1215,6 +1228,12 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             else if (screen == Screen.PLAYBACK) {
                 if ("next".equals(arg)) playback.handle(Keys.RIGHT);
                 else if ("prev".equals(arg)) playback.handle(Keys.LEFT);
+                else if ("zoom-in".equals(arg)) playback.zoom(1);
+                else if ("zoom-out".equals(arg)) playback.zoom(-1);
+                else if ("zoom-off".equals(arg)) playback.zoomReleased();
+                else if ("wheel-next".equals(arg)) playback.handle(Keys.NEXT);
+                else if ("wheel-prev".equals(arg)) playback.handle(Keys.PREV);
+                else if ("fit".equals(arg)) playback.handle(Keys.ENTER);
             }
             trace("playback " + (screen == Screen.PLAYBACK ? playback.describe() : "closed"));
         } else if ("save-log".equals(cmd)) {

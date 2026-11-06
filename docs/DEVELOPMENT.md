@@ -88,9 +88,9 @@ body that has not been tested.
 | self-timer | `setSelfTimer`, `startSelfTimerShutter`, `cancelSelfTimerShutter`; direct shutter stopped while enabled, physical S2 handled by the app | 2 s / 10 s and return to immediate shooting checked on ILCE-5100 3.10 with the physical shutter button |
 | lens | `getLensInfo()` name / id (`LensId` does not exist on ILCE-5100 3.10); `FocalLengthChangeListener` (tenths of a mm on ILCE-5100 3.10; `Matcher.focalMm` still infers ×1/×10/×100 from the lens range for other bodies); `ApertureInfo.currentAvailableMin` as the widest aperture now | name and focal length checked on ILCE-5100 3.10 with a prime; tracking a zoom unverified |
 | eye AF | no API, confirmed on ILCE-5100 3.10 (firmware report): the app tells the user to use the camera's own Eye AF button | — |
-| playback: picture list | `AvindexStore.Images.Media.EXTERNAL_CONTENT_URI` queried for `_id`, `_data`, ordered by `content_created_utc_date_time`; `Images.waitAndUpdateDatabase` (5 s cap): before the first picture when one may have just been taken, otherwise after it | as ma1co/PMCADemo and OpenMemories' MediaManager; the refresh as pmca-grain-lab uses it; unverified on a body here |
-| playback: picture | `Images.Media.getImageInfo(_data)` (Exif tags, thumbnail, `recycle`), `AvindexGraphics.getScreenNail(_data)`, falling back to `Images.Media.getScreennail` | as OpenMemories' ImageInfo (PMCADemo) and sony-lut-camera's gallery (A6300); unverified on a body here |
-| playback: screen shape | `DisplayManager.getActiveDevice()` / `getDeviceInfo().aspect` for the pixel aspect; ABGR8888 framebuffer only with the camera closed | as sony-lut-camera's gallery and Sony's IndexLayoutGridViewBase; unverified on a body here |
+| playback: picture list | `AvindexStore.Images.Media.EXTERNAL_CONTENT_URI` queried for `_id`, `_data`, ordered by `content_created_utc_date_time`; `Images.waitAndUpdateDatabase` (5 s cap): before the first picture when one may have just been taken, otherwise after it | as ma1co/PMCADemo and OpenMemories' MediaManager; the refresh as pmca-grain-lab uses it; checked on ILCE-5100 3.10 (58 pictures, refresh 59 ms) |
+| playback: picture | `Images.Media.getImageInfo(_data)` (Exif tags, thumbnail, `recycle`), `AvindexGraphics.getScreenNail(_data)`, falling back to `Images.Media.getScreennail` | as OpenMemories' ImageInfo (PMCADemo) and sony-lut-camera's gallery (A6300); browsing and the zoom lever's codes checked on ILCE-5100 3.10 |
+| playback: screen shape | `DisplayManager.getActiveDevice()` / `getDeviceInfo().aspect` for the pixel aspect; ABGR8888 framebuffer only with the camera closed | as sony-lut-camera's gallery and Sony's IndexLayoutGridViewBase; ILCE-5100 3.10 reports 16:9 (pixel aspect 1.333) and returns to a working live view |
 
 **Roadmap steps 1–2 (spike and API survey on the A5100)** are what MENU → *Run camera probe*
 is for: it writes every supported list, current value, lens report and the full
@@ -176,7 +176,7 @@ where it is.
 | `no-camera` | opening the camera (no live view, nothing applied) |
 | `no-preview` | starting the live view |
 | `card-log` | adds, rather than leaves out: every log line is also appended to `LENSPRST/LOG.TXT` as it happens, for a body where the app never gets as far as its menu |
-| `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `playback open/close/next/prev`, `exit`). `tools/camera-test.sh` writes and removes it |
+| `adb-control` | adds: the app takes commands from adb (`am broadcast -a com.lenspreset.debug --es cmd apply --es arg <preset id>`; also `probe`, `save-log`, `awake on/off`, `playback open/close/next/prev/zoom-in/zoom-out/zoom-off/wheel-next/wheel-prev/fit`, `exit`). `tools/camera-test.sh` writes and removes it |
 | `playback-16bit` | the 32-bit framebuffer in playback: pictures show in 16-bit colour, as the live view does |
 
 USB always closes the app. **Reopen after power-on** is off by default; when enabled,
@@ -248,8 +248,8 @@ refresh ended), it refreshes before showing anything and opens on that picture; 
 at once and refreshes behind. Whether the full press reaches
 the app while direct shutter runs is unverified: if it does not, playback first shows the picture
 before and moves to the new one when the refresh ends.
-A picture shows its 160x120 thumbnail and Exif line first, then the screennail decoded at
-`inSampleSize` 2 (about 808x540; the camera's heap is 24 MB). `PlaybackGeometry` fits it in physical
+A picture shows its 160x120 thumbnail and Exif line first, then the screennail at its full
+1616x1080 in RGB_565 (3.5 MB; the camera's heap is 24 MB), for zoom. `PlaybackGeometry` fits it in physical
 proportions: the A5100's 640x480 framebuffer is stretched over a 16:9 panel (the body reports
 `ASPECT_RATIO_16_9`, logged as `pixel_aspect=1.333` on ILCE-5100 3.10), so a UI pixel is 4/3 times
 wider than tall and a 3:2 picture is drawn 540x480, centred.
@@ -264,11 +264,26 @@ movies, and the A5100 3.10 firmware has no movie player for apps (`com.sony.scal
 `MediaRecorder`, used by Smart Remote, but no `MediaPlayer`), so movies are left to the camera's
 own playback.
 
+Zoom steps through 1.5x, 2x and 3x on the screennail, decoded at its full 1616x1080 (RGB_565,
+dithered, 3.5 MB): at 3x that is about one screennail pixel per screen pixel across (the 4:3 pixels
+make it 1.33 screen rows per row down). The zoom lever sends `ISV_KEY_ZOOM_TELE` / `_WIDE` (610 /
+611) about every 100 ms while pushed and `ISV_KEY_ZOOM_OFF` (645) when let go, on ILCE-5100 3.10;
+steps closer than 300 ms are one push, and the release lets the next push step at once. Zoomed, the
+four-way pans, the wheel goes to the next picture keeping the zoom and place (black until its
+screennail, as the 160x120 thumbnail is too small to enlarge), Centre goes back to the whole
+picture. The lever is mapped only in playback (`Keys.zoom`): in the live view it stays the camera's,
+for power zoom and Clear Image Zoom. Zooming the JPEG itself was tried and dropped: on ILCE-5100
+3.10, `BitmapRegionDecoder` took 2.9 s to open a 24 MP file and once 23 s, kept 23 MB of native
+memory, and held up the next picture's screennail on the card, which left the screen black while
+browsing zoomed.
+
 What to check on a body: the Play key's scan code reaches the app (the key log); the first picture
 appears and is the newest, including one just shot in the app; proportions (a circle stays round)
 and portrait rotation; browsing speed and memory with holding Left / Right; colour depth in
 playback and on return; the live view, direct shutter and the preset after returning with Play,
-MENU, half-press and full press; power-off and USB while in playback. Log lines start with `playback`.
+MENU, half-press and full press; power-off and USB while in playback; one zoom step per lever
+push (`playback zoom` lines), and browsing with the wheel while zoomed. Log lines start with
+`playback`.
 
 ## Testing on a body in one pass
 

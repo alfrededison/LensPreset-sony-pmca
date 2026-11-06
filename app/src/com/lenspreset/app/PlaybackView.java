@@ -17,6 +17,9 @@ import java.util.List;
  * The playback screen: one picture full screen in its physical proportions, a band at the top
  * (position, file name) and one at the bottom (exposure, date, keys), as the camera's own playback
  * lays them out. Canvas-drawn like OverlayView: the camera's font has no symbol glyphs.
+ *
+ * <p>Zoomed, the picture is drawn larger about a centre (fractions of the upright picture, kept so
+ * no edge shows empty) and the bottom band keeps only the keys.
  */
 public final class PlaybackView extends View {
     /** Each press of Up or ? / Trash shows less, then everything again (the camera's DISP). */
@@ -38,6 +41,9 @@ public final class PlaybackView extends View {
     private String legend = "";
     private String message = "";
     private boolean messageWarn;
+    private double zoom = 1;
+    private double centreX = 0.5;
+    private double centreY = 0.5;
 
     /** Inflated from res/layout/main.xml. */
     public PlaybackView(Context context, AttributeSet attrs) {
@@ -80,6 +86,51 @@ public final class PlaybackView extends View {
         invalidate();
     }
 
+    /** Zooms to {@code z} times the whole picture (1: all of it), keeping the centre where it can. */
+    void setZoom(double z) {
+        zoom = Math.max(1, z);
+        if (zoom == 1) {
+            centreX = 0.5;
+            centreY = 0.5;
+        }
+        clampCentre();
+        invalidate();
+    }
+
+    double zoom() {
+        return zoom;
+    }
+
+    /** Moves the zoomed view a quarter of the screen: {@code dx}, {@code dy} are -1, 0 or 1. */
+    void pan(int dx, int dy) {
+        float[] p = placement();
+        if (p == null) return;
+        centreX += dx * 0.25 * getWidth() / p[2];
+        centreY += dy * 0.25 * getHeight() / p[3];
+        clampCentre();
+        invalidate();
+    }
+
+    private void clampCentre() {
+        float[] p = placement();
+        if (p == null) return;
+        centreX = PlaybackGeometry.clampCentre(centreX, p[2], getWidth());
+        centreY = PlaybackGeometry.clampCentre(centreY, p[3], getHeight());
+    }
+
+    /** {@code {left, top, width, height}} of the upright picture in view pixels, or null. */
+    private float[] placement() {
+        int w = getWidth();
+        int h = getHeight();
+        if (bitmap == null || bitmap.isRecycled() || w <= 0 || h <= 0) return null;
+        boolean turned = rotation == 90 || rotation == 270;
+        int tw = turned ? bitmap.getHeight() : bitmap.getWidth();
+        int th = turned ? bitmap.getWidth() : bitmap.getHeight();
+        float[] fit = PlaybackGeometry.fit(bitmap.getWidth(), bitmap.getHeight(), rotation, w, h, pixelAspect);
+        float[] z = PlaybackGeometry.zoom(fit, tw, th, w, h, zoom, centreX, centreY);
+        return new float[]{z[2], z[3], tw * z[0], th * z[1]};
+    }
+
     void cycleInfo() {
         info = Info.values()[(info.ordinal() + 1) % Info.values().length];
         invalidate();
@@ -90,7 +141,9 @@ public final class PlaybackView extends View {
         int w = getWidth();
         int h = getHeight();
         c.drawColor(Color.BLACK);
-        if (bitmap != null && !bitmap.isRecycled()) drawPicture(c, w, h);
+        float[] p = placement();
+        if (p != null) drawTurned(c, bitmap, p[0], p[1], p[2], p[3]);
+        boolean zoomed = zoom > 1;
 
         float size = h / 22f;
         float pad = size * 0.4f;
@@ -109,20 +162,21 @@ public final class PlaybackView extends View {
         if (info == Info.FULL) {
             text.setTextSize(size * 0.75f);
             List<String> keys = TextFit.wrap(text, legend, w - 2 * pad);
-            int lines = keys.size() + (exposure.length() > 0 ? 1 : 0) + (detail.length() > 0 ? 1 : 0);
+            boolean facts = !zoomed;
+            int lines = keys.size() + (facts && exposure.length() > 0 ? 1 : 0) + (facts && detail.length() > 0 ? 1 : 0);
             if (lines > 0) {
                 float top = h - pad * 2 - lines * size * 0.95f;
                 c.drawRect(0, top, w, h, band);
                 float y = top + pad + size * 0.75f;
                 text.setTextSize(size * 0.85f);
                 text.setColor(Color.WHITE);
-                if (exposure.length() > 0) {
+                if (facts && exposure.length() > 0) {
                     c.drawText(TextFit.ellipsize(text, exposure, w - 2 * pad), pad, y, text);
                     y += size * 0.95f;
                 }
                 text.setTextSize(size * 0.75f);
                 text.setColor(Color.rgb(200, 200, 200));
-                if (detail.length() > 0) {
+                if (facts && detail.length() > 0) {
                     c.drawText(TextFit.ellipsize(text, detail, w - 2 * pad), pad, y, text);
                     y += size * 0.95f;
                 }
@@ -148,19 +202,17 @@ public final class PlaybackView extends View {
         }
     }
 
-    private void drawPicture(Canvas c, int w, int h) {
-        int bw = bitmap.getWidth();
-        int bh = bitmap.getHeight();
-        float[] fit = PlaybackGeometry.fit(bw, bh, rotation, w, h, pixelAspect);
+    /** Draws {@code b}, turned upright by the picture's rotation, over {@code width x height} from (left, top). */
+    private void drawTurned(Canvas c, Bitmap b, float left, float top, float width, float height) {
+        int bw = b.getWidth();
+        int bh = b.getHeight();
+        boolean turned = rotation == 90 || rotation == 270;
         matrix.reset();
         // Turn about the picture's centre, then place the turned picture's corner at the origin.
         matrix.postRotate(rotation, bw / 2f, bh / 2f);
-        boolean turned = rotation == 90 || rotation == 270;
-        float dx = turned ? (bh - bw) / 2f : 0;
-        float dy = turned ? (bw - bh) / 2f : 0;
-        matrix.postTranslate(dx, dy);
-        matrix.postScale(fit[0], fit[1]);
-        matrix.postTranslate(fit[2], fit[3]);
-        c.drawBitmap(bitmap, matrix, image);
+        matrix.postTranslate(turned ? (bh - bw) / 2f : 0, turned ? (bw - bh) / 2f : 0);
+        matrix.postScale(width / (turned ? bh : bw), height / (turned ? bw : bh));
+        matrix.postTranslate(left, top);
+        c.drawBitmap(b, matrix, image);
     }
 }

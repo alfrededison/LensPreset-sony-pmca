@@ -34,7 +34,7 @@
     "firmware.tar_unpacked/0700_part_image/dev/nflasha16_unpacked_unpacked/framework/com.sony.scalar.sysutil.didep.Status.odex",
     "firmware.tar_unpacked/0700_part_image/dev/nflasha16_unpacked_unpacked/framework/sony.cameraex.odex"
   ],
-  "checked": 226,
+  "checked": 229,
   "ok": true,
   "missing_classes": [],
   "missing_members": [],
@@ -260,6 +260,9 @@
     "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_SK1": true,
     "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_SK2": true,
     "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_UP": true,
+    "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_ZOOM_OFF": true,
+    "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_ZOOM_TELE": true,
+    "com.sony.scalar.sysutil.ScalarInput.ISV_KEY_ZOOM_WIDE": true,
     "com.sony.scalar.sysutil.ScalarProperties": true,
     "com.sony.scalar.sysutil.ScalarProperties#getFirmwareVersion()Ljava/lang/String;": true,
     "com.sony.scalar.sysutil.ScalarProperties#getString(Ljava/lang/String;)Ljava/lang/String;": true,

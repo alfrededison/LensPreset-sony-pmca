@@ -19,6 +19,11 @@ public class ScalarInput {
     public static final int ISV_KEY_S1_2 = 517;
     public static final int ISV_KEY_PLAY = 207;
     public static final int ISV_KEY_LENS_ATTACH = 530;
+    /** The zoom lever: on ILCE-5100 3.10 these repeat about every 100 ms while it is pushed. */
+    public static final int ISV_KEY_ZOOM_TELE = 610;
+    public static final int ISV_KEY_ZOOM_WIDE = 611;
+    /** Sent once when the zoom lever is let go. */
+    public static final int ISV_KEY_ZOOM_OFF = 645;
     public static final int ISV_DIAL_KURU_CLOCKWISE = 522;
     public static final int ISV_DIAL_KURU_COUNTERCW = 523;
     public static final int ISV_DIAL_1_CLOCKWISE = 525;

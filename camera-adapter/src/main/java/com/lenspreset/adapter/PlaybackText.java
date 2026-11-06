@@ -4,6 +4,7 @@ import com.lenspreset.core.optics.Scales;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * What the playback screen says about a picture, from the Exif values the camera's index returns
@@ -55,6 +56,11 @@ public final class PlaybackText {
         boolean hasFile = file != null && file.length() > 0;
         if (hasFolder && hasFile) return folder + "/" + file;
         return hasFile ? file : hasFolder ? folder : "";
+    }
+
+    /** {@code 2.0x}: the zoom shown while zoomed. */
+    public static String zoom(double zoom) {
+        return String.format(Locale.US, "%.1fx", zoom);
     }
 
     private static String join(List<String> parts) {
