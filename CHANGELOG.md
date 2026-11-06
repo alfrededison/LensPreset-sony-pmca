@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.2.1 — unreleased
+
 ## 1.2.0 — 2026-11-06
 
 ### Playback
