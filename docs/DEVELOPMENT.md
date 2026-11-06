@@ -271,11 +271,42 @@ make it 1.33 screen rows per row down). The zoom lever sends `ISV_KEY_ZOOM_TELE`
 steps closer than 300 ms are one push, and the release lets the next push step at once. Zoomed, the
 four-way pans, the wheel goes to the next picture keeping the zoom and place (black until its
 screennail, as the 160x120 thumbnail is too small to enlarge), Centre goes back to the whole
-picture, and a minimap (two outlines, no picture) shows which part is on screen. The lever is mapped only in playback (`Keys.zoom`): in the live view it stays the camera's,
-for power zoom and Clear Image Zoom. Zooming the JPEG itself was tried and dropped: on ILCE-5100
-3.10, `BitmapRegionDecoder` took 2.9 s to open a 24 MP file and once 23 s, kept 23 MB of native
-memory, and held up the next picture's screennail on the card, which left the screen black while
-browsing zoomed.
+picture, and a minimap (two outlines, no picture) shows which part is on screen. The lever is
+mapped only in playback (`Keys.zoom`): in the live view it stays the camera's, for power zoom and
+Clear Image Zoom. Zooming the JPEG itself was tried and dropped: on ILCE-5100 3.10,
+`BitmapRegionDecoder` took 2.9 s to open a 24 MP file and once 23 s, kept 23 MB of native memory,
+and held up the next picture's screennail on the card, which left the screen black while browsing
+zoomed.
+
+Pictures look worse than in the camera's own playback, for three reasons:
+
+- **No detail past the screennail.** At 2x and 3x the 1616x1080 screennail is enlarged (about 1.33
+  screen pixels per screennail pixel at 3x), so it is soft. The camera's playback reads the 24 MP
+  JPEG, stays sharp at every step and zooms much further.
+- **Aliasing at 1x.** The whole picture is the screennail scaled down about 3x in one filtered
+  step, which samples only 2x2 pixels per screen pixel: fine detail sparkles and edges step.
+- **16-bit colour.** The screennail is decoded RGB_565 and dithered, on a framebuffer that is
+  32-bit in playback; the dither grain shows once zoomed.
+
+Two ways forward, neither tried yet:
+
+- **Quick fix, for the last two.** Decode the screennail ARGB_8888 (7 MB), falling back to RGB_565
+  on `OutOfMemoryError`; on the card thread also halve it with filtering (808x540, each pixel the
+  average of 2x2) and draw that half at 1x, the full one when zoomed. To check on a body: memory
+  with holding Left / Right (old and new pictures overlap briefly: up to about 17 MB), and the time
+  the halving adds per picture.
+- **The camera's own renderer, for all three.** The A5100 3.10 firmware has
+  `com.sony.scalar.widget.OptimizedImageView` (in `com.sony.scalar.stillPlay`), a `SurfaceView`
+  that renders a picture through the hardware JPEG decoder onto the YUV overlay
+  (`HAL_PIXEL_FORMAT_YUV_OVERLAY`), with `setOptimizedImage`, `setScale(float[, BoundType])`,
+  `setTranslate` / `translate(Point[, TranslationType])`, `setDisplayType`, `setRotationAngle`,
+  `getLayoutInfo` and display / layout listeners. Pictures come from
+  `com.sony.scalar.graphics.OptimizedImageFactory.decodeImage(String uri[, Options])`, whose
+  `Options` constants name the image to decode (`THUM` 1, `SCN` 2, `MAIN` 3) and the colour space
+  (`SRGB` 1, `ADOBERGB` 2); the uri appears to be the picture index's content uri (the code splits
+  it into a media id). No stubs or known users yet, so the signatures come from the dex and the
+  behaviour has to be found on a body. If it works, `PlaybackView` would draw only the bands and
+  minimap over it, as `OverlayView` does over the live view, and zoom would no longer stop at 3x.
 
 What to check on a body: the Play key's scan code reaches the app (the key log); the first picture
 appears and is the newest, including one just shot in the app; proportions (a circle stays round)
