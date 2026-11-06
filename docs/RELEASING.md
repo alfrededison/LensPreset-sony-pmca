@@ -60,38 +60,56 @@ Different signing certificates prevent an in-place update. A transition from an 
 debug key requires an uninstall/reinstall, which removes the app's preferences; tell testers if
 such a transition is necessary. Do not commit a keystore, encoded keystore, or credentials.
 
-## Prepare the release commit
+## Prepare the release
 
-1. Make sure `app/AndroidManifest.xml` has the intended `versionName` (currently `1.1.0`). A
-   release tag must be exactly `v` plus that version. A version bump starts its dev counter at
-   `dev.1`; later first-parent commits increment it independently of tags, counting merges once.
-   After publishing a release, bump
-   the manifest to the next intended version before resuming dev builds.
-   `versionName` is the only app version to edit; leave the source `versionCode` unchanged
-   because `build.sh` derives it. Commit the version change before creating the release tag.
-2. Commit the intended changes and confirm CI passes for that commit. CI runs core/adapter
-   tests, profile schemas, committed firmware-report coverage, firmware-tool tests, and the APK
-   build. For local commands, see [Development](DEVELOPMENT.md#tests).
+1. `CHANGELOG.md` has exactly one `## <versionName> — unreleased` section, right under
+   `# Changelog`, listing the changes (subheadings alone do not count). `versionName` in
+   `app/AndroidManifest.xml` is the only app version; `tools/release.sh` edits it, and `build.sh`
+   derives `versionCode`, so leave that unchanged.
+2. Commit the intended changes and confirm the latest `dev-build` run on `main` passed.
+   Documentation-only commits start no run, so this is the run for the last commit that changed
+   code. It runs core/adapter tests, the version, signing and release-script tests, profile
+   schemas, committed firmware-report coverage, firmware-tool tests, and the signed APK build;
+   `release.yml` runs the same checks again on the tag. For local commands, see
+   [Development](DEVELOPMENT.md#tests).
 3. Check that README compatibility claims, the camera profile's test provenance, and the
-   changelog match the evidence. In the release commit, use the version and release date in the
-   changelog heading (`1.1.0 — 2026-11-02`), and update README and this guide to that version.
-   Remove stale `Unreleased`, development-target, and previous-latest wording from the release
-   notes. Start a new `Unreleased` section when work begins on the following version.
+   changelog match the evidence, and update README and this guide to the version being released.
 4. Verify the signing secrets and certificate identity. Never treat a green build alone as
    evidence that the expected project key was used.
 
 ## Build the draft
 
-Create the tag only after the version and release notes are committed and checks have passed:
+With a clean `main`, cut the release and start the next version in one step, then push both refs
+together:
 
 ```bash
-git tag -a v1.1.0 -m "LensPreset 1.1.0"
-git push origin main
-git push origin v1.1.0
+tools/release.sh            # no argument: release the current versionName as it is
+tools/release.sh minor      # patch | minor | major: bump versionName first, then release
+git push --atomic origin main vX.Y.Z
 ```
 
-Pushing the intended `vX.Y.Z` tag triggers `.github/workflows/release.yml`. The workflow checks
-the tag against the manifest, runs unit tests, builds a v1-signed APK with `RELEASE=1`, and creates
+With an argument the script bumps `versionName` before tagging; from `1.2.0`, `patch` releases
+`1.2.1` (1.2.0 is never released), `minor` `1.3.0` and `major` `2.0.0`, and the unreleased
+changelog section takes the new number. `tools/release.sh -h` prints this. It dates the changelog
+section and commits "Release X.Y.Z", tags it `vX.Y.Z`, then commits "Start X.Y.(Z+1)
+development", which bumps `versionName` to the next patch and opens a new unreleased section.
+
+Before writing anything it fetches `main` from `origin` and stops if the local branch is behind,
+if the tag already exists locally or on GitHub, if the unreleased section lists no changes (what a
+second run right after a release would find), or if the changelog already has a section for the
+release or the next version. A failure halfway (a commit hook, GPG) resets the branch and deletes
+the tag, so it can simply be run again. It never pushes; `--atomic` makes the tag and `main` land
+together or not at all.
+
+The bump commit on `main` builds nothing: `dev-build` deletes the old `dev` prerelease instead,
+because its `X.Y.Z-dev.N` ranks below the release and the camera would refuse it as a downgrade.
+The next commit that changes code publishes `X.Y.(Z+1)-dev.N`, which installs over the release.
+Until the draft is published there is no public download of the new code, so publish it soon.
+`dev-build` also fails if `versionName` is still a released version, rather than publishing a
+downgrade.
+
+Pushing the `vX.Y.Z` tag triggers `.github/workflows/release.yml`. The workflow checks the tag
+against the manifest, runs the full checks, builds a v1-signed APK with `RELEASE=1`, and creates
 a **draft** release with these assets (for `v1.1.0`):
 
 - `LensPreset-v1.1.0.apk`
@@ -128,10 +146,11 @@ public download.
 
 ## Where development APKs appear
 
-- `ci` uploads a debug-signed Actions artifact named `LensPreset-apk` after its APK build succeeds.
-- `dev-build` uploads the project-signed `LensPreset-dev-apk` Actions artifact and attaches a
-  versioned APK and checksum to a `dev` prerelease. Check the actual release state; a draft cannot
-  serve as a public download.
+- `ci` runs on pull requests and uploads a debug-signed Actions artifact named `LensPreset-apk`
+  after its APK build succeeds.
+- `dev-build` runs on pushes to `main` that change more than documentation. It uploads the
+  project-signed `LensPreset-dev-apk` Actions artifact and attaches a versioned APK and checksum
+  to a `dev` prerelease. Check the actual release state; a draft cannot serve as a public download.
 - The tag-triggered release workflow uploads the project-signed `LensPreset-release-apk` Actions
   artifact and creates a draft for a maintainer to publish.
 

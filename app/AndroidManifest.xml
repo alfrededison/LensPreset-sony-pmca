@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- versionName is the next release and the only version in the tree; build.sh derives versionCode
-     and the -dev.N suffix itself and never rewrites this file. -->
+<!-- versionName is the only version in the tree and the next release, unless tools/release.sh is
+     given patch, minor or major to bump it first. tools/release.sh is the only thing that rewrites
+     it; build.sh derives versionCode and the -dev.N suffix itself. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lenspreset"
     android:versionCode="1"

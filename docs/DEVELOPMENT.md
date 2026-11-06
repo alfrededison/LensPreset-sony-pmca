@@ -42,9 +42,9 @@ Dev numbering starts at `dev.1` on the commit that changes `versionName` along f
 history, then increases with subsequent commits on that history. Each merge counts once;
 old-version edits on a merged branch cannot reset the counter. An uncommitted version change
 also builds as `dev.1`.
-Tags do not reset the counter. Use full Git history for reproducible dev numbers, and bump
-`versionName` before starting development after a release: dev builds of the same version rank
-below that release. `python3 tools/test_version.py` checks this against temporary Git histories.
+Tags do not reset the counter. Use full Git history for reproducible dev numbers. Dev builds of
+a version rank below its release, so `tools/release.sh` bumps `versionName` right after tagging.
+`python3 tools/test_version.py` checks this against temporary Git histories.
 For a public build, use a stable project signing key; local debug signing is a development
 fallback. See [Releasing](RELEASING.md) for the secret names, certificate check, release workflow,
 and publication steps.
@@ -56,6 +56,7 @@ and publication steps.
 ./tools/test.sh Engine             # classes whose name contains "Engine"
 python tools/validate_profiles.py  # schemas (pip install jsonschema)
 python3 tools/test_signing.py       # missing secrets and certificate mismatch guards
+python3 tools/test_release.py       # tools/release.sh in temporary repositories
 ANDROID_SDK=... python -m unittest discover -s tools/firmware -p 'test_*.py'
 ```
 

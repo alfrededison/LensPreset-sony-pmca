@@ -13,16 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The gh step uses GH_TOKEN; keep the write token out of .git/config while the build runs.
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Tag must match the manifest
         run: |
           RELEASE=1 . tools/version.sh
           test "v$VERSION_NAME" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, manifest $VERSION_NAME"; exit 1; }
-      - run: ./tools/test.sh
       - run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
+      - name: Tests, profile schemas, firmware reports and tools
+        run: |
+          ./tools/test.sh
+          python3 tools/test_version.py
+          python3 tools/test_signing.py
+          python3 tools/test_release.py
+          python3 tools/firmware/contract.py --check-reports
+          pip install jsonschema==4.23.0
+          python tools/validate_profiles.py
+          ANDROID_SDK="$ANDROID_SDK_ROOT" python -m unittest discover -s tools/firmware -p 'test_*.py'
       - name: Build with the project signing key and verify its certificate
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}

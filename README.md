@@ -89,7 +89,8 @@ also exercised on the body.
 
 1. Download the APK and matching `.sha256` from a published [Release](../../releases).
    Signed development snapshots are available as `LensPreset-dev-apk` artifacts in Actions and
-   published `dev` prereleases. The `ci` artifact `LensPreset-apk` uses a debug key for testing.
+   the `dev` prerelease, which is removed at each release until the next code change. The pull
+   request `ci` artifact `LensPreset-apk` uses a debug key for testing.
    An unpublished release draft is visible only to maintainers.
 2. Camera: *Setup → USB Connection → Mass Storage*, connect USB.
 3. Install with [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE):

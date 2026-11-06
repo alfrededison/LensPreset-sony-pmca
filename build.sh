@@ -21,6 +21,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$PWD"
+# Remove the previous output first, so any failure below leaves no stale APK behind.
+rm -f out/LensPreset.apk out/LensPreset.apk.sha256
 
 . tools/signing.sh
 PROJECT_SIGNING=0
@@ -93,9 +95,16 @@ echo "[6/7] package and align"
 echo "[7/7] sign (v1 only: the camera does not understand v2/v3)"
 APK=out/LensPreset.apk
 SIGN_OPTS=(--min-sdk-version 10 --v1-signing-enabled true --v2-signing-enabled false --v3-signing-enabled false)
+KS=
+cleanup() {
+  local status=$?
+  if [ "$PROJECT_SIGNING" = 1 ] && [ -n "$KS" ]; then rm -f "$KS"; fi
+  # A failed build (for example a certificate that does not match the pin) must leave no APK behind.
+  if [ "$status" != 0 ]; then rm -f "$APK" out/LensPreset.apk.sha256; fi
+}
+trap cleanup EXIT
 if [ "$PROJECT_SIGNING" = 1 ]; then
   KS=$(mktemp "${RUNNER_TEMP:-$ROOT/out}/lenspreset-signing.XXXXXX")
-  trap 'rm -f "$KS"' EXIT
   printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > "$KS"
   KS_PASS="${ANDROID_KEYSTORE_PASSWORD:?}" KEY_PASS="${ANDROID_KEY_PASSWORD:?}" \
     "$BT/apksigner" sign --ks "$KS" --ks-key-alias "${ANDROID_KEY_ALIAS:?}" \

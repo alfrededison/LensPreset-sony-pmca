@@ -1,12 +1,18 @@
+# Pull requests only: on main, dev-build runs the same checks before building the signed APK.
 name: ci
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    paths-ignore: ["**.md", "LICENSE"]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# A newer push to the same pull request makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -23,6 +29,8 @@ jobs:
         run: python3 tools/test_version.py
       - name: Signing configuration and certificate guards
         run: python3 tools/test_signing.py
+      - name: Release script tags the release and bumps to the next dev version
+        run: python3 tools/test_release.py
       - name: Committed firmware reports still cover the Sony API the app calls
         run: python3 tools/firmware/contract.py --check-reports
 

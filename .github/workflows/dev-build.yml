@@ -1,12 +1,17 @@
-# Every push to main replaces the "dev" prerelease with a fresh X.Y.Z-dev.N APK.
+# Every push to main that changes code replaces the "dev" prerelease with a fresh X.Y.Z-dev.N APK.
+# Documentation-only pushes do nothing. The "Start <next> development" commit that tools/release.sh
+# puts right after a release tag only bumps the version: its code is the release, so nothing is
+# built and the old "dev" prerelease is deleted instead. Its X.Y.Z-dev.N is below the release, and
+# Android would refuse it as a downgrade; the next code commit publishes <next>-dev.N again.
 name: dev-build
 
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "LICENSE"]
 
 permissions:
-  contents: write
+  contents: read
 
 # Never cancel a run: one stopped between deleting and recreating the release would leave none.
 concurrency:
@@ -14,18 +19,105 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dev:
+  check:
+    name: decide whether to build
     runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: versionName must be bumped after a release
+        run: |
+          RELEASE=1 . tools/version.sh
+          if git rev-parse -q --verify "refs/tags/v$VERSION_NAME" >/dev/null; then
+            echo "v$VERSION_NAME is already released: bump versionName (tools/release.sh does it)," \
+                 "otherwise this dev build would be a downgrade from the release." >&2
+            exit 1
+          fi
+      - name: Skip a version-only commit right after a release tag
+        id: decide
+        run: |
+          # Skip only when HEAD^ is a release and HEAD changes nothing but CHANGELOG.md and the
+          # versionName line: an amended bump or a hand-made commit that also changes code still builds.
+          released=
+          if git rev-parse -q --verify HEAD^ >/dev/null; then
+            released=$(git tag --points-at HEAD^ --list 'v*' | head -n1)
+          fi
+          build=true
+          if [ -n "$released" ]; then
+            # Diff first, so a git error builds (the safe side) instead of looking like "no changes".
+            if files=$(git diff --no-renames --name-only HEAD^ HEAD) &&
+               manifest_diff=$(git diff --no-renames -U0 HEAD^ HEAD -- app/AndroidManifest.xml); then
+              other_files=$(printf '%s\n' "$files" | grep -Fvx -e CHANGELOG.md -e app/AndroidManifest.xml || true)
+              other_lines=$(printf '%s\n' "$manifest_diff" | grep -E '^[-+]' | grep -vE '^(\+\+\+|---) ' |
+                grep -vE '^[-+][[:space:]]*android:versionName="[0-9]+\.[0-9]+\.[0-9]+">?[[:space:]]*$' || true)
+              if [ -z "$other_files" ] && [ -z "$other_lines" ]; then
+                echo "HEAD only starts the next version after $released: nothing new to build."
+                build=false
+              fi
+            else
+              echo "::warning::cannot diff HEAD against $released; building to be safe"
+            fi
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
+  retire:
+    name: delete the dev prerelease superseded by the release
+    needs: check
+    if: needs.check.outputs.build == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        # Only "no dev prerelease" counts as done: any other gh error must fail the job, or the
+        # superseded X.Y.Z-dev.N would stay up unnoticed.
+        run: |
+          if out=$(gh release view dev --json tagName 2>&1); then
+            gh release delete dev --yes --cleanup-tag
+            echo "Deleted the dev prerelease: the release (a draft until published) is the newest build."
+          elif printf '%s' "$out" | grep -q "release not found"; then
+            echo "No dev prerelease to delete."
+          else
+            printf '%s\n' "$out" >&2
+            exit 1
+          fi
+
+  dev:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # The gh steps use GH_TOKEN; keep the write token out of .git/config while the build runs.
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-      - run: ./tools/test.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-10" "build-tools;35.0.0" > /dev/null
+      - name: Tests, profile schemas, firmware reports and tools
+        run: |
+          ./tools/test.sh
+          python3 tools/test_version.py
+          python3 tools/test_signing.py
+          python3 tools/test_release.py
+          python3 tools/firmware/contract.py --check-reports
+          pip install jsonschema==4.23.0
+          python tools/validate_profiles.py
+          ANDROID_SDK="$ANDROID_SDK_ROOT" python -m unittest discover -s tools/firmware -p 'test_*.py'
       - name: Build with the project signing key and verify its certificate
         env:
           REQUIRE_PROJECT_SIGNING: "1"
