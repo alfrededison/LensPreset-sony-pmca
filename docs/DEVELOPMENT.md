@@ -271,7 +271,7 @@ make it 1.33 screen rows per row down). The zoom lever sends `ISV_KEY_ZOOM_TELE`
 steps closer than 300 ms are one push, and the release lets the next push step at once. Zoomed, the
 four-way pans, the wheel goes to the next picture keeping the zoom and place (black until its
 screennail, as the 160x120 thumbnail is too small to enlarge), Centre goes back to the whole
-picture. The lever is mapped only in playback (`Keys.zoom`): in the live view it stays the camera's,
+picture, and a minimap (two outlines, no picture) shows which part is on screen. The lever is mapped only in playback (`Keys.zoom`): in the live view it stays the camera's,
 for power zoom and Clear Image Zoom. Zooming the JPEG itself was tried and dropped: on ILCE-5100
 3.10, `BitmapRegionDecoder` took 2.9 s to open a 24 MP file and once 23 s, kept 23 MB of native
 memory, and held up the next picture's screennail on the card, which left the screen black while

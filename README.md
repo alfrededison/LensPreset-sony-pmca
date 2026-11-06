@@ -148,10 +148,11 @@ and Up or ? / Trash cycles the information shown (full → file name only → pi
 picture shows its position, folder and file name, aperture, shutter speed, ISO, exposure
 compensation, focal length, date and size. The zoom lever zooms in and out, up to 3x; zoomed, the
 four-way moves around, the wheel goes to the next picture at the same zoom and place (to compare
-focus across a burst) and Centre shows the whole picture again. Playback, MENU or the shutter button
-returns to shooting: the camera is closed while playback is open, as it is on the camera itself, and
-the preset is applied again on return. It is there to check what you just shot, not to replace the
-camera's own playback: it shows no movies and does not delete, protect or rotate pictures.
+focus across a burst) and Centre shows the whole picture again; a minimap of two outlines shows
+which part is on screen. Playback, MENU or the shutter button returns to shooting: the camera is
+closed while playback is open, as it is on the camera itself, and the preset is applied again on
+return. It is there to check what you just shot, not to replace the camera's own playback: it shows
+no movies and does not delete, protect or rotate pictures.
 
 **MENU → Settings** has two saved switches:
 

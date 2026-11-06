@@ -10,8 +10,8 @@
   to shooting. It is for checking pictures just taken: no movies or delete.
 - The zoom lever zooms in and out, one step per push, up to 3x: the four-way moves around, the
   wheel goes to the next picture at the same zoom and place (to compare focus across a burst),
-  Centre shows the whole picture again. It zooms the 1616x1080 screennail, at once; the camera's
-  own playback zooms further.
+  Centre shows the whole picture again, and a minimap of two outlines shows which part is on
+  screen. It zooms the 1616x1080 screennail, at once; the camera's own playback zooms further.
 - Pictures come from the camera's own picture index (AvindexStore), as ma1co/PMCADemo reads it:
   the 160x120 thumbnail and the Exif line (aperture, shutter, ISO, EV, focal length, date, size)
   appear at once, then the screen-sized JPEG. Portrait pictures are turned upright, and pictures

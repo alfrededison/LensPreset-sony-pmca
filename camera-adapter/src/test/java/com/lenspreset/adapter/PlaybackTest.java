@@ -99,6 +99,26 @@ class PlaybackTest {
     }
 
     @Test
+    void theMinimapFrameIsThePartOnScreen() {
+        // At 2x in the top-left corner: 640 of 1080 view pixels across, 480 of 960 down.
+        float[] s = PlaybackGeometry.shown(0, 0, 1080, 960, 640, 480);
+        assertEquals(0, s[0], 1e-6);
+        assertEquals(0, s[1], 1e-6);
+        assertEquals(640f / 1080, s[2], 1e-6);
+        assertEquals(0.5, s[3], 1e-6);
+        // Moved to the right edge.
+        s = PlaybackGeometry.shown(640 - 1080, -240, 1080, 960, 640, 480);
+        assertEquals(1 - 640f / 1080, s[0], 1e-6);
+        assertEquals(0.25, s[1], 1e-6);
+        assertEquals(1, s[2], 1e-6);
+        assertEquals(0.75, s[3], 1e-6);
+        // At 1x the pillarboxed picture is all on screen.
+        s = PlaybackGeometry.shown(50, 0, 540, 480, 640, 480);
+        assertEquals(0, s[0], 1e-6);
+        assertEquals(1, s[2], 1e-6);
+    }
+
+    @Test
     void zoomedTextReadsAsTheCameraShowsIt() {
         assertEquals("2.0x", PlaybackText.zoom(2));
         assertEquals("1.5x", PlaybackText.zoom(1.5));

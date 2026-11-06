@@ -19,7 +19,8 @@ import java.util.List;
  * lays them out. Canvas-drawn like OverlayView: the camera's font has no symbol glyphs.
  *
  * <p>Zoomed, the picture is drawn larger about a centre (fractions of the upright picture, kept so
- * no edge shows empty) and the bottom band keeps only the keys.
+ * no edge shows empty), the bottom band keeps only the keys, and a minimap in the bottom-right
+ * corner, two outlines, shows which part of the picture is on screen.
  */
 public final class PlaybackView extends View {
     /** Each press of Up or ? / Trash shows less, then everything again (the camera's DISP). */
@@ -28,6 +29,8 @@ public final class PlaybackView extends View {
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint band = new Paint();
     private final Paint image = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private final Paint outline = new Paint();
+    private final Paint frame = new Paint();
     private final Matrix matrix = new Matrix();
 
     private Bitmap bitmap;
@@ -49,6 +52,12 @@ public final class PlaybackView extends View {
     public PlaybackView(Context context, AttributeSet attrs) {
         super(context, attrs);
         band.setColor(Color.argb(150, 0, 0, 0));
+        outline.setStyle(Paint.Style.STROKE);
+        outline.setStrokeWidth(1);
+        outline.setColor(Color.rgb(200, 200, 200));
+        frame.setStyle(Paint.Style.STROKE);
+        frame.setStrokeWidth(2);
+        frame.setColor(Color.rgb(245, 177, 92));
     }
 
     /** The picture to show, already decoded; the view does not recycle it. */
@@ -147,6 +156,7 @@ public final class PlaybackView extends View {
 
         float size = h / 22f;
         float pad = size * 0.4f;
+        float bottomBand = h;
         if (info != Info.NONE) {
             float bandBottom = pad * 2 + size;
             c.drawRect(0, 0, w, bandBottom, band);
@@ -166,6 +176,7 @@ public final class PlaybackView extends View {
             int lines = keys.size() + (facts && exposure.length() > 0 ? 1 : 0) + (facts && detail.length() > 0 ? 1 : 0);
             if (lines > 0) {
                 float top = h - pad * 2 - lines * size * 0.95f;
+                bottomBand = top;
                 c.drawRect(0, top, w, h, band);
                 float y = top + pad + size * 0.75f;
                 text.setTextSize(size * 0.85f);
@@ -187,6 +198,7 @@ public final class PlaybackView extends View {
                 }
             }
         }
+        if (zoomed && p != null && info != Info.NONE) drawMinimap(c, p, w * 0.24f, h * 0.24f, w - pad, bottomBand - pad);
         if (message.length() > 0) {
             text.setTextSize(size * 0.9f);
             List<String> lines = TextFit.wrap(text, message, w * 0.8f);
@@ -200,6 +212,24 @@ public final class PlaybackView extends View {
                 y += lh;
             }
         }
+    }
+
+    /**
+     * An outline of the whole picture, fitted in {@code boxWidth x boxHeight} with its bottom-right
+     * corner at (right, bottom), and inside it a frame around the part {@code placement} puts on screen.
+     */
+    private void drawMinimap(Canvas c, float[] placement, float boxWidth, float boxHeight, float right, float bottom) {
+        float[] fit = PlaybackGeometry.fit(bitmap.getWidth(), bitmap.getHeight(), rotation,
+                Math.round(boxWidth), Math.round(boxHeight), pixelAspect);
+        boolean turned = rotation == 90 || rotation == 270;
+        float mw = (turned ? bitmap.getHeight() : bitmap.getWidth()) * fit[0];
+        float mh = (turned ? bitmap.getWidth() : bitmap.getHeight()) * fit[1];
+        float left = right - mw;
+        float top = bottom - mh;
+        c.drawRect(left, top, right, bottom, band);
+        c.drawRect(left, top, right, bottom, outline);
+        float[] s = PlaybackGeometry.shown(placement[0], placement[1], placement[2], placement[3], getWidth(), getHeight());
+        c.drawRect(left + s[0] * mw, top + s[1] * mh, left + s[2] * mw, top + s[3] * mh, frame);
     }
 
     /** Draws {@code b}, turned upright by the picture's rotation, over {@code width x height} from (left, top). */

@@ -95,6 +95,22 @@ public final class PlaybackGeometry {
         return Math.max(half, Math.min(1 - half, c));
     }
 
+    /**
+     * The part of a picture drawn {@code width x height} view pixels from (left, top) that a view
+     * {@code viewWidth x viewHeight} shows: {@code {x0, y0, x1, y1}}, fractions of the picture, for
+     * the zoomed view's minimap.
+     */
+    public static float[] shown(float left, float top, float width, float height, int viewWidth, int viewHeight) {
+        if (width <= 0 || height <= 0) return new float[]{0, 0, 1, 1};
+        return new float[]{
+                clamp01(-left / width), clamp01(-top / height),
+                clamp01((viewWidth - left) / width), clamp01((viewHeight - top) / height)};
+    }
+
+    private static float clamp01(float f) {
+        return Math.max(0, Math.min(1, f));
+    }
+
     /** The largest power-of-two decode step that still leaves the picture at least {@code min} pixels on its long side. */
     public static int sampleSize(int width, int height, int min) {
         int longSide = Math.max(width, height);
