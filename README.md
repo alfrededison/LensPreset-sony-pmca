@@ -28,6 +28,7 @@ the exposure line, and the zoom lever zooms up to 3x with a minimap.
 |---|---|
 | Group photo | Aperture priority, aperture from the depth of field the rows need (adjustable 1–4 rows), ≥1/125, face detection; burst without a timer, single shots with a 2 s / 10 s timer |
 | Portrait, blurred background | Widest aperture two-thirds of a stop closed (Sigma 30 f/1.4 → target f/1.8), face AF, guidance for the camera's Eye AF button; optional Portrait style and Soft Skin Low |
+| Portrait against the sun | Wide aperture targeting f/2–f/2.8 within the lens's limits, Auto ISO minimum 1/250, face AF, +2/3 EV so the shaded face stays bright; sun-behind-the-hair and highlight hints |
 | Portrait with scenery | The lens's sharpest apertures, face AF, rule-of-thirds and horizon guides |
 | Beach scenery | Lens sweet spot, f/5.6–f/8 target, Auto ISO minimum 1/250, +1/3 EV for bright sand; check sand and cloud highlights |
 | Portrait by the sea | Lens sweet spot, f/4–f/5.6 target, Auto ISO minimum 1/250, face AF, +1/3 EV; soft-light and horizon hints |

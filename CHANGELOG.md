@@ -2,6 +2,11 @@
 
 ## 1.2.1 — unreleased
 
+### Presets
+
+- New preset **Portrait against the sun**: f/2–f/2.8 within the lens's limits, +2/3 EV, Auto ISO
+  minimum 1/250 and face AF, for a person with the sun behind them and the face kept bright.
+
 ## 1.2.0 — 2026-11-06
 
 ### Playback
