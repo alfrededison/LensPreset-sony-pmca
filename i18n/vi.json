@@ -39,6 +39,9 @@
 
   "menu.title": "Menu",
   "menu.lens": "Ống kính",
+  "menu.recipe": "Công thức màu (Recipe Lab)",
+  "menu.recipe_detail": "Mở Recipe Lab; thoát app đó để quay lại đây",
+  "menu.recipe_missing": "Chưa cài Recipe Lab",
   "menu.language": "Ngôn ngữ",
   "menu.settings": "Cài đặt",
   "menu.auto": "Tự động",
@@ -52,6 +55,10 @@
   "menu.no_problems": "Mọi profile đều nạp được.",
   "menu.about": "Giới thiệu",
   "menu.exit": "Thoát",
+
+  "recipe.not_installed": "Chưa cài Recipe Lab. Tải tại {url} và cài như LensPreset; sau đó mục này sẽ mở nó.",
+  "recipe.open_failed": "Không mở được Recipe Lab; xem log của app",
+  "recipe.look_kept": "Đã bật Giữ màu hiện tại để công thức màu không bị ghi đè",
 
   "lens.choose": "Ống kính",
   "lens.auto": "Tự nhận diện",

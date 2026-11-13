@@ -39,6 +39,9 @@
 
   "menu.title": "Menu",
   "menu.lens": "Lens",
+  "menu.recipe": "Color recipe (Recipe Lab)",
+  "menu.recipe_detail": "Opens Recipe Lab; exit it to come back here",
+  "menu.recipe_missing": "Recipe Lab is not installed",
   "menu.language": "Language",
   "menu.settings": "Settings",
   "menu.auto": "Automatic",
@@ -52,6 +55,10 @@
   "menu.no_problems": "Every profile loaded.",
   "menu.about": "About",
   "menu.exit": "Exit",
+
+  "recipe.not_installed": "Recipe Lab is not installed. Get it from {url} and install it like LensPreset; this item then opens it.",
+  "recipe.open_failed": "Could not open Recipe Lab; see the app log",
+  "recipe.look_kept": "Keep current look turned on, so the recipe stays",
 
   "lens.choose": "Lens",
   "lens.auto": "Detect automatically",

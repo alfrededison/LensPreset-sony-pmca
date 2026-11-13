@@ -118,7 +118,7 @@ with the app's log: *MENU → Save log to card* writes it to `LENSPRST/LOG.TXT`.
 | Wheel | change the highlighted ISO, EV, or preset option (applied at once) | move; in preset options, change the selected value |
 | Left / Right | select ISO, EV, or a preset option to highlight | change a value |
 | Centre | list of situations | select |
-| MENU | app menu: lens, language, settings, camera probe, save log, reload, about, exit | back |
+| MENU | app menu: lens, color recipe, language, settings, camera probe, save log, reload, about, exit | back |
 | ? / Trash | cycle: hide hints → hide key guide too → hide all overlays → show all | back |
 | Playback | review the pictures on the card, newest first (below) | review |
 
@@ -154,6 +154,14 @@ which part is on screen. Playback, MENU or the shutter button returns to shootin
 closed while playback is open, as it is on the camera itself, and the preset is applied again on
 return. It is there to check what you just shot, not to replace the camera's own playback: it shows
 no movies and does not delete, protect or rotate pictures.
+
+**MENU → Color recipe (Recipe Lab)** opens [Recipe Lab](https://github.com/voxivoid/recipe-lab-sony-pmca),
+if it is installed, to pick a colour recipe; exiting Recipe Lab comes back to LensPreset, which
+reopens the camera and applies the current preset again. LensPreset does not write recipes itself.
+LensPreset never sets white balance, but it does set Creative Style unless **Keep current look** is
+on, so opening Recipe Lab turns that switch on and the recipe's style stays. Exposure compensation
+still follows the preset, so a recipe's own EV is replaced on return. Tested on the A5100: on
+return the live view stays black for about two seconds, until Recipe Lab lets go of it.
 
 **MENU → Settings** has two saved switches:
 

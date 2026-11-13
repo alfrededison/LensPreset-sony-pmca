@@ -324,6 +324,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             }
         }
         surface.getHolder().addCallback(this);
+        surface.setVisibility(View.VISIBLE);   // hidden by onPause
         if (sony != null) {
             trace("direct shutter");
             sony.startDirectShutter();
@@ -369,16 +370,22 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         showLive();
         if (sony == null) overlay.setStatus(i18n.t("apply.no_camera"), true);
         else overlay.setStatus(i18n.t("apply.choose_preset"));
-        restoreSavedPreset();
+        boolean applying = restoreSavedPreset();
+        // A pending restore (waiting for the preview) or a running apply reports it in onApplied.
+        if (recipeLookNotice && !applying && !restorePending) {
+            recipeLookNotice = false;
+            if (sony != null) overlay.setStatus(i18n.t("recipe.look_kept"));
+        }
         trace("ready");
     }
 
-    private void restoreSavedPreset() {
+    /** True when an apply was started. */
+    private boolean restoreSavedPreset() {
         if (!restorePending || !resumed || !loaded || !previewStarted
-                || sony == null || camera == null || lens == null || preset == null) return;
+                || sony == null || camera == null || lens == null || preset == null) return false;
         restorePending = false;
         trace("restore preset " + preset.id);
-        apply();
+        return apply();
     }
 
     @Override
@@ -386,6 +393,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         super.onPause();
         resumed = false;
         previewStarted = false;
+        previewRetryUntil = 0;
         restorePending = false;
         settingsNeedApply = false;
         debugManagedLook = false;
@@ -401,16 +409,21 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             // Power off, USB or another app: resume opens the camera and the live view again.
             playback.close();
             playbackView.setVisibility(View.GONE);
-            surface.setVisibility(View.VISIBLE);
             overlay.setVisibility(View.VISIBLE);
             screen = Screen.LIVE;
         }
         handler.removeCallbacksAndMessages(null);
         surface.getHolder().removeCallback(this);
+        surfaceExists = false;   // hidden below; with the callback gone, surfaceDestroyed is not called
         if (sony != null) {
             sony.close();
             sony = null;
         }
+        // The body has one live-view overlay, held by this surface until it is destroyed, not by the
+        // camera: left to onStop, it outlived Recipe Lab's startPreview ("overlays already in use") and
+        // Recipe Lab stayed black. Hidden now, it is freed before the next app opens the camera;
+        // resume shows it again and the preview starts in surfaceCreated.
+        surface.setVisibility(View.GONE);
     }
 
     @Override
@@ -440,10 +453,27 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     private void startPreview() {
         if (!resumed || isExiting() || previewStarted || sony == null || debug.contains("no-preview")) return;
+        handler.removeCallbacks(retryPreview);
         try {
             sony.startPreview(surface.getHolder());
             previewStarted = true;
+            if (previewRetryUntil != 0) {
+                card.log(Collections.singletonList("preview started on retry"));
+                previewRetryUntil = 0;
+            }
         } catch (Throwable t) {
+            // Just after another app let go of the camera (back from Recipe Lab), the body refuses
+            // startPreview for a moment and the live view stays black; Recipe Lab retries the same way.
+            long now = SystemClock.uptimeMillis();
+            if (previewRetryUntil == 0) {
+                previewRetryUntil = now + PREVIEW_RETRY_FOR_MS;
+                card.log(Collections.singletonList("preview failed, retrying: " + ApplyReport.describe(t)));
+            }
+            if (now < previewRetryUntil) {
+                handler.postDelayed(retryPreview, PREVIEW_RETRY_MS);
+                return;
+            }
+            previewRetryUntil = 0;
             // Possibly before the language tables have loaded (see startLoading).
             overlay.setStatus(i18n != null ? i18n.t("ui.preview_failed") : "Live view could not start", true);
             card.log(Collections.singletonList("preview failed: " + ApplyReport.describe(t)));
@@ -451,12 +481,35 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         restoreSavedPreset();
     }
 
+    private static final long PREVIEW_RETRY_FOR_MS = 6000;
+    private static final long PREVIEW_RETRY_MS = 250;
+    /** While startPreview is being retried: when to give up; 0 otherwise. */
+    private long previewRetryUntil;
+    /**
+     * Between surfaceCreated and surfaceDestroyed. Surface.isValid() is not used for the retry: on the
+     * A5100 it stopped a retry that would have found the overlay free a moment later.
+     */
+    private boolean surfaceExists;
+    private final Runnable retryPreview = new Runnable() {
+        @Override
+        public void run() {
+            if (surfaceExists) {
+                trace("preview retry");
+                startPreview();
+            } else {
+                previewRetryUntil = 0;
+                trace("preview retry: no surface, surfaceCreated starts it");
+            }
+        }
+    };
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        surfaceExists = true;
         if (failed || !resumed || isExiting()) return;
         trace("surface created, preview");
         startPreview();
-        trace("preview started");
+        trace(previewStarted ? "preview started" : previewRetryUntil != 0 ? "preview retrying" : "preview not started");
     }
 
     @Override
@@ -465,6 +518,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        surfaceExists = false;
         trace("surface destroyed");
         previewStarted = false;
     }
@@ -553,10 +607,11 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         return sb.toString();
     }
 
-    private void apply() {
+    /** True when the apply was started; its report arrives in onApplied. */
+    private boolean apply() {
         restorePending = false;
         refresh();
-        if (rec == null || sony == null) return;
+        if (rec == null || sony == null) return false;
         final Recommendation applying = rec;
         // The report can arrive seconds later, after a lens change or a reload: log what was applied.
         final String what = "apply " + preset.id + " camera=" + camera.id + " lens=" + lens.id;
@@ -585,7 +640,14 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                     args.put("items", itemNames(failures));
                     status = i18n.t("apply.partial", args);
                 }
-                overlay.setStatus(status, !failures.isEmpty());
+                String shown = status;
+                if (recipeLookNotice) {
+                    recipeLookNotice = false;
+                    // Back from Recipe Lab: say the switch was turned on, unless something failed.
+                    // What the body lacks stays in the log below.
+                    if (failures.isEmpty()) shown = i18n.t("recipe.look_kept");
+                }
+                overlay.setStatus(shown, !failures.isEmpty());
                 List<String> log = new ArrayList<String>();
                 log.add(what + " focal=" + Math.round(applying.focalMm));
                 for (String l : report.logLines()) log.add("  " + l);
@@ -594,6 +656,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
                 card.log(log);
             }
         });
+        return true;
     }
 
     private String itemNames(List<ApplyReport.Item> items) {
@@ -958,14 +1021,15 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
     }
 
     private static final int MENU_LENS = 0;
-    private static final int MENU_LANGUAGE = 1;
-    private static final int MENU_SETTINGS = 2;
-    private static final int MENU_PROBE = 3;
-    private static final int MENU_SAVE_LOG = 4;
-    private static final int MENU_RELOAD = 5;
-    private static final int MENU_PROBLEMS = 6;
-    private static final int MENU_ABOUT = 7;
-    private static final int MENU_EXIT = 8;
+    private static final int MENU_RECIPE = 1;
+    private static final int MENU_LANGUAGE = 2;
+    private static final int MENU_SETTINGS = 3;
+    private static final int MENU_PROBE = 4;
+    private static final int MENU_SAVE_LOG = 5;
+    private static final int MENU_RELOAD = 6;
+    private static final int MENU_PROBLEMS = 7;
+    private static final int MENU_ABOUT = 8;
+    private static final int MENU_EXIT = 9;
 
     private void openMenu() {
         overlay.setUnderPanel(true);
@@ -974,6 +1038,8 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         String lensName = lens == null ? i18n.t("lens.none") : lens.name;
         rows.add(ListPanel.Row.submenu(i18n.t("menu.lens"), lensName,
                 Prefs.AUTO.equals(prefs.lens()) ? i18n.t("lens.auto") : null));
+        rows.add(new ListPanel.Row(i18n.t("menu.recipe"), null,
+                i18n.t(RecipeLab.launchIntent(this) != null ? "menu.recipe_detail" : "menu.recipe_missing"), false));
         rows.add(ListPanel.Row.submenu(i18n.t("menu.language"), i18n.languageName(i18n.language()),
                 Prefs.AUTO.equals(prefs.language()) ? i18n.t("menu.auto") : null));
         rows.add(ListPanel.Row.submenu(i18n.t("menu.settings"), null, null));
@@ -995,6 +1061,7 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
         else if (action == Keys.ENTER) {
             switch (panel.selected()) {
                 case MENU_LENS: openLenses(); break;
+                case MENU_RECIPE: openRecipeLab(); break;
                 case MENU_LANGUAGE: openLanguages(); break;
                 case MENU_PROBE: runProbe(); break;
                 case MENU_SAVE_LOG: saveLog(); break;
@@ -1014,6 +1081,42 @@ public final class MainActivity extends BaseActivity implements SurfaceHolder.Ca
             }
         }
     }
+
+    /**
+     * Opens Recipe Lab on top of this activity; its exit resumes LensPreset, which reopens the camera
+     * and applies the preset again. onPause closes the camera before Recipe Lab opens it. The recipe
+     * survives that apply only while Keep current look is on, so opening Recipe Lab turns it on.
+     */
+    private void openRecipeLab() {
+        Intent intent = RecipeLab.launchIntent(this);
+        if (intent == null) {
+            Map<String, String> v = new HashMap<String, String>();
+            v.put("url", RecipeLab.URL);
+            openText(i18n.t("menu.recipe"), Collections.singletonList(i18n.t("recipe.not_installed", v)));
+            return;
+        }
+        showLive();
+        try {
+            startActivity(intent);
+        } catch (RuntimeException e) {
+            // ActivityNotFoundException or SecurityException: say so and stay here, settings untouched.
+            card.log(Collections.singletonList("recipe lab: open failed: " + ApplyReport.describe(e)));
+            overlay.setStatus(i18n.t("recipe.open_failed"), true);
+            return;
+        }
+        // startActivity only queues the launch: the switch is set before the apply on return reads it.
+        boolean lookTurnedOn = !prefs.preserveLook();
+        if (lookTurnedOn) prefs.setPreserveLook(true);
+        card.log(Collections.singletonList("recipe lab: open" + (lookTurnedOn ? " (keep current look turned on)" : "")));
+        // Said on return: while Recipe Lab is in front nobody sees this screen.
+        recipeLookNotice = lookTurnedOn;
+    }
+
+    /**
+     * Opening Recipe Lab turned Keep current look on; say so once LensPreset is back. The apply that
+     * restores the preset on return would replace the notice, so its report says it instead.
+     */
+    private boolean recipeLookNotice;
 
     private boolean settingsNeedApply;
 

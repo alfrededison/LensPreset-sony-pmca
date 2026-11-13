@@ -7,6 +7,14 @@
 - New preset **Portrait against the sun**: f/2–f/2.8 within the lens's limits, +2/3 EV, Auto ISO
   minimum 1/250 and face AF, for a person with the sun behind them and the face kept bright.
 
+### Functionalities
+
+- MENU → *Color recipe (Recipe Lab)* opens voxivoid's Recipe Lab, when installed, to pick a colour
+  recipe; its exit returns to LensPreset. Opening it turns *Keep current look* on so the next apply
+  leaves the recipe's Creative Style alone; EV still follows the preset. Tested on the A5100.
+- The live view lets go of the body's single video overlay on pause and retries for a few seconds
+  when it cannot get it back, so neither app is left with a black screen after switching.
+
 ## 1.2.0 — 2026-11-06
 
 ### Playback
