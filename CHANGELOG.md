@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.1 — unreleased
+## 1.3.0 — 2026-11-16
 
 ### Presets
 
